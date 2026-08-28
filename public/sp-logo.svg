@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <style>
+      .logo-right {
+        fill: #2E49D1;
+      }
+      @media (prefers-color-scheme: dark) {
+        .logo-right {
+          fill: #7186ff;
+        }
+      }
+    </style>
+    <mask id="logo-mask">
+      <image width="64" height="64" href="data:image/png;base64,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" />
+    </mask>
+  </defs>
+  <g mask="url(#logo-mask)">
+    <rect x="0" y="0" width="32" height="64" fill="#3D5CFF" />
+    <rect x="32" y="0" width="32" height="64" class="logo-right" />
+  </g>
+</svg>

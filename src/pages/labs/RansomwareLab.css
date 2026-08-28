@@ -1,0 +1,325 @@
+/* RansomwareLab.css */
+
+.ransomware-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Outfit', 'Poppins', sans-serif;
+  color: var(--text-primary);
+  /* The layout wrapper is usually handled by CyberLabPage, but we keep this for internal scoping */
+}
+
+.ransomware-header {
+  width: 100%;
+  max-width: 48rem; /* max-w-3xl */
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.ransomware-title {
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .ransomware-title {
+    font-size: 3rem;
+  }
+}
+
+.ransomware-subtitle {
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  margin-left: 0.25rem;
+  font-size: 1.125rem;
+}
+
+.ransomware-card {
+  width: 100%;
+  max-width: 48rem;
+  background-color: var(--background-paper);
+  padding: 2rem;
+  border-radius: 1.5rem;
+
+  border: 1px solid var(--divider);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.ransomware-svg-container {
+  position: relative;
+  width: 100%;
+  max-width: 650px;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 2rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid var(--divider);
+  background-color: var(--background-default);
+}
+
+.ransomware-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));
+}
+
+.ransomware-controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .ransomware-controls {
+    flex-direction: row;
+  }
+}
+
+.ransomware-attack-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.ransomware-attack-btn {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--danger-main);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  border: none;
+
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .ransomware-attack-btn {
+    width: auto;
+  }
+}
+
+.ransomware-attack-btn:hover:not(:disabled) {
+  background-color: #b91c1c; /* darker red */
+}
+
+.ransomware-attack-btn:disabled {
+  background-color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.ransomware-attack-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  margin-left: 0.25rem;
+}
+
+.ransomware-defense-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+  padding-left: 0;
+  border-left: none;
+}
+
+@media (min-width: 768px) {
+  .ransomware-defense-panel {
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--divider);
+  }
+}
+
+.ransomware-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.ransomware-toggle-text {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.ransomware-toggle-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.ransomware-toggle-subtitle {
+  font-size: 0.625rem; /* 10px */
+  color: var(--text-secondary);
+}
+
+.ransomware-toggle-btn {
+  width: 3rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.3s;
+  border: none;
+  cursor: pointer;
+
+  padding: 0;
+}
+
+.ransomware-toggle-btn.active {
+  background-color: var(--success-main);
+}
+
+.ransomware-toggle-btn.inactive {
+  background-color: var(--text-disabled);
+}
+
+.ransomware-toggle-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background-color: #fff;
+
+  transition: transform 0.3s;
+}
+
+.ransomware-toggle-btn.active .ransomware-toggle-thumb {
+  transform: translateX(1.75rem);
+}
+
+.ransomware-toggle-btn.inactive .ransomware-toggle-thumb {
+  transform: translateX(0.25rem);
+}
+
+.ransomware-restore-btn {
+  padding: 0.5rem 1rem;
+  background-color: var(--info-main);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  border: none;
+
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ransomware-restore-btn:hover:not(:disabled) {
+  background-color: var(--info-dark);
+}
+
+.ransomware-restore-btn:disabled {
+  background-color: var(--background-default);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.ransomware-status-container {
+  margin-top: 2.5rem;
+  text-align: center;
+  min-height: 4rem;
+  width: 100%;
+  background-color: var(--background-default);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--divider);
+}
+
+.ransomware-status-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ransomware-status-title.normal { color: var(--text-primary); }
+.ransomware-status-title.warning { color: var(--yellow-500); }
+.ransomware-status-title.success { color: var(--success-main); }
+.ransomware-status-title.danger { color: var(--danger-main); }
+.ransomware-status-title.info { color: var(--blue-500); }
+
+.ransomware-status-desc {
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+.ransomware-pay-btn {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--danger-main);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.ransomware-pay-btn:hover {
+  color: #b91c1c;
+}
+
+/* Animations and SVG specific styles */
+.shake-anim {
+  animation: shake 0.4s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 2px); }
+  50% { transform: translate(2px, -2px); }
+  75% { transform: translate(-2px, -2px); }
+}
+
+.glitch-text {
+  animation: glitch 1s linear infinite;
+}
+
+@keyframes glitch {
+  2%, 64% { transform: translate(2px,0) skew(0deg); }
+  4%, 60% { transform: translate(-2px,0) skew(0deg); }
+  62% { transform: translate(0,0) skew(5deg); }
+}
+
+/* SVG Custom Variables overriding component-level if needed */
+.ransomware-card {
+  --hacker-bg: #1f2937;
+  --pc-bg: var(--background-default);
+  --pc-border: var(--text-disabled);
+  --file-normal: var(--blue-500);
+  --file-locked: var(--danger-main);
+  --shield-active: var(--success-main);
+  --shield-inactive: var(--text-disabled);
+
+  /* Fallback aliases for inline styles */
+  --warning-main: var(--yellow-500);
+  --info-main: var(--blue-500);
+  --info-dark: var(--primary-dark);
+}
+
+[data-theme='dark'] .ransomware-card {
+  --hacker-bg: rgba(0, 0, 0, 0.4);
+  --pc-border: rgba(255, 255, 255, 0.15);
+}

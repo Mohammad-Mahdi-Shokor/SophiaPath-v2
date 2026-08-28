@@ -1,0 +1,3728 @@
+diff --git a/src/context/AuthContext.jsx b/src/context/AuthContext.jsx
+index fb77f6b..bf8f2f7 100644
+--- a/src/context/AuthContext.jsx
++++ b/src/context/AuthContext.jsx
+@@ -303,6 +303,42 @@ export const AuthProvider = ({ children }) => {
+       console.error('registerCourse error:', err);
+     }
+   };
++  
++  const unregisterCourse = async (courseTitle) => {
++    if (!user) return;
++    const token = localStorage.getItem('token');
++    if (!token) return;
++
++    try {
++      // 1. Fetch courses to match the title
++      const coursesRes = await fetch('/courses');
++      if (!coursesRes.ok) return;
++
++      const coursesList = await coursesRes.json();
++      const course = coursesList.find(c => c.title.toLowerCase() === courseTitle.toLowerCase());
++
++      if (course) {
++        // 2. Call unregister API
++        const regRes = await fetch(`/courses/me/register/${course.id}`, {
++          method: 'DELETE',
++          headers: {
++            'Authorization': `Bearer ${token}`
++          }
++        });
++
++        if (regRes.ok) {
++          setUser(prev => ({
++            ...prev,
++            registeredCourses: (prev.registeredCourses || []).filter(
++              title => title.toLowerCase() !== courseTitle.toLowerCase()
++            )
++          }));
++        }
++      }
++    } catch (err) {
++      console.error('unregisterCourse error:', err);
++    }
++  };
+ 
+   const updateProfile = async (profileData) => {
+     if (!user) return { success: false, message: 'Not logged in' };
+@@ -333,13 +369,18 @@ export const AuthProvider = ({ children }) => {
+ 
+       const updatedUser = await res.json();
+       
++      if (profileData.avatar) {
++        localStorage.setItem(`avatar_${user.id}`, profileData.avatar);
++      }
++
+       setUser(prev => ({
+         ...prev,
+         name: updatedUser.fullname,
+         username: updatedUser.username,
+         tag: updatedUser.tag,
+         gender: updatedUser.gender,
+-        age: updatedUser.age
++        age: updatedUser.age,
++        avatar: profileData.avatar || prev.avatar
+       }));
+ 
+       return { success: true };
+@@ -350,7 +391,7 @@ export const AuthProvider = ({ children }) => {
+   };
+ 
+   return (
+-    <AuthContext.Provider value={{ user, login, register, logout, deleteAccount, updateQuizScore, registerCourse, updateProfile, loading }}>
++    <AuthContext.Provider value={{ user, login, register, logout, deleteAccount, updateQuizScore, registerCourse, unregisterCourse, updateProfile, loading }}>
+       {!loading && children}
+     </AuthContext.Provider>
+   );
+diff --git a/src/features/profile/ProfilePage.css b/src/features/profile/ProfilePage.css
+index 9a33510..75a35d8 100644
+--- a/src/features/profile/ProfilePage.css
++++ b/src/features/profile/ProfilePage.css
+@@ -327,4 +327,62 @@
+ 
+ .view-path-button:hover {
+   background-color: transparent;
++}
++
++/* ==========================================
++   SIMPLE PROFILE PICTURE UPLOADER STYLES
++   ========================================== */
++
++/* Outer container centering the uploader */
++.avatar-upload-section {
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  margin-bottom: 1.5rem;
++  position: relative;
++  width: 100%;
++}
++
++/* Standalone circular avatar dropzone clickable area */
++.avatar-dropzone {
++  position: relative;
++  width: 100px;
++  height: 100px;
++  border-radius: 50%;
++  cursor: pointer;
++  overflow: hidden;
++  border: 4px solid var(--background-paper);
++  box-shadow: var(--shadow-soft);
++  transition: border-color 0.25s ease, box-shadow 0.25s ease;
++}
++
++/* Subtle colored border glow on hover */
++.avatar-dropzone:hover {
++  border-color: var(--primary-main);
++  box-shadow: 0 4px 12px rgba(var(--primary-main-rgb), 0.15);
++}
++
++/* Translucent dark overlay with camera icon inside */
++.avatar-hover-overlay {
++  position: absolute;
++  inset: 0;
++  background: rgba(0, 0, 0, 0.45);
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  color: #ffffff;
++  opacity: 0;
++  transition: opacity 0.2s ease;
++}
++
++/* Fade in the overlay camera icon on hover */
++.avatar-dropzone:hover .avatar-hover-overlay {
++  opacity: 1;
++}
++
++/* Size validation error alert box styling */
++.avatar-error-alert {
++  width: 100%;
++  margin-top: 8px !important;
++  font-size: 0.8rem !important;
+ }
+\ No newline at end of file
+diff --git a/src/features/profile/ProfilePage.jsx b/src/features/profile/ProfilePage.jsx
+index bad808d..2a89f33 100644
+--- a/src/features/profile/ProfilePage.jsx
++++ b/src/features/profile/ProfilePage.jsx
+@@ -1,4 +1,4 @@
+-import React, { useState, useEffect } from 'react';
++import React, { useState, useEffect, useRef } from 'react';
+ import {
+   Box,
+   Typography,
+@@ -15,7 +15,8 @@ import {
+   alpha,
+   TextField,
+   Alert,
+-  Divider
++  Divider,
++  Tooltip
+ } from '@mui/material';
+ import {
+   Edit as EditIcon,
+@@ -30,7 +31,11 @@ import {
+   ArrowForward as ArrowForwardIcon,
+   CalendarToday as CalendarIcon,
+   Person as PersonIcon,
+-  Fingerprint as FingerprintIcon
++  Fingerprint as FingerprintIcon,
++  PhotoCamera as CameraIcon,
++  CloudUpload as UploadIcon,
++  Delete as DeleteIcon,
++  Check as CheckIcon
+ } from '@mui/icons-material';
+ import { useNavigate } from 'react-router-dom';
+ import { useAuth } from '../../context/AuthContext';
+@@ -47,6 +52,7 @@ const ProfilePage = () => {
+   const theme = useTheme();
+   const navigate = useNavigate();
+   const { user, updateProfile } = useAuth();
++  const fileInputRef = useRef(null);
+   
+   const [isEditing, setIsEditing] = useState(false);
+   const [saveError, setSaveError] = useState('');
+@@ -61,6 +67,12 @@ const ProfilePage = () => {
+     avatar: user?.avatar || AVATAR_OPTIONS[0]
+   });
+ 
++  const [isCustomAvatar, setIsCustomAvatar] = useState(
++    user?.avatar ? !AVATAR_OPTIONS.includes(user.avatar) : false
++  );
++  const [isDragging, setIsDragging] = useState(false);
++  const [avatarError, setAvatarError] = useState('');
++
+   const [userData, setUserData] = useState({
+     name: user?.name || 'Learner',
+     email: user?.email || '',
+@@ -91,9 +103,71 @@ const ProfilePage = () => {
+         age: user.age || '',
+         avatar: user.avatar || AVATAR_OPTIONS[0]
+       });
++      setIsCustomAvatar(user.avatar ? !AVATAR_OPTIONS.includes(user.avatar) : false);
+     }
+   }, [user]);
+ 
++  const handleFile = (file) => {
++    if (!file) return;
++
++    if (!file.type.startsWith('image/')) {
++      setAvatarError('Please select a valid image file (PNG, JPG, WebP).');
++      return;
++    }
++
++    if (file.size > 2 * 1024 * 1024) {
++      setAvatarError('Profile picture must be smaller than 2MB.');
++      return;
++    }
++
++    setAvatarError('');
++    const reader = new FileReader();
++    reader.onload = (e) => {
++      setEditForm(prev => ({ ...prev, avatar: e.target.result }));
++      setIsCustomAvatar(true);
++    };
++    reader.readAsDataURL(file);
++  };
++
++  const handleFileChange = (e) => {
++    if (e.target.files && e.target.files[0]) {
++      handleFile(e.target.files[0]);
++    }
++  };
++
++  const handleDragOver = (e) => {
++    e.preventDefault();
++    setIsDragging(true);
++  };
++
++  const handleDragLeave = (e) => {
++    e.preventDefault();
++    setIsDragging(false);
++  };
++
++  const handleDrop = (e) => {
++    e.preventDefault();
++    setIsDragging(false);
++    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
++      handleFile(e.dataTransfer.files[0]);
++    }
++  };
++
++  const triggerFileInput = () => {
++    if (fileInputRef.current) {
++      fileInputRef.current.click();
++    }
++  };
++
++  const handleRemoveAvatar = () => {
++    setEditForm(prev => ({ ...prev, avatar: AVATAR_OPTIONS[0] }));
++    setIsCustomAvatar(false);
++    setAvatarError('');
++    if (fileInputRef.current) {
++      fileInputRef.current.value = '';
++    }
++  };
++
+   const handleSave = async (e) => {
+     e.preventDefault();
+     setSaveError('');
+@@ -244,6 +318,43 @@ const ProfilePage = () => {
+                     </Alert>
+                   )}
+ 
++                  {/* Custom Avatar Upload Zone (matching RegisterPage) */}
++                  <Box className="avatar-upload-section" sx={{ mb: 3 }}>
++                    <input
++                      type="file"
++                      ref={fileInputRef}
++                      onChange={handleFileChange}
++                      accept="image/*"
++                      style={{ display: 'none' }}
++                    />
++                    
++                    <Box 
++                      className={`avatar-dropzone ${isDragging ? 'dragging' : ''}`}
++                      onDragOver={handleDragOver}
++                      onDragLeave={handleDragLeave}
++                      onDrop={handleDrop}
++                      onClick={triggerFileInput}
++                    >
++                      <Avatar
++                        src={editForm.avatar}
++                        className="avatar-preview"
++                        sx={{
++                          width: '100%',
++                          height: '100%'
++                        }}
++                      />
++                      <Box className="avatar-hover-overlay">
++                        <CameraIcon sx={{ fontSize: 32 }} />
++                      </Box>
++                    </Box>
++
++                    {avatarError && (
++                      <Alert severity="warning" className="avatar-error-alert" sx={{ mt: 1, py: 0, px: 2, borderRadius: 2 }}>
++                        {avatarError}
++                      </Alert>
++                    )}
++                  </Box>
++
+                   <TextField
+                     fullWidth
+                     label="Full Name"
+@@ -270,7 +381,7 @@ const ProfilePage = () => {
+                     margin="normal"
+                   />
+ 
+-                  <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
++                  <Box sx={{ display: 'flex', gap: 2, mt: 1, mb: 2 }}>
+                     <TextField
+                       fullWidth
+                       label="Age"
+@@ -298,28 +409,6 @@ const ProfilePage = () => {
+                     </TextField>
+                   </Box>
+ 
+-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+-                    Select Profile Picture
+-                  </Typography>
+-                  <Box sx={{ display: 'flex', gap: 2, mb: 2, justifyContent: 'center' }}>
+-                    {AVATAR_OPTIONS.map((url, idx) => (
+-                      <Avatar
+-                        key={idx}
+-                        src={url}
+-                        onClick={() => setEditForm({ ...editForm, avatar: url })}
+-                        sx={{
+-                          width: 50,
+-                          height: 50,
+-                          cursor: 'pointer',
+-                          border: editForm.avatar === url ? `3px solid ${theme.palette.primary.main}` : '3px solid transparent',
+-                          transform: editForm.avatar === url ? 'scale(1.1)' : 'none',
+-                          transition: 'all 0.2s',
+-                          '&:hover': { transform: 'scale(1.15)' }
+-                        }}
+-                      />
+-                    ))}
+-                  </Box>
+-
+                   <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
+                     <Button
+                       fullWidth
+diff --git a/src/index.css b/src/index.css
+index a63e3bf..275e6bf 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -31,6 +31,13 @@
+   --danger-main: #FF647C;
+   --nav-width: 300px;
+   --content-width: 1440px;
++  
++  /* Code Card Variables (Light Mode) */
++  --code-bg: #F7F9FC;
++  --code-header-bg: #E9EDF5;
++  --code-border: rgba(61, 92, 255, 0.12);
++  --code-line-num: rgba(45, 45, 77, 0.38);
++  --code-text-default: #2D2D4D;
+ }
+ 
+ [data-theme='dark'] {
+@@ -63,6 +70,13 @@
+   --purple-500-rgb: 167, 139, 250;
+   --success-main: #3DDC97;
+   --danger-main: #FF647C;
++
++  /* Code Card Variables (Dark Mode) */
++  --code-bg: #0F1424;
++  --code-header-bg: #171D31;
++  --code-border: rgba(255, 255, 255, 0.08);
++  --code-line-num: rgba(255, 255, 255, 0.24);
++  --code-text-default: #E5E9F0;
+ }
+ 
+ * {
+@@ -189,4 +203,18 @@ button,
+   body {
+     min-width: auto;
+   }
++}
++
++.slide-inline-code {
++  font-family: 'Roboto Mono', monospace;
++  font-size: 0.9em;
++  background: var(--code-bg);
++  color: var(--primary-main);
++  border: 1px solid var(--code-border);
++  padding: 2px 6px;
++  border-radius: 6px;
++  font-weight: 700;
++  word-break: break-all;
++  display: inline;
++  vertical-align: middle;
+ }
+\ No newline at end of file
+diff --git a/src/pages/Auth.css b/src/pages/Auth.css
+index 805e666..07e8364 100644
+--- a/src/pages/Auth.css
++++ b/src/pages/Auth.css
+@@ -99,6 +99,64 @@
+   border-radius: 12px !important;
+ }
+ 
++/* ==========================================
++   SIMPLE PROFILE PICTURE UPLOADER STYLES
++   ========================================== */
++
++/* Outer container centering the uploader */
++.avatar-upload-section {
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  margin-bottom: 1.5rem;
++  position: relative;
++  width: 100%;
++}
++
++/* Standalone circular avatar dropzone clickable area */
++.avatar-dropzone {
++  position: relative;
++  width: 100px;
++  height: 100px;
++  border-radius: 50%;
++  cursor: pointer;
++  overflow: hidden;
++  border: 4px solid var(--background-paper);
++  box-shadow: var(--shadow-soft);
++  transition: border-color 0.25s ease, box-shadow 0.25s ease;
++}
++
++/* Subtle colored border glow on hover */
++.avatar-dropzone:hover {
++  border-color: var(--primary-main);
++  box-shadow: 0 4px 12px rgba(var(--primary-main-rgb), 0.15);
++}
++
++/* Translucent dark overlay with camera icon inside */
++.avatar-hover-overlay {
++  position: absolute;
++  inset: 0;
++  background: rgba(0, 0, 0, 0.45);
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  color: #ffffff;
++  opacity: 0;
++  transition: opacity 0.2s ease;
++}
++
++/* Fade in the overlay camera icon on hover */
++.avatar-dropzone:hover .avatar-hover-overlay {
++  opacity: 1;
++}
++
++/* Size validation error alert box styling */
++.avatar-error-alert {
++  width: 100%;
++  margin-top: 8px !important;
++  font-size: 0.8rem !important;
++}
++
+ @media (max-width: 600px) {
+   .auth-card {
+     padding: 2rem 1.5rem;
+diff --git a/src/pages/CourseDetailPage.jsx b/src/pages/CourseDetailPage.jsx
+index 83d68c6..6ebcfe2 100644
+--- a/src/pages/CourseDetailPage.jsx
++++ b/src/pages/CourseDetailPage.jsx
+@@ -1,5 +1,5 @@
+-import React from 'react';
+-import { useLocation, useNavigate } from 'react-router-dom';
++import React, { useState, useEffect } from 'react';
++import { useLocation, useNavigate, useParams } from 'react-router-dom';
+ import './CourseDetailPage.css';
+ import {
+   Typography,
+@@ -8,8 +8,8 @@ import {
+   Button,
+   IconButton
+ } from '@mui/material';
+-import { useParams } from 'react-router-dom';
+ import { coursesData } from '../data/courses';
++import { useAuth } from '../context/AuthContext';
+ 
+ import {
+   ArrowBack as ArrowBackIcon,
+@@ -18,18 +18,97 @@ import {
+   CheckCircle as CheckCircleIcon,
+   AccessTime as TimeIcon,
+   MenuBook as BookIcon,
+-  EmojiEvents as TrophyIcon
++  EmojiEvents as TrophyIcon,
++  DeleteOutline as DeleteIcon
+ } from '@mui/icons-material';
+ 
+ const CourseDetailPage = () => {
+   const { courseId } = useParams();
+   const location = useLocation();
+   const navigate = useNavigate();
++  const { user, registerCourse, unregisterCourse } = useAuth();
+   
+-  const course = location.state?.course || coursesData.find(c => 
+-    c.title.toLowerCase().replace(/\s+/g, '-') === courseId
+-  );
++  const [course, setCourse] = useState(location.state?.course || null);
++  const [loading, setLoading] = useState(!course);
++
++  useEffect(() => {
++    const loadCourseData = async () => {
++      try {
++        const res = await fetch('/courses/export/all');
++        if (res.ok) {
++          const list = await res.json();
++          const mappedList = list.map(bc => ({
++            id: bc.id,
++            title: bc.title,
++            description: bc.description || '',
++            about: bc.about || '',
++            imageUrl: bc.imageUrl || '',
++            comingsoon: bc.comingsoon || false,
++            sections: (bc.sections || []).map(sec => {
++              const uniqueLessons = [];
++              const seenTitles = new Set();
++              (sec.lessons || []).forEach(les => {
++                const norm = (les.title || '').trim().toLowerCase();
++                if (norm && !seenTitles.has(norm)) {
++                  seenTitles.add(norm);
++                  uniqueLessons.push({
++                    id: les.id,
++                    category: les.category || 'learning',
++                    chapterName: les.chapterName || '',
++                    title: les.title || 'Untitled Lesson',
++                    orderIndex: les.orderIndex || 0,
++                  });
++                }
++              });
++
++              return {
++                id: sec.id,
++                title: sec.title,
++                description: sec.description || '',
++                lessons: uniqueLessons
++              };
++            })
++          }));
++
++          const matched = mappedList.find(c => 
++            String(c.id) === String(courseId) ||
++            c.title.toLowerCase().replace(/\s+/g, '-') === String(courseId).toLowerCase()
++          );
++          if (matched) {
++            setCourse(matched);
++            setLoading(false);
++            return;
++          }
++        }
++      } catch (err) {
++        console.error('Failed to load course details from database:', err);
++      }
++
++      // Fallback to local data
++      const fallback = coursesData.find(c => 
++        c.title.toLowerCase().replace(/\s+/g, '-') === courseId ||
++        String(c.id) === String(courseId)
++      );
++      setCourse(fallback);
++      setLoading(false);
++    };
+ 
++    loadCourseData();
++  }, [courseId]);
++
++  if (loading) {
++    return (
++      <div className="course-not-found" style={{ display: 'flex', flexDirection: 'column', gap: '20px', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
++        <div className="loading-spinner" style={{ width: '50px', height: '50px', borderRadius: '50%', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--primary-main)', animation: 'spin 1s linear infinite' }} />
++        <Typography variant="h6" style={{ color: 'var(--text-secondary)' }}>Loading Course Curriculum...</Typography>
++        <style>{`
++          @keyframes spin {
++            to { transform: rotate(360deg); }
++          }
++        `}</style>
++      </div>
++    );
++  }
+ 
+   if (!course) {
+     return (
+@@ -47,22 +126,45 @@ const CourseDetailPage = () => {
+     );
+   }
+ 
+-  const handleEnroll = () => {
++  const isRegistered = user?.registeredCourses?.some(
++    title => title.toLowerCase() === course.title.toLowerCase()
++  );
++
++  const handleEnroll = async () => {
++    if (!isRegistered) {
++      await registerCourse(course.title);
++    }
+     navigate(`/learning-path/${course.id}`, { state: { course } });
+   };
+ 
++  const handleUnregister = async () => {
++    if (window.confirm(`Are you sure you want to unenroll from ${course.title}? Your progress will be reset.`)) {
++      await unregisterCourse(course.title);
++    }
++  };
+ 
+   return (
+     <div className="course-detail-container">
+       <div className="course-detail-header">
+-
+         <Container maxWidth="lg" className="course-detail-header-content">
+-          <IconButton
+-            onClick={() => navigate(-1)}
+-            className="course-detail-back-button"
+-          >
+-            <ArrowBackIcon />
+-          </IconButton>
++          <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
++            <IconButton
++              onClick={() => navigate(-1)}
++              className="course-detail-back-button"
++            >
++              <ArrowBackIcon />
++            </IconButton>
++            
++            {isRegistered && (
++              <IconButton
++                onClick={handleUnregister}
++                style={{ color: 'var(--danger-main)', marginLeft: 'auto' }}
++                title="Unenroll from course"
++              >
++                <DeleteIcon />
++              </IconButton>
++            )}
++          </div>
+ 
+           <div className="course-detail-copy">
+             <Typography variant="overline" className="course-detail-kicker">
+@@ -82,7 +184,7 @@ const CourseDetailPage = () => {
+               </div>
+               <div className="course-detail-meta-item">
+                 <BookIcon fontSize="small" />
+-                <span>{course.totalLessons} Comprehensive Lessons</span>
++                <span>{course.totalLessons || course.sections?.reduce((sum, s) => sum + (s.lessons?.length || 0), 0) || 6} Comprehensive Lessons</span>
+               </div>
+             </div>
+           </div>
+@@ -114,7 +216,7 @@ const CourseDetailPage = () => {
+               </Typography>
+               <br></br>
+               <div className="course-section-list">
+-                {course.sections.map((section, index) => {
++                {course.sections?.map((section, index) => {
+                   const lessonCount = section.lessons?.length || 0;
+ 
+                   return (
+@@ -139,7 +241,7 @@ const CourseDetailPage = () => {
+                         </div>
+                       </div>
+                       <div className="course-section-action">
+-                        {index === 0 ? (
++                        {index === 0 || isRegistered ? (
+                           <div className="course-section-play-icon">
+                             <PlayIcon />
+                           </div>
+@@ -162,11 +264,14 @@ const CourseDetailPage = () => {
+               <div className="course-sidebar-decoration"></div>
+ 
+               <Typography variant="h5" className="course-sidebar-title">
+-                Ready to begin?
++                {isRegistered ? "Ready to resume?" : "Ready to begin?"}
+               </Typography>
+               <div style={{ height: "10px" }}></div>
+               <Typography className="course-sidebar-description">
+-                Join thousands of students and start your journey in <strong>{course.title}</strong> today.
++                {isRegistered 
++                  ? `Pick up right where you left off and complete your mastery of ${course.title}.`
++                  : `Join thousands of students and start your journey in ${course.title} today.`
++                }
+               </Typography>
+               <div style={{ height: "20px" }}></div>
+               <Button
+@@ -176,9 +281,21 @@ const CourseDetailPage = () => {
+                 onClick={handleEnroll}
+                 className="course-enroll-button"
+               >
+-                Enroll Now
++                {isRegistered ? "Continue Learning" : "Register Now"}
+               </Button>
+ 
++              {isRegistered && (
++                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
++                  <Button
++                    size="small"
++                    style={{ color: 'var(--danger-main)', textTransform: 'none' }}
++                    onClick={handleUnregister}
++                  >
++                    Unenroll from Course
++                  </Button>
++                </div>
++              )}
++
+               <div className="course-perks">
+                 {[
+                   "Full lifetime access",
+diff --git a/src/pages/LearningPage.jsx b/src/pages/LearningPage.jsx
+index 0f89eb9..396e086 100644
+--- a/src/pages/LearningPage.jsx
++++ b/src/pages/LearningPage.jsx
+@@ -29,12 +29,74 @@ import { coursesData } from '../data/courses';
+ import './LearningPage.css';
+ 
+ 
++const getCourseDomain = (title) => {
++  const t = title.toLowerCase();
++  if (t.includes('cyber') || t.includes('security') || t.includes('network')) {
++    return 'Technology';
++  }
++  if (t.includes('computer') || t.includes('develop') || t.includes('ai') || t.includes('code') || t.includes('basics') || t.includes('programming') || t.includes('mobile')) {
++    return 'Technology';
++  }
++  if (t.includes('physics') || t.includes('science') || t.includes('math') || t.includes('chem')) {
++    return 'Science';
++  }
++  if (t.includes('philosophy') || t.includes('ethics') || t.includes('history') || t.includes('art') || t.includes('humanities')) {
++    return 'Humanities';
++  }
++  if (t.includes('design') || t.includes('graphic') || t.includes('ui') || t.includes('ux') || t.includes('creative')) {
++    return 'Design';
++  }
++  if (t.includes('business') || t.includes('marketing') || t.includes('management') || t.includes('finance')) {
++    return 'Business';
++  }
++  return 'Technology';
++};
++
+ const LearningPage = () => {
+   const { user, registerCourse } = useAuth();
+   const [searchQuery, setSearchQuery] = useState('');
+   const [activeCategory, setActiveCategory] = useState('All');
++  const [courses, setCourses] = useState(coursesData);
+   const navigate = useNavigate();
+ 
++  useEffect(() => {
++    const loadCourses = async () => {
++      try {
++        const res = await fetch('/courses/export/all');
++        if (res.ok) {
++          const backendCourses = await res.json();
++          if (backendCourses && backendCourses.length > 0) {
++            const mapped = backendCourses.map(bc => ({
++              id: bc.id,
++              title: bc.title,
++              description: bc.description || '',
++              about: bc.about || '',
++              imageUrl: bc.imageUrl || '',
++              comingsoon: bc.comingsoon || false,
++              domain: getCourseDomain(bc.title),
++              sections: (bc.sections || []).map(sec => ({
++                id: sec.id,
++                title: sec.title,
++                description: sec.description || '',
++                lessons: (sec.lessons || []).map(les => ({
++                  id: les.id,
++                  category: les.category || 'learning',
++                  chapterName: les.chapterName || '',
++                  title: les.title || 'Untitled Lesson',
++                  orderIndex: les.orderIndex || 0,
++                }))
++              }))
++            }));
++            setCourses(mapped);
++          }
++        }
++      } catch (err) {
++        console.error('Failed to load courses from backend export/all:', err);
++      }
++    };
++    loadCourses();
++  }, []);
++
+   const categories = ['All', 'Technology', 'Science', 'Humanities', 'Design', 'Business'];
+ 
+   const registeredCourseTitles = user?.registeredCourses || [];
+@@ -43,15 +105,15 @@ const LearningPage = () => {
+     const progress = {};
+     if (!user || !user.quizScores) return progress;
+ 
+-    coursesData.forEach(course => {
+-      const lessonIds = course.sections.flatMap(s => s.lessons).map(l => l.id);
++    courses.forEach(course => {
++      const lessonIds = course.sections.flatMap(s => s.lessons || []).map(l => l.id);
+       const completedCount = lessonIds.filter(id => user.quizScores[id] !== undefined).length;
+       progress[course.title] = completedCount;
+     });
+     return progress;
+-  }, [user]);
++  }, [user, courses]);
+ 
+-  const filteredCourses = coursesData.filter(course => {
++  const filteredCourses = courses.filter(course => {
+     const matchesSearch =
+       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       course.description.toLowerCase().includes(searchQuery.toLowerCase());
+@@ -61,7 +123,7 @@ const LearningPage = () => {
+     return matchesSearch && matchesCategory;
+   });
+ 
+-  const totalAvailableCourses = coursesData.length;
++  const totalAvailableCourses = courses.length;
+ 
+   const comingSoon = [
+     'Artificial Intelligence',
+@@ -101,12 +163,11 @@ const LearningPage = () => {
+   };
+ 
+   const dashboardStats = useMemo(() => {
+-
+     const activeCourses = registeredCourseTitles.length;
+     const totalLessonsCompleted = Object.values(courseProgress).reduce((sum, value) => sum + value, 0);
+     const totalCoursesCompleted = Object.entries(courseProgress).filter(([title, count]) => {
+-      const course = coursesData.find(c => c.title === title);
+-      const totalLessons = course?.sections.flatMap(s => s.lessons).length || 0;
++      const course = courses.find(c => c.title === title);
++      const totalLessons = course?.sections.flatMap(s => s.lessons || []).length || 0;
+       return count > 0 && count === totalLessons;
+     }).length;
+ 
+@@ -115,32 +176,32 @@ const LearningPage = () => {
+       { label: 'Lessons Cleared', value: String(totalLessonsCompleted).padStart(2, '0') },
+       { label: 'Courses Completed', value: String(totalCoursesCompleted).padStart(2, '0') },
+     ];
+-  }, [courseProgress, registeredCourseTitles]);
++  }, [courseProgress, registeredCourseTitles, courses]);
+ 
+   const isCourseRegistered = (courseTitle) => {
+-    return registeredCourseTitles.includes(courseTitle);
++    return registeredCourseTitles.some(title => title.toLowerCase() === courseTitle.toLowerCase());
+   };
+ 
+-
+   const getLessonsFinished = (courseTitle) => {
+     return courseProgress[courseTitle] || 0;
+   };
+ 
+   const getTotalLessons = (courseTitle) => {
+-    const course = coursesData.find(c => c.title === courseTitle);
+-    return course ? course.sections.flatMap(s => s.lessons).length : 0;
++    const course = courses.find(c => c.title.toLowerCase() === courseTitle.toLowerCase());
++    return course ? course.sections.flatMap(s => s.lessons || []).length : 0;
+   };
+ 
+   const handleCourseClick = (course) => {
+-    const freshCourse = coursesData.find(c => c.title === course.title) || course;
++    const freshCourse = courses.find(c => c.title.toLowerCase() === course.title.toLowerCase()) || course;
++    const courseUrlSlug = course.title.toLowerCase().replace(/\s+/g, '-');
+ 
+     if (isCourseRegistered(course.title)) {
+-      navigate(`/course/${course.title.toLowerCase().replace(' ', '-')}`, {
++      navigate(`/course/${courseUrlSlug}`, {
+         state: { course: freshCourse }
+       });
+     } else {
+-      registerCourse(course.title);
+-      navigate(`/course/${course.title.toLowerCase().replace(' ', '-')}`, {
++      registerCourse(freshCourse.title);
++      navigate(`/course/${courseUrlSlug}`, {
+         state: { course: freshCourse }
+       });
+     }
+@@ -149,6 +210,7 @@ const LearningPage = () => {
+ 
+ 
+ 
++
+   return (
+     <Box className="learning-page">
+       <section className="learning-intro glass-panel-strong">
+diff --git a/src/pages/LearningPathPage.css b/src/pages/LearningPathPage.css
+index 2c095d8..b7a5645 100644
+--- a/src/pages/LearningPathPage.css
++++ b/src/pages/LearningPathPage.css
+@@ -31,7 +31,7 @@
+ 
+ .path-visual {
+   position: relative;
+-  width: 200px;
++  width: 300px;
+   height: 750px;
+   margin: 0 auto;
+ }
+@@ -55,6 +55,7 @@
+ .path-node-wrapper {
+   position: relative;
+   display: flex;
++  flex-direction: column;
+   align-items: center;
+   justify-content: center;
+ }
+@@ -101,36 +102,26 @@
+   filter: grayscale(0.15);
+ }
+ 
+-.path-node-card {
++.path-node-caption-title {
+   position: absolute;
+-  min-width: 200px;
+-  padding: 1rem 1.15rem;
+-  border-radius: 22px;
+-  border: 1px solid var(--divider);
+-  background: var(--surface-glass);
+-  backdrop-filter: blur(16px);
+-  -webkit-backdrop-filter: blur(16px);
+-  box-shadow: var(--shadow-soft);
+-}
+-
+-.path-node-card.is-right {
+-  left: 6rem;
+-  text-align: center;
+-}
+-
+-.path-node-card.is-left {
+-  right: 6rem;
++  top: 5.5rem;
++  left: 50%;
++  transform: translateX(-50%);
++  font-size: 0.85rem;
++  font-weight: 800;
+   text-align: center;
++  color: var(--text-primary);
++  width: 140px;
++  line-height: 1.35;
++  font-family: 'Outfit', sans-serif;
++  transition: color 0.2s ease, opacity 0.2s ease;
++  white-space: normal;
++  word-wrap: break-word;
+ }
+ 
+-.path-node-card.is-upcoming {
++.path-node-caption-title.status-upcoming {
++  color: var(--text-disabled);
+   opacity: 0.55;
+-  transform: translateY(0.35rem);
+-}
+-
+-.path-node-title {
+-  font-weight: 800;
+-  letter-spacing: -0.025em;
+ }
+ 
+ .path-node-meta {
+@@ -235,3 +226,47 @@
+     padding: 1.4rem;
+   }
+ }
++
++/* Floating Navigation Action Button (FAB) */
++.path-floating-action-btn {
++  position: fixed !important;
++  top: 50% !important;
++  left: calc(50% + 470px) !important;
++  right: auto !important;
++  transform: translateY(-50%) !important;
++  width: 54px !important;
++  height: 54px !important;
++  border-radius: 50% !important;
++  z-index: 10000 !important;
++  display: flex !important;
++  align-items: center !important;
++  justify-content: center !important;
++  background: var(--hero-gradient) !important;
++  border: 2px solid rgba(255, 255, 255, 0.4) !important;
++  color: white !important;
++  box-shadow: 0 10px 25px rgba(var(--primary-main-rgb), 0.4) !important;
++  cursor: pointer !important;
++  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
++}
++
++.path-floating-action-btn:hover {
++  box-shadow: 0 15px 30px rgba(var(--primary-main-rgb), 0.55) !important;
++  border-color: rgba(255, 255, 255, 0.6) !important;
++  transform: translateY(-50%) scale(1.1) !important;
++}
++
++@media (max-width: 767px) {
++  .path-visual-shell,
++  .path-footer {
++    padding: 1.4rem;
++  }
++  .path-floating-action-btn {
++    right: 24px !important;
++    left: auto !important;
++    top: 50% !important;
++    transform: translateY(-50%) !important;
++  }
++  .path-floating-action-btn:hover {
++    transform: translateY(-50%) scale(1.1) !important;
++  }
++}
+diff --git a/src/pages/LearningPathPage.jsx b/src/pages/LearningPathPage.jsx
+index 6b58cd3..1a8f796 100644
+--- a/src/pages/LearningPathPage.jsx
++++ b/src/pages/LearningPathPage.jsx
+@@ -1,4 +1,7 @@
+ import React, { useMemo, useEffect, useState } from 'react';
++import { createPortal } from 'react-dom';
++import { CppPlaygroundDialog } from '../components/CppPlaygroundDialog';
++import { JavaOopUmlPlayground } from '../components/JavaOopUmlPlayground';
+ import {
+   Box,
+   Button,
+@@ -8,7 +11,11 @@ import {
+   useTheme,
+   Tabs,
+   Tab,
+-  Alert
++  Alert,
++  Popover,
++  Dialog,
++  useMediaQuery,
++  IconButton
+ } from '@mui/material';
+ import {
+   School as SchoolIcon,
+@@ -19,41 +26,120 @@ import {
+   Lock as LockIcon,
+   PlayArrow as PlayIcon,
+   ChevronRight as ChevronRightIcon,
++  MenuBook as BookIcon,
++  Close as CloseIcon,
++  FitnessCenter as ExerciseIcon,
++  SportsEsports as AssessmentIcon,
++  Check as CheckIcon,
++  ArrowUpward as ArrowUpwardIcon,
++  ArrowDownward as ArrowDownwardIcon,
++  Terminal as TerminalIcon
+ } from '@mui/icons-material';
+ 
+-
+-
+ import { useLocation, useNavigate, useParams } from 'react-router-dom';
+ import { useAuth } from '../context/AuthContext';
+ import { coursesData } from '../data/courses';
+ import './LearningPathPage.css';
+ 
++const getNodeIcon = (node) => {
++  if (node.status === 'upcoming') {
++    return <LockIcon sx={{ fontSize: 24 }} />;
++  }
++  
++  const cat = node.category?.toLowerCase() || 'learning';
++  if (cat === 'exercise' || cat === 'quiz' || cat === 'mcq') {
++    return <ExerciseIcon sx={{ fontSize: 28 }} />;
++  }
++  if (cat === 'assessment' || cat === 'test' || cat === 'exam') {
++    return <AssessmentIcon sx={{ fontSize: 28 }} />;
++  }
++  return <BookIcon sx={{ fontSize: 28 }} />;
++};
+ 
+ const LearningPathPage = () => {
+   const { courseId } = useParams();
+   const theme = useTheme();
++  const isMobileViewport = useMediaQuery(theme.breakpoints.down('sm'));
+   const location = useLocation();
+   const navigate = useNavigate();
+   const { user, updateQuizScore } = useAuth();
++  
++  const [isCompilerOpen, setIsCompilerOpen] = useState(false);
++  const [isJavaUmlPlaygroundOpen, setIsJavaUmlPlaygroundOpen] = useState(false);
++  
++  const [course, setCourse] = useState(location.state?.course || null);
++  const [courseLoading, setCourseLoading] = useState(!course);
++  const [backendLessons, setBackendLessons] = useState({});
++  const [loadingLessons, setLoadingLessons] = useState(false);
++
++  // Roadmap Preview Popover & Dialog State
++  const [anchorEl, setAnchorEl] = useState(null);
++  const [selectedNode, setSelectedNode] = useState(null);
++  const [openDialog, setOpenDialog] = useState(false);
++
++  // FAB scrolling states
++  const [showScrollArrow, setShowScrollArrow] = useState(false);
++  const [scrollDirection, setScrollDirection] = useState('up');
++
++  // Dynamic database course loading
++  useEffect(() => {
++    const loadCourse = async () => {
++      try {
++        const res = await fetch('/courses/export/all');
++        if (res.ok) {
++          const list = await res.json();
++          const mappedList = list.map(bc => ({
++            id: bc.id,
++            title: bc.title,
++            description: bc.description || '',
++            about: bc.about || '',
++            imageUrl: bc.imageUrl || '',
++            comingsoon: bc.comingsoon || false,
++            sections: (bc.sections || []).map(sec => ({
++              id: sec.id,
++              title: sec.title,
++              description: sec.description || '',
++              lessons: (sec.lessons || []).map(les => ({
++                id: les.id,
++                category: les.category || 'learning',
++                chapterName: les.chapterName || '',
++                title: les.title || 'Untitled Lesson',
++                orderIndex: les.orderIndex || 0,
++              }))
++            }))
++          }));
++
++          const matched = mappedList.find(c => 
++            String(c.id) === String(courseId) ||
++            c.title.toLowerCase().replace(/\s+/g, '-') === String(courseId).toLowerCase()
++          );
++          if (matched) {
++            setCourse(matched);
++            setCourseLoading(false);
++            return;
++          }
++        }
++      } catch (err) {
++        console.error('Failed to load course path from database:', err);
++      }
++      
++      const fallback = coursesData.find(c => 
++        String(c.id) === String(courseId) ||
++        c.title.toLowerCase().replace(/\s+/g, '-') === String(courseId).toLowerCase()
++      );
++      setCourse(fallback);
++      setCourseLoading(false);
++    };
+ 
+-  // Try to get course from state, or from coursesData using the URL param if state is lost on refresh
+-  const course = location.state?.course || coursesData.find(c => c.id === courseId);
+-
++    loadCourse();
++  }, [courseId]);
+ 
++  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
++  const [hasInitialSectionBeenSet, setHasInitialSectionBeenSet] = useState(false);
+ 
+-  const [activeSectionIndex, setActiveSectionIndex] = useState(() => {
+-    if (location.state?.quizResult && course?.sections) {
+-      const { lessonId } = location.state.quizResult;
+-      const sectionIdx = course.sections.findIndex(s =>
+-        s.lessons.some(l => l.id === lessonId)
+-      );
+-      return sectionIdx !== -1 ? sectionIdx : 0;
+-    }
+-    return 0;
+-  });
+ 
+ 
+-  const domainKey = course ? (course.id) : 'unknown';
++  const domainKey = course ? course.id : 'unknown';
+ 
+   const scores = useMemo(() => {
+     return user?.quizScores || {};
+@@ -63,34 +149,167 @@ const LearningPathPage = () => {
+     if (!course || !course.sections) return [];
+ 
+     return course.sections.map((section, sIndex) => {
+-      const lessons = section.lessons;
+-      const completedLessons = lessons.filter(l => (scores[l.id] || 0) >= 70);
+-      const isComplete = completedLessons.length === lessons.length;
++      const currentLessons = backendLessons[section.id] || section.lessons || [];
++      
++      // Title-based deduplication for section lessons progress calculation
++      const uniqueLessons = [];
++      const seenTitles = new Set();
++      currentLessons.forEach(l => {
++        const norm = (l.title || '').trim().toLowerCase();
++        if (norm && !seenTitles.has(norm)) {
++          seenTitles.add(norm);
++          uniqueLessons.push(l);
++        }
++      });
++
++      const completedLessons = uniqueLessons.filter(l => {
++        const duplicates = currentLessons.filter(dl => (dl.title || '').trim().toLowerCase() === (l.title || '').trim().toLowerCase());
++        return duplicates.some(dl => (scores[dl.id] || 0) >= 70);
++      });
++
++      const isComplete = uniqueLessons.length > 0 && completedLessons.length === uniqueLessons.length;
+ 
+       let isUnlocked = sIndex === 0;
+       if (sIndex > 0) {
+         const prevSection = course.sections[sIndex - 1];
+-        const prevSectionLessons = prevSection.lessons;
+-        const prevSectionCompleted = prevSectionLessons.filter(l => (scores[l.id] || 0) >= 70);
+-        isUnlocked = prevSectionCompleted.length === prevSectionLessons.length;
++        const prevLessons = backendLessons[prevSection.id] || prevSection.lessons || [];
++        
++        const uniquePrevLessons = [];
++        const seenPrevTitles = new Set();
++        prevLessons.forEach(pl => {
++          const norm = (pl.title || '').trim().toLowerCase();
++          if (norm && !seenPrevTitles.has(norm)) {
++            seenPrevTitles.add(norm);
++            uniquePrevLessons.push(pl);
++          }
++        });
++
++        const prevSectionCompleted = uniquePrevLessons.filter(pl => {
++          const duplicates = prevLessons.filter(dl => (dl.title || '').trim().toLowerCase() === (pl.title || '').trim().toLowerCase());
++          return duplicates.some(dl => (scores[dl.id] || 0) >= 70);
++        });
++
++        isUnlocked = uniquePrevLessons.length > 0 && prevSectionCompleted.length === uniquePrevLessons.length;
+       }
+ 
+       return {
+         ...section,
+         isComplete,
+         isUnlocked,
+-        progress: (completedLessons.length / lessons.length) * 100
++        progress: uniqueLessons.length > 0 ? (completedLessons.length / uniqueLessons.length) * 100 : 0
+       };
+     });
+-  }, [course, scores]);
++  }, [course, scores, backendLessons]);
++
++  // Automatically select and open the first incomplete section when accessing the page or returning
++  useEffect(() => {
++    if (sections.length > 0 && !hasInitialSectionBeenSet) {
++      if (location.state?.quizResult) {
++        const { lessonId } = location.state.quizResult;
++        const sectionIdx = sections.findIndex(s =>
++          s.lessons?.some(l => l.id === lessonId)
++        );
++        if (sectionIdx !== -1) {
++          setActiveSectionIndex(sectionIdx);
++          setHasInitialSectionBeenSet(true);
++          return;
++        }
++      }
++
++      const firstIncompleteIdx = sections.findIndex(s => !s.isComplete);
++      if (firstIncompleteIdx !== -1) {
++        setActiveSectionIndex(firstIncompleteIdx);
++      } else {
++        setActiveSectionIndex(0);
++      }
++      setHasInitialSectionBeenSet(true);
++    }
++  }, [sections, location.state, hasInitialSectionBeenSet]);
+ 
+   const activeSection = sections[activeSectionIndex];
+ 
++  // Load lessons for the active section dynamically from backend section lessons endpoint
++  useEffect(() => {
++    if (!course || !activeSection) return;
++
++    const courseDbId = course.id;
++    const sectionId = activeSection.id;
++
++    const loadBackendLessons = async () => {
++      setLoadingLessons(true);
++      try {
++        let dbId = courseDbId;
++        if (isNaN(Number(dbId))) {
++          const res = await fetch('/courses');
++          if (res.ok) {
++            const list = await res.json();
++            const matched = list.find(c => c.title.toLowerCase() === course.title.toLowerCase());
++            if (matched) dbId = matched.id;
++          }
++        }
++
++        const secRes = await fetch(`/courses/${dbId}/sections/${sectionId}`);
++        if (secRes.ok) {
++          const sectionData = await secRes.json();
++          if (sectionData && sectionData.lessons) {
++            setBackendLessons(prev => ({
++              ...prev,
++              [sectionId]: sectionData.lessons
++            }));
++          }
++        }
++      } catch (err) {
++        console.error('Failed to load lessons from backend section:', err);
++      } finally {
++        setLoadingLessons(false);
++      }
++    };
++
++    loadBackendLessons();
++  }, [course, activeSectionIndex]);
++
++  const cheatsheetLesson = useMemo(() => {
++    let rawLessons = [];
++    if (activeSection && backendLessons[activeSection.id] && backendLessons[activeSection.id].length > 0) {
++      rawLessons = backendLessons[activeSection.id];
++    } else {
++      rawLessons = activeSection?.lessons || [];
++    }
++    return rawLessons.find(l => {
++      const title = (l.title || '').trim().toLowerCase();
++      return title.startsWith('cheatsheet:') || title.startsWith('cheatsheet ') || title === 'cheatsheet';
++    });
++  }, [activeSection, backendLessons]);
++
+   const lessons = useMemo(() => {
+-    return activeSection?.lessons || [];
+-  }, [activeSection]);
++    let rawLessons = [];
++    if (activeSection && backendLessons[activeSection.id] && backendLessons[activeSection.id].length > 0) {
++      rawLessons = backendLessons[activeSection.id];
++    } else {
++      rawLessons = activeSection?.lessons || [];
++    }
+ 
+-  // Effect to sync back from QuizPage if it passed results in state
++    // Filter out cheatsheet lessons
++    rawLessons = rawLessons.filter(l => {
++      const title = (l.title || '').trim().toLowerCase();
++      return !(title.startsWith('cheatsheet:') || title.startsWith('cheatsheet ') || title === 'cheatsheet');
++    });
++
++    // Title-based deduplication for nodes path list
++    const uniqueLessons = [];
++    const seenTitles = new Set();
++    rawLessons.forEach(les => {
++      const norm = (les.title || '').trim().toLowerCase();
++      if (norm && !seenTitles.has(norm)) {
++        seenTitles.add(norm);
++        uniqueLessons.push(les);
++      }
++    });
++
++    return uniqueLessons;
++  }, [activeSection, backendLessons]);
++
++  // Sync results from QuizPage if any
+   useEffect(() => {
+     if (location.state?.quizResult) {
+       const { lessonId, percentage } = location.state.quizResult;
+@@ -98,36 +317,114 @@ const LearningPathPage = () => {
+     }
+   }, [location.state, updateQuizScore]);
+ 
+-
+   const nodes = useMemo(() => {
++    const rawList = (activeSection && backendLessons[activeSection.id]) || activeSection?.lessons || [];
++    let currentY = 0;
++
+     return lessons.map((lesson, index) => {
+-      const score = scores[lesson.id] || 0;
++      // Find all database duplicates of this unique lesson title
++      const duplicates = rawList.filter(dl => (dl.title || '').trim().toLowerCase() === (lesson.title || '').trim().toLowerCase());
++      
++      // Consolidate the highest score among duplicates
++      let score = 0;
++      duplicates.forEach(dl => {
++        const s = scores[dl.id] || 0;
++        if (s > score) score = s;
++      });
++
+       const isPassed = score >= 70;
+ 
+       let isPreviousPassed = index === 0;
+       if (index > 0) {
+         const prevLesson = lessons[index - 1];
+-        isPreviousPassed = (scores[prevLesson.id] || 0) >= 70;
++        const prevDuplicates = rawList.filter(dl => (dl.title || '').trim().toLowerCase() === (prevLesson.title || '').trim().toLowerCase());
++        isPreviousPassed = prevDuplicates.some(dl => (scores[dl.id] || 0) >= 70);
+       }
+ 
+       let status = 'upcoming';
+       if (isPassed) status = 'completed';
+       else if (isPreviousPassed) status = 'active';
+ 
+-      // Distribute nodes visually
+-      const x = index % 2 === 0 ? 50 : 150;
+-      const y = 80 + index * 150;
++      // Group and calculate dynamic height gap for new chapters
++      const rawChapter = lesson.chapterName || 'General';
++      const chapterName = rawChapter.trim().length > 0 ? rawChapter.trim() : 'General';
++      
++      let isNewChapter = false;
++      currentY += index === 0 ? 80 : 150;
++
++      const x = index % 2 === 0 ? 75 : 225; // Keep horizontal zigzag within 300px visual container
++      const y = currentY;
++      const category = lesson.category || 'learning';
+ 
+       return {
+         ...lesson,
++        chapterName,
++        isNewChapter,
++        category,
+         status,
+         score,
+         pos: { x, y },
+-        icon: <SchoolIcon />
++        icon: category === 'learning' ? <BookIcon /> : <SchoolIcon />
+       };
+     });
+-  }, [lessons, scores]);
++  }, [lessons, scores, activeSection, backendLessons]);
++
++  // 1. Automatically scroll to the current/active node shell when course or lessons finish loading
++  useEffect(() => {
++    if (nodes.length > 0 && !courseLoading && !loadingLessons) {
++      const timer = setTimeout(() => {
++        const activeNodeEl = document.getElementById('current-active-node-shell');
++        if (activeNodeEl) {
++          activeNodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
++        }
++      }, 350);
++      return () => clearTimeout(timer);
++    }
++  }, [nodes, courseLoading, loadingLessons]);
++
++  // 2. Track viewport scrolling to toggle the fixed "Go to Current" FAB arrow
++  useEffect(() => {
++    const handleScroll = () => {
++      const activeNodeEl = document.getElementById('current-active-node-shell');
++      if (!activeNodeEl) {
++        setShowScrollArrow(false);
++        return;
++      }
++
++      const rect = activeNodeEl.getBoundingClientRect();
++      // Element is visible if it is fully or partially within the vertical viewport bounds
++      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
++      
++      setShowScrollArrow(!isVisible);
++
++      if (rect.top < 0) {
++        setScrollDirection('up');
++      } else if (rect.top > window.innerHeight) {
++        setScrollDirection('down');
++      }
++    };
++
++    window.addEventListener('scroll', handleScroll);
++    // Initial check
++    const initialTimer = setTimeout(handleScroll, 400);
++
++    return () => {
++      window.removeEventListener('scroll', handleScroll);
++      clearTimeout(initialTimer);
++    };
++  }, [nodes, courseLoading, loadingLessons]);
++
++  const handleScrollToActive = () => {
++    const activeNodeEl = document.getElementById('current-active-node-shell');
++    if (activeNodeEl) {
++      activeNodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
++    }
++  };
+ 
++  const pathHeight = useMemo(() => {
++    if (nodes.length === 0) return 300;
++    return nodes[nodes.length - 1].pos.y + 110;
++  }, [nodes]);
+ 
+   const generatePath = () => {
+     if (nodes.length < 2) return "";
+@@ -142,11 +439,180 @@ const LearningPathPage = () => {
+     return d;
+   };
+ 
+-  const handleNodeClick = (node) => {
++  // Click handler: opens preview box instead of immediate navigation
++  const handleNodeClick = (event, node) => {
+     if (node.status === 'upcoming') return;
+-    navigate(`/quiz/${domainKey}/${node.id}`, { state: { course } });
++    setSelectedNode(node);
++    
++    // Check viewport width for adaptive UX
++    const isMobile = window.innerWidth < 768;
++    if (isMobile) {
++      setOpenDialog(true);
++    } else {
++      setAnchorEl(event.currentTarget);
++    }
++  };
++
++  const handleClosePreview = () => {
++    setAnchorEl(null);
++    setSelectedNode(null);
++    setOpenDialog(false);
+   };
+ 
++  const handleStartLesson = () => {
++    if (!selectedNode) return;
++    navigate(`/learning/${domainKey}/${activeSection.id}/${selectedNode.id}`, { state: { course } });
++    handleClosePreview();
++  };
++
++  const renderPreviewContent = () => {
++    if (!selectedNode) return null;
++    const isCompleted = selectedNode.status === 'completed';
++    const accentColor = isCompleted ? '#58CC02' : 'var(--primary-main)';
++    const buttonLabel = isCompleted ? 'RETAKE THE LESSON' : 'START THE LESSON';
++    const categoryLabel = isCompleted ? 'COMPLETED LESSON' : (selectedNode.category === 'exercise' ? 'PRACTICE QUIZ' : 'ROADMAP LESSON');
++    
++    // Premium dynamic description based on category/title
++    const description = selectedNode.category === 'exercise'
++      ? `Test your knowledge with a quiz on "${selectedNode.title}". Answer the questions to prove your mastery and earn points!`
++      : `Dive into "${selectedNode.title}" and learn key concepts in a step-by-step interactive slide viewer. Perfect for solidifying your fundamentals.`;
++
++    return (
++      <Box style={{ position: 'relative' }}>
++        {isMobileViewport && (
++          <IconButton
++            style={{ position: 'absolute', right: '-12px', top: '-12px', color: 'var(--text-secondary)' }}
++            onClick={handleClosePreview}
++          >
++            <CloseIcon />
++          </IconButton>
++        )}
++        <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
++          <Box style={{ flex: 1 }}>
++            <Typography
++              variant="caption"
++              style={{
++                color: accentColor,
++                fontWeight: 800,
++                letterSpacing: '0.12em',
++                textTransform: 'uppercase',
++                display: 'block',
++                marginBottom: '4px'
++              }}
++            >
++              {categoryLabel}
++            </Typography>
++            <Typography
++              variant="h5"
++              style={{
++                fontWeight: 900,
++                fontSize: '1.25rem',
++                lineHeight: 1.3,
++                color: 'var(--text-primary)',
++                fontFamily: '"Outfit", sans-serif'
++              }}
++            >
++              {selectedNode.title}
++            </Typography>
++          </Box>
++          <Box
++            style={{
++              width: '52px',
++              height: '52px',
++              borderRadius: '50%',
++              backgroundColor: isCompleted ? '#58CC02' : '#1CB0F6',
++              display: 'grid',
++              placeItems: 'center',
++              boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
++              flexShrink: 0
++            }}
++          >
++            {selectedNode.category === 'exercise' || selectedNode.category === 'quiz' || selectedNode.category === 'mcq' ? (
++              <ExerciseIcon style={{ color: '#fff', fontSize: '26px' }} />
++            ) : selectedNode.category === 'assessment' || selectedNode.category === 'test' ? (
++              <AssessmentIcon style={{ color: '#fff', fontSize: '26px' }} />
++            ) : (
++              <BookIcon style={{ color: '#fff', fontSize: '26px' }} />
++            )}
++          </Box>
++        </Box>
++
++        <Typography
++          variant="body2"
++          style={{
++            marginTop: '16px',
++            color: 'var(--text-secondary)',
++            lineHeight: 1.5,
++            fontSize: '0.9rem'
++          }}
++        >
++          {description}
++        </Typography>
++
++        {isCompleted && selectedNode.score > 0 && (
++          <Box
++            style={{
++              marginTop: '14px',
++              padding: '8px 12px',
++              backgroundColor: 'rgba(88, 204, 2, 0.1)',
++              border: '1px solid rgba(88, 204, 2, 0.2)',
++              borderRadius: '12px',
++              display: 'flex',
++              alignItems: 'center',
++              gap: '8px'
++            }}
++          >
++            <CheckCircleIcon style={{ color: '#58CC02', fontSize: '18px' }} />
++            <Typography variant="body2" style={{ color: '#58CC02', fontWeight: 700, fontSize: '0.85rem' }}>
++              High Score: {selectedNode.score}%
++            </Typography>
++          </Box>
++        )}
++
++        <Button
++          fullWidth
++          variant="contained"
++          onClick={handleStartLesson}
++          style={{
++            marginTop: '20px',
++            padding: '12px',
++            borderRadius: '14px',
++            fontWeight: 800,
++            fontSize: '0.9rem',
++            backgroundColor: accentColor,
++            color: '#fff',
++            boxShadow: `0 8px 20px ${isCompleted ? 'rgba(88,204,2,0.25)' : 'rgba(var(--primary-main-rgb), 0.25)'}`,
++            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
++            fontFamily: '"Outfit", sans-serif',
++            textTransform: 'none'
++          }}
++          onMouseEnter={(e) => {
++            e.currentTarget.style.transform = 'translateY(-2px)';
++          }}
++          onMouseLeave={(e) => {
++            e.currentTarget.style.transform = 'translateY(0)';
++          }}
++        >
++          {buttonLabel}
++        </Button>
++      </Box>
++    );
++  };
++
++  if (courseLoading) {
++    return (
++      <div className="course-not-found" style={{ display: 'flex', flexDirection: 'column', gap: '20px', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
++        <div className="loading-spinner" style={{ width: '50px', height: '50px', borderRadius: '50%', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--primary-main)', animation: 'spin 1s linear infinite' }} />
++        <Typography variant="h6" style={{ color: 'var(--text-secondary)' }}>Loading Learning Path...</Typography>
++        <style>{`
++          @keyframes spin {
++            to { transform: rotate(360deg); }
++          }
++        `}</style>
++      </div>
++    );
++  }
++
+   if (!course) {
+     return (
+       <Box className="path-page-empty">
+@@ -161,15 +627,74 @@ const LearningPathPage = () => {
+   return (
+     <Box className="path-page">
+       <Container maxWidth="md">
+-        <Box className="path-header">
+-          <Typography variant="h2" className="path-title">
+-            {course.title} Path
++
++        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, mt: 1, flexWrap: 'wrap', gap: 2 }}>
++          <Typography variant="h5" style={{ fontWeight: 900, fontFamily: '"Outfit", sans-serif', color: 'var(--text-primary)' }}>
++            Course Roadmap
+           </Typography>
+-          <div className="path-subtitle">
+-            Score at least 70% to pass each lesson and unlock the next section.
+-          </div>
++          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'stretch' }}>
++            <Button
++              variant="contained"
++              startIcon={<TerminalIcon />}
++              onClick={() => setIsCompilerOpen(true)}
++              style={{
++                padding: '8px 18px',
++                borderRadius: '12px',
++                fontWeight: 800,
++                fontSize: '0.85rem',
++                textTransform: 'none',
++                background: 'var(--hero-gradient)',
++                color: '#fff',
++                boxShadow: '0 6px 15px rgba(var(--primary-main-rgb), 0.25)',
++                fontFamily: '"Outfit", sans-serif'
++              }}
++            >
++              C++ Compiler Playground
++            </Button>
++            <Button
++              variant="contained"
++              startIcon={<SchoolIcon />}
++              onClick={() => setIsJavaUmlPlaygroundOpen(true)}
++              style={{
++                padding: '8px 18px',
++                borderRadius: '12px',
++                fontWeight: 800,
++                fontSize: '0.85rem',
++                textTransform: 'none',
++                background: 'linear-gradient(135deg, #6e8efb, #a777e3)',
++                color: '#fff',
++                boxShadow: '0 6px 15px rgba(167, 119, 227, 0.25)',
++                fontFamily: '"Outfit", sans-serif'
++              }}
++            >
++              Java OOP UML Playground
++            </Button>
++            {cheatsheetLesson && (
++              <Button
++                variant="outlined"
++                startIcon={<BookIcon />}
++                onClick={() => {
++                  navigate(`/learning/${domainKey}/${activeSection.id}/${cheatsheetLesson.id}`, { state: { course } });
++                }}
++                style={{
++                  padding: '8px 18px',
++                  borderRadius: '12px',
++                  fontWeight: 800,
++                  fontSize: '0.85rem',
++                  textTransform: 'none',
++                  borderColor: 'var(--primary-main)',
++                  color: 'var(--primary-main)',
++                  boxShadow: '0 4px 10px rgba(var(--primary-main-rgb), 0.1)',
++                  fontFamily: '"Outfit", sans-serif'
++                }}
++              >
++                View Cheatsheet
++              </Button>
++            )}
++          </Box>
+         </Box>
+ 
++
+         <Box className="path-sections-tabs glass-panel" sx={{ mb: 4, borderRadius: 3 }}>
+           <Tabs
+             value={activeSectionIndex}
+@@ -178,7 +703,7 @@ const LearningPathPage = () => {
+             scrollButtons="auto"
+             sx={{ px: 2 }}
+           >
+-            {sections.map((section, idx) => (
++            {sections.map((section) => (
+               <Tab
+                 key={section.id}
+                 label={
+@@ -199,14 +724,13 @@ const LearningPathPage = () => {
+           </Alert>
+         )}
+ 
+-
+         <Box className="path-visual-shell glass-panel-strong">
+-          <Box className="path-visual" style={{ height: `${nodes.length * 150 + 100}px` }}>
++          <Box className="path-visual" style={{ height: `${pathHeight}px` }}>
+             <svg
+-              width="200"
+-              height={nodes.length * 150 + 100}
++              width="300"
++              height={pathHeight}
+               className="path-svg"
+-              viewBox={`0 0 200 ${nodes.length * 150 + 100}`}
++              viewBox={`0 0 300 ${pathHeight}`}
+             >
+               <defs>
+                 <linearGradient id="pathGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+@@ -225,49 +749,87 @@ const LearningPathPage = () => {
+               />
+             </svg>
+ 
+-            {nodes.map((node, index) => (
+-              <Box
+-                key={node.id}
+-                className="path-node-shell"
+-                style={{
+-                  left: `${node.pos.x}px`,
+-                  top: `${node.pos.y}px`,
+-                  transform: 'translate(-50%, -50%)'
+-                }}
+-                onClick={() => handleNodeClick(node)}
+-              >
++            {nodes.map((node) => (
++              <React.Fragment key={node.id}>
++
++
++                <Box
++                  id={node.id === nextActiveNode?.id ? "current-active-node-shell" : undefined}
++                  className="path-node-shell"
++                  style={{
++                    left: `${node.pos.x}px`,
++                    top: `${node.pos.y}px`,
++                    transform: 'translate(-50%, -50%)'
++                  }}
++                  onClick={(e) => handleNodeClick(e, node)}
++                >
+                 <Box className="path-node-wrapper">
+                   {node.status === 'active' && (
+                     <Box className="path-node-pulse" />
+                   )}
+ 
+                   <Box className={`path-node path-node-${node.status}`}>
+-                    {node.status === 'completed' ? (
+-                      <CheckCircleIcon sx={{ fontSize: 32 }} />
+-                    ) : node.status === 'upcoming' ? (
+-                      <LockIcon sx={{ fontSize: 24 }} />
+-                    ) : (
+-                      <PlayIcon sx={{ fontSize: 32 }} />
+-                    )}
++                    {getNodeIcon(node)}
+                   </Box>
+ 
+-                  <Paper
+-                    className={`path-node-card ${index % 2 === 0 ? 'is-right' : 'is-left'} ${node.status === 'upcoming' ? 'is-upcoming' : ''}`}
+-                    elevation={0}
+-                  >
+-                    <Typography variant="h6" className="path-node-title">
+-                      {node.title}
+-                    </Typography>
+-                    <Box className="path-node-meta">
+-                      <Box className={`path-node-meta-dot status-${node.status}`} />
+-                      <Typography variant="caption" className="path-node-status">
+-                        {node.score > 0 ? `Score: ${node.score}%` : node.status}
+-                      </Typography>
++                  {/* Top-right completed check badge matching mobile app */}
++                  {node.status === 'completed' && (
++                    <Box
++                      style={{
++                        position: 'absolute',
++                        top: '-4px',
++                        right: '-4px',
++                        width: '22px',
++                        height: '22px',
++                        borderRadius: '50%',
++                        backgroundColor: '#fff',
++                        border: '2.5px solid #29c57b',
++                        display: 'grid',
++                        placeItems: 'center',
++                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
++                        zIndex: 10
++                      }}
++                    >
++                      <CheckIcon style={{ color: '#29c57b', fontSize: '12px', fontWeight: 'bold' }} />
++                    </Box>
++                  )}
+ 
++                  {/* Bottom percentage badge matching mobile app */}
++                  {node.status === 'completed' && node.score > 0 && (
++                    <Box
++                      style={{
++                        position: 'absolute',
++                        bottom: '-8px',
++                        left: '50%',
++                        transform: 'translateX(-50%)',
++                        padding: '2px 8px',
++                        borderRadius: '10px',
++                        backgroundColor: node.score < 50 ? '#ff4d4d' : node.score < 80 ? '#ff9900' : '#29c57b',
++                        border: '1.5px solid #fff',
++                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
++                        zIndex: 10
++                      }}
++                    >
++                      <Typography
++                        style={{
++                          color: '#fff',
++                          fontWeight: 900,
++                          fontSize: '0.68rem',
++                          lineHeight: 1,
++                          fontFamily: '"Nunito", sans-serif'
++                        }}
++                      >
++                        {node.score}%
++                      </Typography>
+                     </Box>
+-                  </Paper>
++                  )}
++
++                  <Typography className={`path-node-caption-title status-${node.status}`}>
++                    {node.title}
++                  </Typography>
++                </Box>
+                 </Box>
+-              </Box>
++              </React.Fragment>
+             ))}
+           </Box>
+         </Box>
+@@ -277,7 +839,7 @@ const LearningPathPage = () => {
+             <Typography variant="h4" className="path-footer-title">
+               {activeSection?.isComplete ? "Section Completed!" : "Ready for the next challenge?"}
+             </Typography>
+-            <div variant="body1" className="path-footer-copy">
++            <div className="path-footer-copy">
+               {activeSection?.isComplete
+                 ? `You've mastered all lessons in ${activeSection.title}.`
+                 : `Progress in this section: ${Math.round(activeSection?.progress || 0)}%`}
+@@ -288,7 +850,7 @@ const LearningPathPage = () => {
+                 size="large"
+                 endIcon={<ArrowForwardIcon />}
+                 className="path-footer-button"
+-                onClick={() => handleNodeClick(nextActiveNode)}
++                onClick={(e) => handleNodeClick(e, nextActiveNode)}
+               >
+                 {nextActiveNode?.status === 'active' ? `Start ${nextActiveNode.title}` : "Continue Learning"}
+               </Button>
+@@ -307,7 +869,83 @@ const LearningPathPage = () => {
+           </Box>
+         </Box>
+ 
++        {/* Roadmap Node Preview - Desktop Floating Popover */}
++        <Popover
++          open={Boolean(anchorEl) && !isMobileViewport}
++          anchorEl={anchorEl}
++          onClose={handleClosePreview}
++          anchorOrigin={{
++            vertical: 'center',
++            horizontal: 'right',
++          }}
++          transformOrigin={{
++            vertical: 'center',
++            horizontal: 'left',
++          }}
++          PaperProps={{
++            style: {
++              borderRadius: '24px',
++              padding: '24px',
++              width: '320px',
++              border: selectedNode?.status === 'completed'
++                ? '2px solid rgba(88, 204, 2, 0.4)'
++                : '1px solid var(--divider)',
++              background: selectedNode?.status === 'completed'
++                ? (theme.palette.mode === 'dark' ? 'rgba(31, 45, 31, 0.96)' : 'rgba(242, 251, 240, 0.96)')
++                : 'var(--surface-glass)',
++              boxShadow: 'var(--shadow-soft)',
++              backdropFilter: 'blur(20px)',
++              WebkitBackdropFilter: 'blur(20px)',
++            }
++          }}
++        >
++          {renderPreviewContent()}
++        </Popover>
++
++        {/* Roadmap Node Preview - Mobile Centered Dialog */}
++        <Dialog
++          open={openDialog && isMobileViewport}
++          onClose={handleClosePreview}
++          fullWidth
++          maxWidth="xs"
++          PaperProps={{
++            style: {
++              borderRadius: '24px',
++              padding: '24px',
++              border: selectedNode?.status === 'completed'
++                ? '2px solid rgba(88, 204, 2, 0.4)'
++                : '1px solid var(--divider)',
++              background: selectedNode?.status === 'completed'
++                ? (theme.palette.mode === 'dark' ? 'rgba(31, 45, 31, 0.96)' : 'rgba(242, 251, 240, 0.96)')
++                : 'var(--surface-glass)',
++              backdropFilter: 'blur(20px)',
++              WebkitBackdropFilter: 'blur(20px)',
++            }
++          }}
++        >
++          {renderPreviewContent()}
++        </Dialog>
++
+       </Container>
++      {showScrollArrow && createPortal(
++        <IconButton
++          className="path-floating-action-btn"
++          onClick={handleScrollToActive}
++          aria-label="scroll to current lesson"
++        >
++          {scrollDirection === 'up' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
++        </IconButton>,
++        document.body
++      )}
++
++      <CppPlaygroundDialog
++        open={isCompilerOpen}
++        onClose={() => setIsCompilerOpen(false)}
++      />
++      <JavaOopUmlPlayground
++        open={isJavaUmlPlaygroundOpen}
++        onClose={() => setIsJavaUmlPlaygroundOpen(false)}
++      />
+     </Box>
+   );
+ };
+diff --git a/src/pages/NavigationPage.jsx b/src/pages/NavigationPage.jsx
+index fa51721..57386b7 100644
+--- a/src/pages/NavigationPage.jsx
++++ b/src/pages/NavigationPage.jsx
+@@ -38,6 +38,7 @@ import SettingsPage from '../features/settings/SettingsPage';
+ import CourseDetailPage from './CourseDetailPage';
+ import LearningPathPage from './LearningPathPage';
+ import QuizPage from './QuizPage';
++import LearningContentPage from './LearningContentPage';
+ import ChatListPage from '../features/chat/ChatListPage';
+ import ChatPage from '../features/chat/ChatPage';
+ import CodeEditorPage from '../features/editor/CodeEditorPage';
+@@ -256,6 +257,7 @@ const NavigationPage = () => {
+               <Route path="/learning-path/:courseId" element={<AnimatedPage><LearningPathPage /></AnimatedPage>} />
+ 
+               <Route path="/quiz/:courseDomain/:lessonId" element={<AnimatedPage><QuizPage /></AnimatedPage>} />
++              <Route path="/learning/:courseId/:sectionId/:lessonId" element={<AnimatedPage><LearningContentPage /></AnimatedPage>} />
+               <Route path="*" element={<Navigate to="/" />} />
+             </Routes>
+           </AnimatePresence>
+diff --git a/src/pages/QuizPage.css b/src/pages/QuizPage.css
+index 9cc5a28..020a511 100644
+--- a/src/pages/QuizPage.css
++++ b/src/pages/QuizPage.css
+@@ -316,3 +316,104 @@
+     grid-template-columns: 1fr;
+   }
+ }
++
++/* Premium Syntax-Highlighted C++ Cards & Blanks */
++.quiz-code-card,
++.quiz-code-card-fill {
++  background: #1e1e24 !important;
++  border: 1px solid rgba(255, 255, 255, 0.08) !important;
++  border-radius: 14px !important;
++  overflow: hidden;
++  margin-bottom: 2rem;
++  width: 100%;
++}
++
++.code-card-header {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  background: #141416;
++  padding: 10px 16px;
++  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
++  font-family: 'Roboto Mono', monospace;
++  font-size: 0.82rem;
++  font-weight: 800;
++  color: var(--text-secondary);
++}
++
++.code-header-icon {
++  color: var(--primary-main);
++}
++
++.code-card-body {
++  padding: 16px;
++  overflow-x: auto;
++}
++
++.code-pre {
++  margin: 0;
++  font-family: 'Roboto Mono', monospace;
++  font-size: 0.9rem;
++  line-height: 1.6;
++}
++
++.code-line {
++  display: flex;
++  align-items: flex-start;
++}
++
++.code-line-number {
++  width: 24px;
++  text-align: right;
++  margin-right: 16px;
++  color: rgba(255, 255, 255, 0.25);
++  font-size: 0.8rem;
++  user-select: none;
++}
++
++.code-line-content {
++  flex: 1;
++  white-space: pre;
++}
++
++/* C++ IDE Editor & Interactive Split layout styling */
++.challenge-pane {
++  background: rgba(30, 30, 36, 0.6) !important;
++  backdrop-filter: blur(15px);
++  border: 1px solid rgba(255, 255, 255, 0.08) !important;
++  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25) !important;
++}
++
++.quiz-code-editor-card {
++  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2) !important;
++  transition: all 0.25s ease;
++}
++
++.quiz-code-editor-card:focus-within {
++  border-color: var(--primary-main) !important;
++  box-shadow: 0 16px 40px rgba(var(--primary-main-rgb), 0.15) !important;
++}
++
++.quiz-console-panel {
++  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5) !important;
++}
++
++.challenge-instructions::-webkit-scrollbar {
++  width: 6px;
++}
++
++.challenge-instructions::-webkit-scrollbar-thumb {
++  background: rgba(255, 255, 255, 0.12);
++  border-radius: 99px;
++}
++
++.quiz-console-panel pre::-webkit-scrollbar {
++  width: 6px;
++  height: 6px;
++}
++
++.quiz-console-panel pre::-webkit-scrollbar-thumb {
++  background: rgba(255, 255, 255, 0.15);
++  border-radius: 99px;
++}
++
+diff --git a/src/pages/QuizPage.jsx b/src/pages/QuizPage.jsx
+index 86f8e50..27ae69f 100644
+--- a/src/pages/QuizPage.jsx
++++ b/src/pages/QuizPage.jsx
+@@ -1,4 +1,4 @@
+-import React, { useState, useEffect, useMemo } from 'react';
++import React, { useState, useEffect, useMemo, useRef } from 'react';
+ import { useParams, useNavigate, useLocation } from 'react-router-dom';
+ import {
+   Box,
+@@ -11,6 +11,9 @@ import {
+   Modal,
+   Fade,
+   Backdrop,
++  TextField,
++  Chip,
++  Grid
+ } from '@mui/material';
+ import {
+   ArrowBack as ArrowBackIcon,
+@@ -19,78 +22,868 @@ import {
+   EmojiEvents as TrophyIcon,
+   ArrowForward as ArrowForwardIcon,
+   Refresh as RefreshIcon,
++  Code as CodeIcon,
++  PlayArrow as PlayArrowIcon,
++  Check as CheckIcon,
++  Terminal as TerminalIcon,
++  HelpOutline as HelpOutlineIcon,
++  ZoomIn as ZoomInIcon
+ } from '@mui/icons-material';
+ import { motion, AnimatePresence } from 'framer-motion';
+ import { useAuth } from '../context/AuthContext';
++import { coursesData } from '../data/courses';
+ import './QuizPage.css';
+ 
++// Premium adaptive C++ code syntax highlighting (matching mobile app colors)
++const highlightCppCode = (code, isDarkMode) => {
++  if (!code) return '';
++  
++  const pattern = /(\/\/.*$|\/\*.*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#(?:include|define|pragma|ifdef|endif)\b|\b(?:using|namespace|int|return|void|double|float|char|string|bool|if|else|for|while|class|struct|public|private|true|false|const|auto|long|short|switch|case|break|continue|new|delete|std|cout|cin|endl|main)\b|[{}()[\];,<>+\-*/=])/g;
++
++  const keywords = new Set([
++    'using', 'namespace', 'int', 'return', 'void', 'double', 'float', 'char', 'string',
++    'bool', 'if', 'else', 'for', 'while', 'class', 'struct', 'public', 'private',
++    'true', 'false', 'const', 'auto', 'long', 'short', 'switch', 'case', 'break',
++    'continue', 'new', 'delete'
++  ]);
++
++  const libraryWords = new Set(['cout', 'cin', 'std', 'endl', 'main']);
++
++  const parts = code.split(pattern);
++
++  return parts.map((part, idx) => {
++    if (part === undefined || part === null) return null;
++    
++    let color = isDarkMode ? '#D4D4D4' : '#333333';
++    let fontWeight = '400';
++
++    if (part.startsWith('//') || part.startsWith('/*')) {
++      color = isDarkMode ? '#6A9955' : '#008000';
++    } else if (part.startsWith('"') || part.startsWith("'")) {
++      color = isDarkMode ? '#CE9178' : '#A31515';
++    } else if (part.startsWith('#') || keywords.has(part)) {
++      color = isDarkMode ? '#569CD6' : '#0000FF';
++      fontWeight = '600';
++    } else if (libraryWords.has(part)) {
++      color = isDarkMode ? '#DCDCAA' : '#795E26';
++    } else if (/^\d+(?:\.\d+)?$/.test(part)) {
++      color = isDarkMode ? '#B5CEA8' : '#098658';
++    }
++
++    return (
++      <span key={idx} style={{ color, fontWeight }}>
++        {part}
++      </span>
++    );
++  });
++};
++
++// Highly-efficient Client-Side C++ Compilation and Execution Simulator
++const translateCppToJs = (cppCode, inputStr) => {
++  // 1. Clean comments
++  let code = cppCode
++    .replace(/\/\/.*$/gm, "") 
++    .replace(/\/\*[\s\S]*?\*\//g, ""); 
++
++  // 2. Find int main()
++  const mainBodyMatch = /int\s+main\s*\(\s*\)\s*\{([\s\S]*)\}/.exec(code);
++  if (!mainBodyMatch) {
++    throw new Error("Missing int main() structure.");
++  }
++  let body = mainBodyMatch[1].trim();
++
++  // 3. Remove standard return statement
++  body = body.replace(/\breturn\s+0\s*;/g, "");
++
++  // 4. Set up helper variables and context in the generated JS
++  let js = `
++    const stdout = [];
++    const inputTokens = ${JSON.stringify(inputStr.trim().split(/\s+/).filter(t => t.length > 0))};
++    let inputPtr = 0;
++    
++    const nextInputToken = () => {
++      if (inputPtr >= inputTokens.length) return "";
++      return inputTokens[inputPtr++];
++    };
++
++    const readInput = () => {
++      const token = nextInputToken();
++      if (!token) return "";
++      if (/^-?\\d+(\\.\\d+)?$/.test(token)) {
++        return parseFloat(token);
++      }
++      return token;
++    };
++  `;
++
++  // 5. Clean namespace prefixes
++  body = body.replace(/std::cout/g, "cout").replace(/std::cin/g, "cin").replace(/std::endl/g, "endl");
++
++  // 6. Translate C++ variable declarations
++  const types = ['int', 'double', 'float', 'string', 'bool', 'char', 'auto'];
++  types.forEach(type => {
++    const regex = new RegExp(`\\b${type}\\b`, 'g');
++    body = body.replace(regex, 'let');
++  });
++
++  // 7. Translate cin >> var1 >> var2;
++  const cinRegex = /cin\s*(>>\s*[a-zA-Z_][a-zA-Z0-9_]*\s*)+;/g;
++  body = body.replace(cinRegex, (match) => {
++    const vars = match.split('>>').slice(1).map(v => v.replace(/;$/, '').trim());
++    return vars.map(v => `${v} = readInput();`).join(' ');
++  });
++
++  // 8. Translate cout << var1 << "string" << endl;
++  const coutRegex = /cout\s*(<<\s*[^;]+)+;/g;
++  body = body.replace(coutRegex, (match) => {
++    const parts = match.split('<<').slice(1).map(p => p.replace(/;$/, '').trim());
++    const pushes = parts.map(part => {
++      if (part === 'endl' || part === '"\\n"' || part === "'\\n'") {
++        return `stdout.push("\\n");`;
++      }
++      return `stdout.push(${part});`;
++    });
++    return pushes.join(' ');
++  });
++
++  // Append translated body
++  js += "\n" + body;
++  js += `\nreturn stdout.join("");`;
++
++  return js;
++};
++
++const translateJavaToJs = (javaCode, inputStr) => {
++  let code = javaCode
++    .replace(/\/\/.*$/gm, "") 
++    .replace(/\/\*[\s\S]*?\*\//g, ""); 
++
++  code = code.replace(/import\s+[\w.]+;/g, "");
++  code = code.replace(/\bextends\s+Exception\b/g, "extends Error");
++  
++  code = code.replace(/\b(public\s+|abstract\s+)*class\s+(\w+)(?:\s+extends\s+(\w+))?(?:\s+implements\s+[\w\s,]+)?/g, (match, modifiers, className, parentClass) => {
++    let res = `class ${className}`;
++    if (parentClass) {
++      res += ` extends ${parentClass}`;
++    }
++    return res;
++  });
++
++  code = code.replace(/\bimplements\s+[\w\s,]+/g, "");
++
++  const classRegex = /class\s+(\w+)/g;
++  let match;
++  const classNames = [];
++  while ((match = classRegex.exec(code)) !== null) {
++    classNames.push(match[1]);
++  }
++
++  classNames.forEach(className => {
++    const constrRegex = new RegExp(`\\b(?:public|private|protected|internal)?\\s*${className}\\s*\\(([^)]*)\\)\\s*(?:throws\\s+[\\w\\s,]+)?\\s*\\{`, 'g');
++    code = code.replace(constrRegex, 'constructor($1) {');
++  });
++
++  code = code.replace(/\b(public|private|protected|final|abstract|synchronized|transient|volatile)\b/g, "");
++
++  const types = ['int', 'double', 'float', 'boolean', 'char', 'String', 'auto', 'Shape', 'Circle', 'Rectangle', 'Employee', 'Contractor', 'Appliance', 'WashingMachine', 'Refrigerator', 'Product', 'Payable', 'BankAccount', 'Scanner'];
++  types.forEach(type => {
++    const varDeclRegex = new RegExp(`\\b${type}(?:\\[\\])?\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\b`, 'g');
++    code = code.replace(varDeclRegex, 'let $1');
++  });
++
++  types.concat(['void']).forEach(type => {
++    const methodRegex = new RegExp(`\\b${type}(?:\\[\\])?\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(([^)]*)\\)\\s*(?:throws\\s+[\\w\\s,]+)?\\s*\\{`, 'g');
++    code = code.replace(methodRegex, '$1($2) {');
++  });
++
++  code = code.replace(/\(([^)]*)\)/g, (match, paramStr) => {
++    if (!paramStr.trim()) return "()";
++    if (paramStr.includes('args') && (paramStr.includes('String') || paramStr.includes('[]'))) {
++      return "(args)";
++    }
++    const params = paramStr.split(',').map(p => {
++      const parts = p.trim().split(/\s+/);
++      return parts[parts.length - 1];
++    });
++    return `(${params.join(', ')})`;
++  });
++
++  code = code.replace(/System\.out\.println\s*\(([^;]*)\)\s*;/g, 'stdout.push($1); stdout.push("\\n");');
++  code = code.replace(/System\.out\.print\s*\(([^;]*)\)\s*;/g, 'stdout.push($1);');
++  code = code.replace(/System\.out\.printf\s*\(([^;]*)\)\s*;/g, 'stdout.push(sprintf($1));');
++
++  code = code.replace(/\be\.getMessage\(\)/g, "e.message");
++  code = code.replace(/new\s+Scanner\s*\([^)]*\)/g, "null");
++  code = code.replace(/\b[a-zA-Z0-9_]+\.(?:nextInt|nextDouble|next|nextLine)\(\)/g, "readInput()");
++
++  const mainRegex = /main\s*\(([^)]*)\)\s*\{([\s\S]*)\}/;
++  const mainMatch = mainRegex.exec(code);
++  let mainBody = "";
++  if (mainMatch) {
++    mainBody = mainMatch[2].trim();
++    code = code.replace(mainRegex, "");
++  }
++
++  let js = `
++    const stdout = [];
++    const inputTokens = ${JSON.stringify(inputStr.trim().split(/\s+/).filter(t => t.length > 0))};
++    let inputPtr = 0;
++    
++    const nextInputToken = () => {
++      if (inputPtr >= inputTokens.length) return "";
++      return inputTokens[inputPtr++];
++    };
++
++    const readInput = () => {
++      const token = nextInputToken();
++      if (!token) return "";
++      if (/^-?\\d+(\\.\\d+)?$/.test(token)) {
++        return parseFloat(token);
++      }
++      return token;
++    };
++
++    const sprintf = (format, ...args) => {
++      let str = format;
++      args.forEach(arg => {
++        if (str.includes("%.2f")) {
++          str = str.replace("%.2f", Number(arg).toFixed(2));
++        } else if (str.includes("%.1f")) {
++          str = str.replace("%.1f", Number(arg).toFixed(1));
++        } else if (str.includes("%s")) {
++          str = str.replace("%s", String(arg));
++        } else if (str.includes("%d")) {
++          str = str.replace("%d", Math.round(Number(arg)));
++        } else {
++          str = str.replace(/%[a-zA-Z]/, String(arg));
++        }
++      });
++      return str;
++    };
++  `;
++
++  js += "\n" + code;
++  js += `\n// Execute main\n(function() {\n${mainBody}\n})();`;
++  js += `\nreturn stdout.join("");`;
++  return js;
++};
++
++const simulateCodeExecution = (code, inputStr = "", language = "cpp") => {
++  try {
++    const isJava = language.toLowerCase() === 'java' || code.includes('class ') || code.includes('System.out');
++    const jsCode = isJava ? translateJavaToJs(code, inputStr) : translateCppToJs(code, inputStr);
++    const result = new Function(jsCode)();
++    return {
++      output: String(result),
++      isError: false
++    };
++  } catch (err) {
++    return {
++      output: `Compilation / Execution Error: ${err.message}`,
++      isError: true
++    };
++  }
++};
++
++const simulateCppExecution = (code, inputStr = "") => {
++  const isJava = code.includes('class ') || code.includes('System.out') || code.includes('public static void main');
++  const lang = isJava ? 'java' : 'cpp';
++  return simulateCodeExecution(code, inputStr, lang);
++};
++
++const groupIntoVisualLines = (flatLines) => {
++  if (!flatLines) return [];
++  const rows = [];
++  let index = 0;
++
++  while (index < flatLines.length) {
++    const current = flatLines[index];
++
++    if (
++      current.type === 'code' &&
++      index + 1 < flatLines.length &&
++      flatLines[index + 1].type === 'input'
++    ) {
++      const row = [current];
++      index++;
++      
++      while (index < flatLines.length && flatLines[index].type === 'input') {
++        row.push(flatLines[index]);
++        index++;
++      }
++      
++      if (index < flatLines.length) {
++        const possibleContinuation = flatLines[index];
++        if (
++          possibleContinuation.type === 'code' &&
++          possibleContinuation.content.startsWith(' ') &&
++          possibleContinuation.content.trim().length > 0
++        ) {
++          row.push(possibleContinuation);
++          index++;
++        }
++      }
++      
++      rows.push(row);
++      continue;
++    }
++
++    rows.push([current]);
++    index++;
++  }
++
++  return rows;
++};
++
++const getCompletedCode = (question, values = null) => {
++  const visualLines = groupIntoVisualLines(question.codeTemplateLines);
++  let inputIdx = 0;
++  
++  return visualLines.map(lineGroup => {
++    return lineGroup.map(part => {
++      if (part.type === 'input') {
++        if (values === null) {
++          return part.expectedAnswer || '';
++        }
++        const val = values[inputIdx] !== undefined ? values[inputIdx] : '';
++        inputIdx++;
++        return val;
++      }
++      return part.content || '';
++    }).join('');
++  }).join('\n');
++};
++
++const parseInlineCode = (text) => {
++  if (!text) return '';
++  if (typeof text !== 'string') return text;
++  
++  const parts = text.split(/(<code>[\s\S]*?<\/code>)/g);
++  
++  return parts.map((part, index) => {
++    if (part.startsWith('<code>') && part.endsWith('</code>')) {
++      const codeContent = part.substring(6, part.length - 7);
++      return (
++        <code key={index} className="slide-inline-code">
++          {codeContent}
++        </code>
++      );
++    }
++    return part;
++  });
++};
++
++const getIndentation = (visualLines, lineIdx) => {
++  // Scan backwards to find the first line that starts with a code segment containing leading spaces
++  for (let i = lineIdx - 1; i >= 0; i--) {
++    const prevLine = visualLines[i];
++    if (prevLine && prevLine.length > 0 && prevLine[0].type === 'code') {
++      const content = prevLine[0].content || '';
++      const match = content.match(/^(\s+)/);
++      if (match) {
++        return match[1];
++      }
++    }
++  }
++  
++  // Scan forwards if no previous line had indentation
++  for (let i = lineIdx + 1; i < visualLines.length; i++) {
++    const nextLine = visualLines[i];
++    if (nextLine && nextLine.length > 0 && nextLine[0].type === 'code') {
++      const content = nextLine[0].content || '';
++      const match = content.match(/^(\s+)/);
++      if (match) {
++        return match[1];
++      }
++    }
++  }
++  
++  return '';
++};
+ 
+ const QuizPage = () => {
+   const { lessonId } = useParams();
+   const navigate = useNavigate();
+   const location = useLocation();
+-  const course = location.state?.course;
++  const { user, updateQuizScore } = useAuth();
+ 
++  const [course, setCourse] = useState(location.state?.course || null);
++  const [courseLoading, setCourseLoading] = useState(!course);
++  
++  // Quiz and Question States
++  const [quizQuestions, setQuizQuestions] = useState([]);
+   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+   const [selectedAnswerId, setSelectedAnswerId] = useState(null);
+   const [isAnswered, setIsAnswered] = useState(false);
+   const [score, setScore] = useState(0);
+   const [showResult, setShowResult] = useState(false);
+-  const [quizQuestions, setQuizQuestions] = useState([]);
+-  const { updateQuizScore } = useAuth();
+ 
++  // Coding interactive exercise specific states
++  const [blankValues, setBlankValues] = useState({});
++  const [focusedBlankIndex, setFocusedBlankIndex] = useState(0);
++  const [blankStatuses, setBlankStatuses] = useState({});
++
++  // C++ Code challenge specific states
++  const [userCode, setUserCode] = useState('');
++  const [consoleLogs, setConsoleLogs] = useState('');
++  const [isCompiling, setIsCompiling] = useState(false);
++  const [codeRunCompleted, setCodeRunCompleted] = useState(false);
++  const [allCasesPassed, setAllCasesPassed] = useState(false);
++
++  // Dynamic database course loading
++  useEffect(() => {
++    if (course) return;
++
++    const loadCourse = async () => {
++      try {
++        const res = await fetch('/courses/export/all');
++        if (res.ok) {
++          const list = await res.json();
++          const matched = list.find(c =>
++            c.sections?.some(s => s.lessons?.some(l => String(l.id) === String(lessonId)))
++          );
++          if (matched) {
++            setCourse(matched);
++            setCourseLoading(false);
++            return;
++          }
++        }
++      } catch (err) {
++        console.error('Failed to load course for quiz from database:', err);
++      }
++      
++      const fallback = coursesData.find(c =>
++        c.sections?.some(s => s.lessons?.some(l => String(l.id) === String(lessonId)))
++      );
++      setCourse(fallback);
++      setCourseLoading(false);
++    };
++
++    loadCourse();
++  }, [lessonId, course]);
++
++  // Exact JavaScript implementation of the mobile app's MCQ/Exercise extractor
++  const extractQuestions = (lessonData) => {
++    if (!lessonData || !Array.isArray(lessonData.pages)) return [];
++    const questions = [];
++
++    const parseQuestionFromMap = (map, fallbackTitle = '') => {
++      const type = (map.type || 'mcq').toLowerCase();
++      
++      if (type === 'fill_code' || type === 'fill_code_options' || type === 'write_line') {
++        const codeTemplate = map.codeTemplate || {};
++        const rawLines = codeTemplate.lines || [];
++        const templateLines = rawLines.map(line => ({
++          type: (line.type || 'code').toLowerCase(),
++          content: line.content || '',
++          width: line.width || 6,
++          expectedAnswer: line.expectedAnswer || '',
++          sameLine: !!line.sameLine
++        }));
++
++        if (templateLines.length === 0) return null;
++
++        return {
++          type,
++          id: map.id || Math.random().toString(36).substring(2, 9),
++          instruction: map.instruction || fallbackTitle || 'Complete the C++ program:',
++          fileName: map.fileName || 'main.cpp',
++          codeLanguage: codeTemplate.language || 'cpp',
++          codeTemplateLines: templateLines,
++          wordBank: map.wordBank || []
++        };
++      }
++
++      if (type === 'code_challenge') {
++        return {
++          type,
++          id: map.id || Math.random().toString(36).substring(2, 9),
++          instruction: map.problem || 'Write a program to solve this challenge:',
++          problem: map.problem || '',
++          starterCode: map.starterCode || {},
++          example: map.example || {},
++          testCases: map.testCases || [],
++          hiddenTestCases: map.hiddenTestCases || [],
++          outputFormat: map.outputFormat || '',
++          inputFormat: map.inputFormat || '',
++          constraints: map.constraints || ''
++        };
++      }
++
++      // Standard MCQ & Find Error Snip
++      const codeSnippet = map.codeSnippet || {};
++      const snippetLines = codeSnippet.lines || [];
++      const questionText = map.question || map.instruction || fallbackTitle || 'Choose the correct answer:';
++      
++      const rawAnswers = map.options || map.answers || [];
++      const answers = rawAnswers.map((ans, idx) => {
++        const text = typeof ans === 'object' ? (ans.answer || ans.text || '') : String(ans);
++        return {
++          id: idx,
++          text,
++          isCorrect: false
++        };
++      });
++
++      if (questionText.trim() === '' || answers.length === 0) return null;
++
++      const correctAnswerIndex = map.correctAnswerIndex !== undefined
++        ? Number(map.correctAnswerIndex)
++        : (map.correctAnswer !== undefined ? Number(map.correctAnswer) : 0);
++
++      answers.forEach((ans, idx) => {
++        ans.isCorrect = (idx === correctAnswerIndex);
++      });
++
++      return {
++        type,
++        id: map.id || Math.random().toString(36).substring(2, 9),
++        prompt: questionText,
++        answers,
++        correctAnswerIndex,
++        codeSnippetLines: snippetLines,
++        codeLanguage: codeSnippet.language || 'cpp',
++        instruction: map.instruction || questionText
++      };
++    };
++
++    lessonData.pages.forEach((page) => {
++      const pageTitle = page.pageTitle || page.title || '';
++      
++      if (Array.isArray(page.blocks) && page.blocks.length > 0) {
++        page.blocks.forEach((block) => {
++          const question = parseQuestionFromMap(block, pageTitle);
++          if (question) questions.push(question);
++        });
++      } else {
++        const question = parseQuestionFromMap(page, pageTitle);
++        if (question) questions.push(question);
++      }
++    });
++
++    return questions;
++  };
+ 
+   // Load and shuffle questions
+   useEffect(() => {
+     if (!course) return;
+     
+-    const lessons = course.sections.flatMap(s => s.lessons);
+-    const lesson = lessons.find((l) => l.id === lessonId);
+-
+-    if (lesson && lesson.questions) {
+-      const shuffledQuestions = lesson.questions.map((q) => {
+-        // Proper Fisher-Yates shuffle of the unified answers array
+-        const allAnswers = [...q.answers];
+-        for (let i = allAnswers.length - 1; i > 0; i--) {
+-          const j = Math.floor(Math.random() * (i + 1));
+-          [allAnswers[i], allAnswers[j]] = [allAnswers[j], allAnswers[i]];
++    const lessons = course.sections.flatMap(s => s.lessons || []);
++    const localLesson = lessons.find((l) => String(l.id) === String(lessonId));
++    const section = course.sections.find(s => s.lessons?.some(l => String(l.id) === String(lessonId)));
++
++    if (!section || !localLesson) return;
++
++    const loadQuizQuestions = async () => {
++      try {
++        let dbId = course.id;
++        if (isNaN(Number(dbId))) {
++          const res = await fetch('/courses');
++          if (res.ok) {
++            const list = await res.json();
++            const matched = list.find(c => c.title.toLowerCase() === course.title.toLowerCase());
++            if (matched) dbId = matched.id;
++          }
+         }
+-        return { ...q, allAnswers };
+-      });
+-      setQuizQuestions(shuffledQuestions);
+-    } else {
+-      console.error('Lesson or questions not found');
+-    }
++
++        const lessonRes = await fetch(`/courses/${dbId}/sections/${section.id}/lessons/${lessonId}`, {
++          headers: {
++            'Authorization': `Bearer ${localStorage.getItem('token')}`
++          }
++        });
++
++        if (lessonRes.ok) {
++          const dbLesson = await lessonRes.json();
++          const extracted = extractQuestions(dbLesson);
++          if (extracted.length > 0) {
++            setQuizQuestions(extracted);
++            return;
++          }
++        }
++        throw new Error('Fallback to local');
++      } catch (err) {
++        console.warn('Loading quiz questions from local mock fallback:', err);
++        const extracted = extractQuestions({
++          pages: localLesson.questions ? localLesson.questions.map(q => ({
++            type: 'mcq',
++            question: q.prompt,
++            answers: q.answers.map(a => ({ answer: a.text })),
++            correctAnswer: q.answers.findIndex(a => a.isCorrect)
++          })) : []
++        });
++        setQuizQuestions(extracted);
++      }
++    };
++
++    loadQuizQuestions();
+   }, [course, lessonId]);
+ 
+   const currentQuestion = quizQuestions[currentQuestionIndex];
+   const progress = quizQuestions.length > 0 ? ((currentQuestionIndex + 1) / quizQuestions.length) * 100 : 0;
+ 
++  // Initialize interactive variables when a new question loads
++  useEffect(() => {
++    if (!currentQuestion) return;
++
++    // Reset blank inputs
++    setBlankValues({});
++    setFocusedBlankIndex(0);
++    setBlankStatuses({});
++
++    // Reset C++ Code challenge
++    if (currentQuestion.type === 'code_challenge') {
++      const codeLines = currentQuestion.starterCode?.lines || [
++        '#include <iostream>',
++        'using namespace std;',
++        '',
++        'int main() {',
++        '    // Write your C++ code here',
++        '    ',
++        '    return 0;',
++        '}'
++      ];
++      setUserCode(codeLines.join('\n'));
++      setConsoleLogs('Click "Compile & Run" to execute test cases.');
++      setCodeRunCompleted(false);
++      setAllCasesPassed(false);
++    }
++  }, [currentQuestion, currentQuestionIndex]);
++
++  // Clickable word bank chip event handler
++  const handleWordBankClick = (word) => {
++    if (isAnswered) return;
++    
++    // Fill the currently focused blank
++    setBlankValues(prev => ({
++      ...prev,
++      [focusedBlankIndex]: word
++    }));
++
++    // Focus next empty input slot
++    const blankCount = currentQuestion.codeTemplateLines?.filter(l => l.type === 'input').length || 0;
++    let nextEmpty = -1;
++    for (let i = 0; i < blankCount; i++) {
++      if (i === focusedBlankIndex) continue;
++      if (!blankValues[i] || blankValues[i].trim() === "") {
++        nextEmpty = i;
++        break;
++      }
++    }
++    if (nextEmpty !== -1) {
++      setFocusedBlankIndex(nextEmpty);
++    }
++  };
++
+   const handleAnswerSelect = (answerId) => {
+     if (isAnswered) return;
+     setSelectedAnswerId(answerId);
+     setIsAnswered(true);
+ 
+-    const answer = currentQuestion.allAnswers.find(a => a.id === answerId);
++    const answer = currentQuestion.answers.find(a => a.id === answerId);
+     if (answer?.isCorrect) {
+-      setScore((prev) => prev + 1);
++      setScore(prev => prev + 1);
++    }
++  };
++
++  // Checks fill-in-the-blank C++ code answers
++  const handleCheckCodeAnswers = () => {
++    if (isAnswered) return;
++
++    const inputLines = currentQuestion.codeTemplateLines.filter(l => l.type === 'input');
++    const statuses = {};
++    let allCorrect = true;
++
++    // 1. Reconstruct user and reference codes
++    const userCode = getCompletedCode(currentQuestion, blankValues);
++    const refCode = getCompletedCode(currentQuestion, null);
++
++    // 2. Identify test cases
++    const testCases = currentQuestion.testCases && currentQuestion.testCases.length > 0 
++      ? currentQuestion.testCases 
++      : [{ input: '', expectedOutput: '' }];
++
++    let executionCheckPassed = false;
++    let hasOutput = false;
++
++    try {
++      let allTestsPassed = true;
++      let runAnyTest = false;
++
++      testCases.forEach((tc) => {
++        const userRes = simulateCppExecution(userCode, tc.input);
++        
++        let expectedOut = tc.expectedOutput;
++        if (!expectedOut && tc.input === '') {
++          // If no expected output is defined, compile and simulate the reference code to get the expected output
++          const refRes = simulateCppExecution(refCode, tc.input);
++          expectedOut = refRes.output;
++        }
++
++        if (userRes.isError) {
++          allTestsPassed = false;
++        } else {
++          const userOutClean = userRes.output.trim().replace(/\r/g, "");
++          const expectedOutClean = expectedOut.trim().replace(/\r/g, "");
++          
++          if (userOutClean || expectedOutClean) {
++            hasOutput = true;
++          }
++
++          if (userOutClean !== expectedOutClean) {
++            allTestsPassed = false;
++          }
++        }
++        runAnyTest = true;
++      });
++
++      // If tests ran, they all passed, and there was actually output, then execution check is successful!
++      if (runAnyTest && allTestsPassed && hasOutput) {
++        executionCheckPassed = true;
++      }
++    } catch (e) {
++      console.warn("Execution verification failed:", e);
++    }
++
++    if (executionCheckPassed) {
++      // Mark all fields correct since the code ran and produced the exact expected output!
++      inputLines.forEach((_, idx) => {
++        statuses[idx] = true;
++      });
++      allCorrect = true;
++    } else {
++      // Fallback: Smart syntax-based matching for each blank
++      const normalizeSyntax = (str) => {
++        return str
++          .replace(/\s+/g, '') // remove all whitespace
++          .replace(/;+$/, ''); // remove trailing semicolons
++      };
++
++      inputLines.forEach((line, idx) => {
++        const userVal = (blankValues[idx] || '').trim();
++        const expectedVal = line.expectedAnswer.trim();
++        
++        const isCorrect = normalizeSyntax(userVal) === normalizeSyntax(expectedVal);
++        statuses[idx] = isCorrect;
++        if (!isCorrect) {
++          allCorrect = false;
++        }
++      });
++    }
++
++    setBlankStatuses(statuses);
++    setIsAnswered(true);
++
++    if (allCorrect) {
++      setScore(prev => prev + 1);
++    }
++  };
++
++  // Compiles and runs C++ code challenge on the client-side C++ runner
++  const handleRunCodeChallenge = () => {
++    if (isCompiling) return;
++    setIsCompiling(true);
++    setConsoleLogs('Compiling main.cpp...\nLinking variables...\nRunning test cases...');
++
++    setTimeout(() => {
++      const testCases = currentQuestion.testCases || [];
++      const logs = [];
++      let allPassed = true;
++
++      testCases.forEach((tc, index) => {
++        logs.push(`\n[Test Case ${index + 1}] Input: "${tc.input}"`);
++        const runRes = simulateCppExecution(userCode, tc.input);
++
++        if (runRes.isError) {
++          logs.push(`Result: FAILED\n${runRes.output}`);
++          allPassed = false;
++        } else {
++          const expected = tc.expectedOutput.trim().replace(/\r/g, "");
++          const actual = runRes.output.trim().replace(/\r/g, "");
++          logs.push(`Expected stdout:\n${expected}`);
++          logs.push(`Actual stdout:\n${actual}`);
++
++          if (expected === actual) {
++            logs.push(`Result: PASSED ✅`);
++          } else {
++            logs.push(`Result: FAILED ❌ (Outputs do not match)`);
++            allPassed = false;
++          }
++        }
++      });
++
++      setConsoleLogs(logs.join('\n'));
++      setAllCasesPassed(allPassed);
++      setCodeRunCompleted(true);
++      setIsCompiling(false);
++    }, 700);
++  };
++
++  const handleSubmitCodeChallenge = () => {
++    if (!codeRunCompleted) return;
++    setIsAnswered(true);
++    if (allCasesPassed) {
++      setScore(prev => prev + 1);
+     }
+   };
+ 
+   const handleNext = () => {
++    const percentage = Math.round((score / quizQuestions.length) * 100);
++
+     if (currentQuestionIndex < quizQuestions.length - 1) {
+-      setCurrentQuestionIndex((prev) => prev + 1);
++      setCurrentQuestionIndex(prev => prev + 1);
+       setSelectedAnswerId(null);
+       setIsAnswered(false);
+     } else {
+       setShowResult(true);
+-      // Save the score when the quiz ends
+-      const percentage = Math.round((score / quizQuestions.length) * 100);
+-      updateQuizScore(lessonId, percentage);
+-    }
+-  };
++      
++      // Find all duplicate quiz lessons inside this course that share the same title
++      let allLessons = [];
++      try {
++        if (course?.sections) {
++          allLessons = course.sections.flatMap(s => s.lessons || []);
++        } else {
++          const fallback = coursesData.find(c =>
++            c.sections?.some(s => s.lessons?.some(l => String(l.id) === String(lessonId)))
++          );
++          allLessons = fallback?.sections?.flatMap(s => s.lessons || []) || [];
++        }
++      } catch (_) {}
+ 
++      const currentLesson = allLessons.find(l => String(l.id) === String(lessonId));
++      const duplicates = currentLesson 
++        ? allLessons.filter(l => (l.title || '').trim().toLowerCase() === (currentLesson.title || '').trim().toLowerCase())
++        : [{ id: lessonId }];
++      
++      const idsToUpdate = duplicates.map(d => d.id);
++      
++      const token = localStorage.getItem('token');
++      if (token) {
++        Promise.all(idsToUpdate.map(async (lid) => {
++          await fetch(`/courses/me/lessons/${lid}/grade`, {
++            method: 'PATCH',
++            headers: {
++              'Content-Type': 'application/json',
++              'Authorization': `Bearer ${token}`
++            },
++            body: JSON.stringify({ grade: percentage })
++          });
+ 
++          if (percentage >= 70) {
++            await fetch(`/courses/me/lessons/${lid}/done`, {
++              method: 'POST',
++              headers: {
++                'Authorization': `Bearer ${token}`
++              }
++            });
++          }
++        })).catch(err => console.error('Failed to report dynamic duplicate scores to backend:', err));
++      }
++      
++      idsToUpdate.forEach(lid => {
++        updateQuizScore(lid, percentage);
++      });
++    }
++  };
+ 
+   const handleRestart = () => {
+     setCurrentQuestionIndex(0);
+@@ -100,10 +893,146 @@ const QuizPage = () => {
+     setShowResult(false);
+   };
+ 
+-  if (!currentQuestion) return null;
++  if (courseLoading || !currentQuestion) {
++    return (
++      <Box className="quiz-page-loader" style={{ display: 'flex', flexDirection: 'column', gap: '20px', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
++        <div className="loading-spinner" style={{ width: '50px', height: '50px', borderRadius: '50%', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--primary-main)', animation: 'spin 1s linear infinite' }} />
++        <Typography variant="h6" style={{ color: 'var(--text-secondary)' }}>Preparing Quiz Content...</Typography>
++        <style>{`
++          @keyframes spin {
++            to { transform: rotate(360deg); }
++          }
++        `}</style>
++      </Box>
++    );
++  }
+ 
+   const percentage = Math.round((score / quizQuestions.length) * 100);
+ 
++  // Interactive Code Blanks renderer helper
++  const renderInteractiveCodeBlanks = (question) => {
++    let inputIndex = 0;
++    const visualLines = groupIntoVisualLines(question.codeTemplateLines);
++    
++    return (
++      <Paper className="quiz-code-card-fill" elevation={0}>
++        <div className="code-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
++          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
++            <CodeIcon fontSize="small" className="code-header-icon" />
++            <span>{question.fileName}</span>
++          </div>
++          <span style={{ opacity: 0.5, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'sans-serif', fontWeight: 700 }}>
++            {question.type?.replace('_', ' ')}
++          </span>
++        </div>
++        <div className="code-card-body">
++          <pre className="code-pre">
++            {visualLines.map((lineGroup, lineIdx) => {
++              return (
++                <div key={lineIdx} className="code-line">
++                  <span className="code-line-number">{lineIdx + 1}</span>
++                  <span className="code-line-content">
++                    {lineGroup[0]?.type === 'input' && (
++                      <span className="code-line-indentation" style={{ userSelect: 'none' }}>
++                        {getIndentation(visualLines, lineIdx)}
++                      </span>
++                    )}
++                    {lineGroup.map((part, partIdx) => {
++                      if (part.type === 'input') {
++                        const idx = inputIndex;
++                        const userVal = blankValues[idx] || '';
++                        const isCorrect = blankStatuses[idx] === true;
++                        const isFocus = focusedBlankIndex === idx;
++                        inputIndex++;
++
++                        let borderStyle = '1px solid rgba(255,255,255,0.15)';
++                        let bg = 'rgba(255,255,255,0.05)';
++                        if (isFocus) {
++                          borderStyle = '1.5px solid var(--primary-main)';
++                          bg = 'rgba(28,176,246,0.08)';
++                        }
++                        if (isAnswered) {
++                          borderStyle = isCorrect ? '1.5px solid #4CAF50' : '1.5px solid #F44336';
++                          bg = isCorrect ? 'rgba(76,175,80,0.12)' : 'rgba(244,67,54,0.12)';
++                        }
++
++                        const expectedAns = part.expectedAnswer || '';
++                        const isShort = expectedAns.trim().length <= 10 && !expectedAns.includes(' ') && !expectedAns.includes(';') && !part.multiline;
++
++                        if (question.type === 'write_line' && !isShort) {
++                          return (
++                            <span key={partIdx} style={{ display: 'inline-block', margin: '4px 0', verticalAlign: 'top', width: '90%', maxWidth: '650px' }}>
++                              <textarea
++                                value={userVal}
++                                disabled={isAnswered}
++                                onFocus={() => setFocusedBlankIndex(idx)}
++                                onChange={(e) => setBlankValues(prev => ({ ...prev, [idx]: e.target.value }))}
++                                placeholder="// Write full statement(s) here..."
++                                rows={part.multiline ? 3 : 2}
++                                style={{
++                                  width: '100%',
++                                  padding: '8px 12px',
++                                  fontSize: '0.88rem',
++                                  fontFamily: '"Roboto Mono", monospace',
++                                  color: '#fff',
++                                  borderRadius: '8px',
++                                  border: borderStyle,
++                                  backgroundColor: bg,
++                                  outline: 'none',
++                                  resize: 'vertical',
++                                  lineHeight: 1.5,
++                                  transition: 'all 0.2s ease',
++                                  display: 'block'
++                                }}
++                              />
++                            </span>
++                          );
++                        }
++
++                        return (
++                          <span key={partIdx} style={{ display: 'inline-block', margin: '0 4px', verticalAlign: 'middle' }}>
++                            <input
++                              type="text"
++                              value={userVal}
++                              disabled={isAnswered}
++                              onFocus={() => setFocusedBlankIndex(idx)}
++                              onChange={(e) => setBlankValues(prev => ({ ...prev, [idx]: e.target.value }))}
++                              style={{
++                                width: `${Math.max(50, part.width * 11)}px`,
++                                height: '28px',
++                                padding: '2px 8px',
++                                fontSize: '0.85rem',
++                                fontFamily: '"Roboto Mono", monospace',
++                                textAlign: 'center',
++                                color: '#fff',
++                                borderRadius: '6px',
++                                border: borderStyle,
++                                backgroundColor: bg,
++                                outline: 'none',
++                                transition: 'all 0.2s ease'
++                              }}
++                            />
++                          </span>
++                        );
++                      }
++
++                      const displayContent = (part.content === '' || part.content === '\n') ? '\u00A0' : part.content;
++                      return (
++                        <span key={partIdx}>
++                          {highlightCppCode(displayContent, true)}
++                        </span>
++                      );
++                    })}
++                  </span>
++                </div>
++              );
++            })}
++          </pre>
++        </div>
++      </Paper>
++    );
++  };
++
+   return (
+     <Box className="quiz-page">
+       <header className="quiz-header glass-panel">
+@@ -114,7 +1043,7 @@ const QuizPage = () => {
+             </IconButton>
+             <div>
+               <Typography variant="h6" className="quiz-lesson-title">
+-                {course?.sections.flatMap(s => s.lessons).find(l => l.id === lessonId)?.title || 'Quiz'}
++                {course?.sections.flatMap(s => s.lessons).find(l => String(l.id) === String(lessonId))?.title || 'Quiz'}
+               </Typography>
+               <Typography variant="caption" className="quiz-progress-text">
+                 Question {currentQuestionIndex + 1} of {quizQuestions.length}
+@@ -123,10 +1052,10 @@ const QuizPage = () => {
+           </div>
+ 
+           <div className="quiz-header-right">
+-             <div className="quiz-score-badge">
+-               <TrophyIcon fontSize="small" />
+-               <Typography variant="body2">{score} Points</Typography>
+-             </div>
++            <div className="quiz-score-badge">
++              <TrophyIcon fontSize="small" />
++              <Typography variant="body2">{score} / {quizQuestions.length}</Typography>
++            </div>
+           </div>
+         </Container>
+         <LinearProgress 
+@@ -136,52 +1065,271 @@ const QuizPage = () => {
+         />
+       </header>
+ 
+-      <Container maxWidth="md" className="quiz-main-content">
++      <Container maxWidth={currentQuestion.type === 'code_challenge' ? "xl" : "md"} className="quiz-main-content">
+         <AnimatePresence mode="wait">
+           <motion.div
+             key={currentQuestionIndex}
+             initial={{ opacity: 0, x: 20 }}
+             animate={{ opacity: 1, x: 0 }}
+             exit={{ opacity: 0, x: -20 }}
+-            transition={{ duration: 0.3 }}
++            transition={{ duration: 0.25 }}
++            style={{ width: '100%' }}
+           >
+-            <Paper className="quiz-question-container glass-panel" elevation={0}>
+-              <Typography variant="h5" className="quiz-question-prompt">
+-                {currentQuestion.prompt}
+-              </Typography>
++            {/* 1. CODE CHALLENGE SPLIT PANELS RENDERER */}
++            {currentQuestion.type === 'code_challenge' ? (
++              <Grid container spacing={3} style={{ marginTop: '1rem' }}>
++                <Grid item xs={12} md={5}>
++                  <Paper className="quiz-question-container glass-panel-strong challenge-pane" elevation={0} style={{ padding: '24px', minHeight: '65vh', display: 'flex', flexDirection: 'column' }}>
++                    <Typography variant="overline" style={{ color: 'var(--primary-main)', fontWeight: 800, letterSpacing: '0.12em' }}>
++                      C++ INTERACTIVE CHALLENGE
++                    </Typography>
++                    <Typography variant="h5" className="challenge-title" style={{ fontWeight: 900, fontFamily: '"Outfit", sans-serif', margin: '8px 0 16px' }}>
++                      C++ Coding Practice
++                    </Typography>
++                    
++                    <Box className="challenge-instructions" style={{ flexGrow: 1, overflowY: 'auto', paddingRight: '8px' }}>
++                      <Typography variant="subtitle1" style={{ fontWeight: 700, marginBottom: '6px' }}>Problem Description</Typography>
++                      <Typography variant="body2" style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
++                        {parseInlineCode(currentQuestion.problem)}
++                      </Typography>
+ 
+-              <div className="quiz-answers-grid">
+-                {currentQuestion.allAnswers.map((answer) => {
+-                  const isSelected = selectedAnswerId === answer.id;
+-                  const isCorrect = answer.isCorrect;
+-                  
+-                  let stateClass = '';
+-                  if (isAnswered) {
+-                    if (isCorrect) stateClass = 'is-correct';
+-                    else if (isSelected && !isCorrect) stateClass = 'is-incorrect';
+-                  } else if (isSelected) {
+-                    stateClass = 'is-selected';
+-                  }
+-
+-                  return (
+-                    <Button
+-                      key={answer.id}
+-                      onClick={() => handleAnswerSelect(answer.id)}
+-                      className={`quiz-answer-btn ${stateClass}`}
+-                      disabled={isAnswered && !isSelected && !isCorrect}
+-                    >
+-                      <span className="quiz-answer-text">{answer.text}</span>
+-                      {isAnswered && isCorrect && <CheckCircleIcon className="quiz-feedback-icon" />}
+-                      {isAnswered && isSelected && !isCorrect && <CancelIcon className="quiz-feedback-icon" />}
+-                    </Button>
+-                  );
+-                })}
+-              </div>
+-            </Paper>
++                      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '16px' }}>
++                        <div>
++                          <Typography variant="caption" style={{ fontWeight: 800, display: 'block', color: 'var(--text-secondary)' }}>INPUT FORMAT</Typography>
++                          <Typography variant="body2" style={{ fontSize: '0.85rem' }}>{currentQuestion.inputFormat || "Standard terminal stream."}</Typography>
++                        </div>
++                        <div>
++                          <Typography variant="caption" style={{ fontWeight: 800, display: 'block', color: 'var(--text-secondary)' }}>OUTPUT FORMAT</Typography>
++                          <Typography variant="body2" style={{ fontSize: '0.85rem' }}>{currentQuestion.outputFormat || "stdout match."}</Typography>
++                        </div>
++                      </div>
++
++                      {currentQuestion.constraints && (
++                        <div style={{ marginBottom: '16px' }}>
++                          <Typography variant="caption" style={{ fontWeight: 800, display: 'block', color: 'var(--text-secondary)' }}>CONSTRAINTS</Typography>
++                          <code style={{ fontSize: '0.8rem', backgroundColor: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>
++                            {currentQuestion.constraints}
++                          </code>
++                        </div>
++                      )}
++
++                      {currentQuestion.example && (
++                        <Paper style={{ backgroundColor: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '14px', marginTop: '16px' }} elevation={0}>
++                          <Typography variant="subtitle2" style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
++                            <HelpOutlineIcon fontSize="small" style={{ color: 'var(--primary-main)' }} /> Sample Example Case
++                          </Typography>
++                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
++                            <div>
++                              <Typography variant="caption" style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>SAMPLE INPUT</Typography>
++                              <pre style={{ backgroundColor: 'rgba(255,255,255,0.04)', padding: '6px 10px', borderRadius: '6px', margin: '4px 0 0', fontSize: '0.8rem', fontFamily: 'monospace' }}>{currentQuestion.example.input}</pre>
++                            </div>
++                            <div>
++                              <Typography variant="caption" style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>SAMPLE OUTPUT</Typography>
++                              <pre style={{ backgroundColor: 'rgba(255,255,255,0.04)', padding: '6px 10px', borderRadius: '6px', margin: '4px 0 0', fontSize: '0.8rem', fontFamily: 'monospace' }}>{currentQuestion.example.output}</pre>
++                            </div>
++                          </div>
++                          {currentQuestion.example.explanation && (
++                            <Typography variant="caption" style={{ display: 'block', marginTop: '8px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
++                              Explanation: {currentQuestion.example.explanation}
++                            </Typography>
++                          )}
++                        </Paper>
++                      )}
++                    </Box>
++                  </Paper>
++                </Grid>
++
++                <Grid item xs={12} md={7}>
++                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
++                    {/* C++ IDE Editor Panel */}
++                    <Paper className="quiz-code-editor-card" elevation={0} style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', backgroundColor: 'var(--bg-card)', overflow: 'hidden' }}>
++                      <div className="code-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
++                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
++                          <CodeIcon fontSize="small" style={{ color: 'var(--primary-main)' }} />
++                          <Typography variant="body2" style={{ fontFamily: 'monospace', fontWeight: 800 }}>main.cpp</Typography>
++                        </div>
++                        <Button 
++                          variant="contained" 
++                          size="small" 
++                          startIcon={<PlayArrowIcon />} 
++                          disabled={isCompiling}
++                          onClick={handleRunCodeChallenge}
++                          style={{ textTransform: 'none', backgroundColor: '#58CC02', color: '#fff', borderRadius: '8px' }}
++                        >
++                          Compile & Run
++                        </Button>
++                      </div>
++                      <textarea
++                        value={userCode}
++                        disabled={isAnswered}
++                        onChange={(e) => setUserCode(e.target.value)}
++                        style={{
++                          width: '100%',
++                          minHeight: '32vh',
++                          padding: '16px',
++                          fontSize: '0.9rem',
++                          fontFamily: '"Roboto Mono", monospace',
++                          color: '#e0e0e0',
++                          backgroundColor: 'rgba(0,0,0,0.18)',
++                          border: 'none',
++                          outline: 'none',
++                          resize: 'vertical',
++                          lineHeight: 1.55
++                        }}
++                      />
++                    </Paper>
++
++                    {/* Compile Logs Console */}
++                    <Paper className="quiz-console-panel" elevation={0} style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', backgroundColor: '#121214', padding: '16px' }}>
++                      <Typography variant="subtitle2" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: 'rgba(255,255,255,0.7)', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', marginBottom: '8px' }}>
++                        <TerminalIcon fontSize="small" style={{ color: 'var(--primary-main)' }} /> EXECUTION CONSOLE
++                      </Typography>
++                      <pre style={{
++                        maxHeight: '18vh',
++                        overflowY: 'auto',
++                        margin: 0,
++                        padding: '6px',
++                        fontSize: '0.82rem',
++                        fontFamily: '"Roboto Mono", monospace',
++                        color: allCasesPassed ? '#81C784' : '#e0e0e0',
++                        lineHeight: 1.45,
++                        whiteSpace: 'pre-wrap'
++                      }}>
++                        {consoleLogs}
++                      </pre>
++                    </Paper>
++                  </div>
++                </Grid>
++              </Grid>
++            ) : (
++              // 2. STANDARD MCQ / INTERACTIVE FILL BLANKS RENDERER
++              <Paper className="quiz-question-container glass-panel" elevation={0}>
++                {/* Visual syntax highlighting C++ cards for find_error / mcq with code */}
++                {currentQuestion.codeSnippetLines && currentQuestion.codeSnippetLines.length > 0 && (
++                  <Paper className="quiz-code-card" elevation={0} style={{ marginBottom: '20px' }}>
++                    <div className="code-card-header">
++                      <CodeIcon fontSize="small" className="code-header-icon" />
++                      <span>{currentQuestion.fileName || 'snippet.cpp'}</span>
++                    </div>
++                    <div className="code-card-body">
++                      <pre className="code-pre">
++                        {currentQuestion.codeSnippetLines.map((line, idx) => (
++                          <div key={idx} className="code-line">
++                            <span className="code-line-number">{idx + 1}</span>
++                            <span className="code-line-content">{highlightCppCode(line, true)}</span>
++                          </div>
++                        ))}
++                      </pre>
++                    </div>
++                  </Paper>
++                )}
++
++                <Typography variant="h5" className="quiz-question-prompt">
++                  {parseInlineCode(currentQuestion.prompt || currentQuestion.instruction)}
++                </Typography>
++
++                {/* Render inline blanks for coding slots */}
++                {(currentQuestion.type === 'fill_code' || currentQuestion.type === 'fill_code_options' || currentQuestion.type === 'write_line') && (
++                  <div style={{ margin: '24px 0 16px' }}>
++                    {renderInteractiveCodeBlanks(currentQuestion)}
++                  </div>
++                )}
++
++                {/* Clickable interactive Word Bank below blanks */}
++                {currentQuestion.type === 'fill_code_options' && currentQuestion.wordBank && currentQuestion.wordBank.length > 0 && (
++                  <Box style={{ margin: '20px 0', padding: '16px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.1)' }}>
++                    <Typography variant="caption" style={{ fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px', letterSpacing: '0.05em' }}>
++                      WORD BANK OPTIONS
++                    </Typography>
++                    <Box style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
++                      {currentQuestion.wordBank.map((word, wIdx) => {
++                        const isUsed = Object.values(blankValues).includes(word);
++                        return (
++                          <Chip
++                            key={wIdx}
++                            label={word}
++                            disabled={isAnswered}
++                            onClick={() => handleWordBankClick(word)}
++                            style={{
++                              fontFamily: '"Roboto Mono", monospace',
++                              fontSize: '0.85rem',
++                              fontWeight: 700,
++                              backgroundColor: isUsed ? 'rgba(255,255,255,0.05)' : 'rgba(28,176,246,0.12)',
++                              color: isUsed ? 'rgba(255,255,255,0.25)' : '#1CB0F6',
++                              border: isUsed ? '1px solid transparent' : '1px solid rgba(28,176,246,0.25)',
++                              cursor: isAnswered ? 'default' : 'pointer',
++                              transform: 'scale(1)',
++                              transition: 'all 0.2s ease'
++                            }}
++                          />
++                        );
++                      })}
++                    </Box>
++                  </Box>
++                )}
++
++                {/* Standard MCQ Answers Grid */}
++                {currentQuestion.answers && currentQuestion.answers.length > 0 && (
++                  <div className="quiz-answers-grid" style={{ marginTop: '24px' }}>
++                    {currentQuestion.answers.map((answer) => {
++                      const isSelected = selectedAnswerId === answer.id;
++                      const isCorrect = answer.isCorrect;
++                      
++                      let stateClass = '';
++                      if (isAnswered) {
++                        if (isCorrect) stateClass = 'is-correct';
++                        else if (isSelected && !isCorrect) stateClass = 'is-incorrect';
++                      } else if (isSelected) {
++                        stateClass = 'is-selected';
++                      }
++
++                      return (
++                        <Button
++                          key={answer.id}
++                          onClick={() => handleAnswerSelect(answer.id)}
++                          className={`quiz-answer-btn ${stateClass}`}
++                          disabled={isAnswered && !isSelected && !isCorrect}
++                        >
++                          <span className="quiz-answer-text">{parseInlineCode(answer.text)}</span>
++                          {isAnswered && isCorrect && <CheckCircleIcon className="quiz-feedback-icon" />}
++                          {isAnswered && isSelected && !isCorrect && <CancelIcon className="quiz-feedback-icon" />}
++                        </Button>
++                      );
++                    })}
++                  </div>
++                )}
++              </Paper>
++            )}
+           </motion.div>
+         </AnimatePresence>
+ 
+-        <div className="quiz-actions">
++        <div className="quiz-actions" style={{ display: 'flex', gap: '14px', justifyContent: 'flex-end', marginTop: '24px' }}>
++          {/* Submit / Check Answer Button */}
++          {!isAnswered && (currentQuestion.type === 'fill_code' || currentQuestion.type === 'fill_code_options' || currentQuestion.type === 'write_line') && (
++            <Button
++              variant="contained"
++              size="large"
++              onClick={handleCheckCodeAnswers}
++              className="quiz-next-btn primary"
++              style={{ padding: '10px 28px', borderRadius: '12px' }}
++            >
++              Check Answers
++            </Button>
++          )}
++
++          {!isAnswered && currentQuestion.type === 'code_challenge' && (
++            <Button
++              variant="contained"
++              size="large"
++              disabled={!codeRunCompleted}
++              onClick={handleSubmitCodeChallenge}
++              className="quiz-next-btn primary"
++              style={{ padding: '10px 28px', borderRadius: '12px' }}
++            >
++              Submit Solution
++            </Button>
++          )}
++
+           {isAnswered && (
+             <Button
+               variant="contained"
+@@ -192,6 +1340,7 @@ const QuizPage = () => {
+               component={motion.button}
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
++              style={{ padding: '10px 28px', borderRadius: '12px' }}
+             >
+               {currentQuestionIndex === quizQuestions.length - 1 ? 'Finish Quiz' : 'Next Question'}
+             </Button>
+@@ -220,7 +1369,6 @@ const QuizPage = () => {
+                    percentage >= 70 ? "Great job! You've passed this lesson." :
+                    "Score at least 70% to pass this lesson. Keep practicing!"}
+                 </Typography>
+-
+               </div>
+ 
+               <div className="quiz-result-stats">
+@@ -252,7 +1400,6 @@ const QuizPage = () => {
+                       quizResult: { lessonId, score, percentage }
+                     } 
+                   })}
+-
+                   className="quiz-result-btn primary"
+                 >
+                   Continue Journey
+diff --git a/src/pages/RegisterPage.jsx b/src/pages/RegisterPage.jsx
+index bf4832b..4fc61b9 100644
+--- a/src/pages/RegisterPage.jsx
++++ b/src/pages/RegisterPage.jsx
+@@ -1,4 +1,4 @@
+-import React, { useState } from 'react';
++import React, { useState, useRef } from 'react';
+ import {
+   Box,
+   Container,
+@@ -10,7 +10,8 @@ import {
+   IconButton,
+   Alert,
+   Avatar,
+-  useTheme
++  useTheme,
++  Tooltip
+ } from '@mui/material';
+ import {
+   Email as EmailIcon,
+@@ -19,6 +20,10 @@ import {
+   Visibility as VisibilityIcon,
+   VisibilityOff as VisibilityOffIcon,
+   AutoAwesome as AutoAwesomeIcon,
++  PhotoCamera as CameraIcon,
++  CloudUpload as UploadIcon,
++  Delete as DeleteIcon,
++  Check as CheckIcon,
+ } from '@mui/icons-material';
+ import { Link, useNavigate } from 'react-router-dom';
+ import { useAuth } from '../context/AuthContext';
+@@ -33,6 +38,7 @@ const AVATAR_OPTIONS = [
+ 
+ const RegisterPage = () => {
+   const theme = useTheme();
++  const fileInputRef = useRef(null);
+   const [formData, setFormData] = useState({
+     name: '',
+     email: '',
+@@ -42,6 +48,9 @@ const RegisterPage = () => {
+     gender: 'Rather Not Say',
+   });
+   const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
++  const [isCustomAvatar, setIsCustomAvatar] = useState(false);
++  const [isDragging, setIsDragging] = useState(false);
++  const [avatarError, setAvatarError] = useState('');
+   const [showPassword, setShowPassword] = useState(false);
+   const [error, setError] = useState('');
+   const { register } = useAuth();
+@@ -51,6 +60,67 @@ const RegisterPage = () => {
+     setFormData({ ...formData, [e.target.name]: e.target.value });
+   };
+ 
++  const handleFile = (file) => {
++    if (!file) return;
++
++    if (!file.type.startsWith('image/')) {
++      setAvatarError('Please select a valid image file (PNG, JPG, WebP).');
++      return;
++    }
++
++    if (file.size > 2 * 1024 * 1024) {
++      setAvatarError('Profile picture must be smaller than 2MB.');
++      return;
++    }
++
++    setAvatarError('');
++    const reader = new FileReader();
++    reader.onload = (e) => {
++      setSelectedAvatar(e.target.result);
++      setIsCustomAvatar(true);
++    };
++    reader.readAsDataURL(file);
++  };
++
++  const handleFileChange = (e) => {
++    if (e.target.files && e.target.files[0]) {
++      handleFile(e.target.files[0]);
++    }
++  };
++
++  const handleDragOver = (e) => {
++    e.preventDefault();
++    setIsDragging(true);
++  };
++
++  const handleDragLeave = (e) => {
++    e.preventDefault();
++    setIsDragging(false);
++  };
++
++  const handleDrop = (e) => {
++    e.preventDefault();
++    setIsDragging(false);
++    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
++      handleFile(e.dataTransfer.files[0]);
++    }
++  };
++
++  const triggerFileInput = () => {
++    if (fileInputRef.current) {
++      fileInputRef.current.click();
++    }
++  };
++
++  const handleRemoveAvatar = () => {
++    setSelectedAvatar(AVATAR_OPTIONS[0]);
++    setIsCustomAvatar(false);
++    setAvatarError('');
++    if (fileInputRef.current) {
++      fileInputRef.current.value = '';
++    }
++  };
++
+   const handleSubmit = async (e) => {
+     e.preventDefault();
+     setError('');
+@@ -102,6 +172,43 @@ const RegisterPage = () => {
+         )}
+ 
+         <form onSubmit={handleSubmit} className="auth-form">
++          {/* Custom Avatar Upload Zone */}
++          <Box className="avatar-upload-section">
++            <input
++              type="file"
++              ref={fileInputRef}
++              onChange={handleFileChange}
++              accept="image/*"
++              style={{ display: 'none' }}
++            />
++            
++            <Box 
++              className={`avatar-dropzone ${isDragging ? 'dragging' : ''}`}
++              onDragOver={handleDragOver}
++              onDragLeave={handleDragLeave}
++              onDrop={handleDrop}
++              onClick={triggerFileInput}
++            >
++              <Avatar
++                src={selectedAvatar}
++                className="avatar-preview"
++                sx={{
++                  width: '100%',
++                  height: '100%'
++                }}
++              />
++              <Box className="avatar-hover-overlay">
++                <CameraIcon sx={{ fontSize: 32 }} />
++              </Box>
++            </Box>
++
++            {avatarError && (
++              <Alert severity="warning" className="avatar-error-alert" sx={{ mt: 1, py: 0, px: 2, borderRadius: 2 }}>
++                {avatarError}
++              </Alert>
++            )}
++          </Box>
++
+           <TextField
+             fullWidth
+             label="Full Name"
+@@ -213,28 +320,6 @@ const RegisterPage = () => {
+             </TextField>
+           </Box>
+ 
+-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 1, textAlign: 'left', fontWeight: 600 }}>
+-            Choose Profile Picture (Optional)
+-          </Typography>
+-          <Box sx={{ display: 'flex', gap: 2, mb: 3, justifyContent: 'center' }}>
+-            {AVATAR_OPTIONS.map((url, idx) => (
+-              <Avatar
+-                key={idx}
+-                src={url}
+-                onClick={() => setSelectedAvatar(url)}
+-                sx={{
+-                  width: 50,
+-                  height: 50,
+-                  cursor: 'pointer',
+-                  border: selectedAvatar === url ? `3px solid ${theme.palette.primary.main}` : '3px solid transparent',
+-                  transform: selectedAvatar === url ? 'scale(1.1)' : 'none',
+-                  transition: 'all 0.2s',
+-                  '&:hover': { transform: 'scale(1.15)' }
+-                }}
+-              />
+-            ))}
+-          </Box>
+-
+           <Button
+             fullWidth
+             variant="contained"

@@ -1,0 +1,313 @@
+/* SocialEngineeringLab.css */
+
+.social-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Outfit', 'Poppins', sans-serif;
+  color: var(--text-primary);
+}
+
+.social-header {
+  width: 100%;
+  max-width: 56rem; /* max-w-4xl */
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.social-title {
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .social-title {
+    font-size: 3rem;
+  }
+}
+
+.social-subtitle {
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  margin-left: 0.25rem;
+  font-size: 1.125rem;
+}
+
+.social-card {
+  width: 100%;
+  max-width: 56rem;
+  background-color: var(--background-paper);
+  padding: 2rem;
+  border-radius: 1.5rem;
+
+  border: 1px solid var(--divider);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.social-svg-container {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 21 / 9;
+  margin-bottom: 2rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid var(--divider);
+  background-color: var(--background-default);
+}
+
+.social-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));
+}
+
+.social-controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .social-controls {
+    flex-direction: row;
+  }
+}
+
+.social-attack-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.social-attack-panel-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.social-attack-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.social-attack-btn {
+  padding: 0.5rem 1rem;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  border: none;
+
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.social-attack-btn.phishing {
+  background-color: var(--warning-main);
+}
+.social-attack-btn.phishing:hover:not(:disabled) {
+  background-color: var(--warning-dark);
+}
+
+.social-attack-btn.vishing {
+  background-color: #ea580c; /* orange-600 */
+}
+.social-attack-btn.vishing:hover:not(:disabled) {
+  background-color: #c2410c; /* orange-700 */
+}
+
+.social-attack-btn:disabled {
+  background-color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.social-reset-btn {
+  font-size: 0.75rem;
+  text-decoration: underline;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-top: 0.25rem;
+}
+.social-reset-btn:hover {
+  color: var(--text-primary);
+}
+
+.social-defense-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+  width: 100%;
+  padding-left: 0;
+  border-left: none;
+}
+
+@media (min-width: 768px) {
+  .social-defense-panel {
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--divider);
+  }
+}
+
+.social-status-container {
+  margin-top: 2rem;
+  text-align: center;
+  min-height: 4rem;
+  width: 100%;
+  background-color: var(--background-default);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--divider);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.social-status-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.social-status-title.normal { color: var(--text-primary); }
+.social-status-title.warning { color: var(--yellow-500); }
+.social-status-title.success { color: var(--success-main); }
+.social-status-title.danger { color: var(--danger-main); }
+.social-status-title.info { color: var(--blue-500); }
+.social-status-title.orange { color: var(--orange-500); }
+
+.social-status-desc {
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+/* Animations and SVG specific styles */
+.pulse-anim { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+.shake-anim { animation: shake 0.4s ease-in-out infinite; }
+/* Re-use shake keyframes from RansomwareLab or define here */
+
+.bounce-pop { animation: bouncePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+@keyframes bouncePop {
+  0% { transform: scale(0); opacity: 0; }
+  80% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* SVG Variables */
+.social-card {
+  --hacker-bg: #1f2937;
+  --emp-bg: var(--background-default);
+  --vault-bg: var(--primary-main);
+  --panel-bg: var(--background-paper);
+  
+  --stroke-main: var(--text-secondary);
+  --stroke-light: var(--text-disabled);
+  
+  --accent-red: var(--danger-main);
+  --accent-green: var(--success-main);
+  --accent-blue: var(--blue-500);
+  --accent-yellow: var(--yellow-500);
+
+  /* Fallback aliases for inline styles */
+  --warning-main: var(--yellow-500);
+  --info-main: var(--blue-500);
+  --info-dark: var(--primary-dark);
+}
+
+[data-theme='dark'] .social-card {
+  --hacker-bg: rgba(0, 0, 0, 0.4);
+  --vault-bg: var(--primary-dark);
+  --stroke-light: rgba(255, 255, 255, 0.15);
+}
+
+.social-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.social-toggle-text {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.social-toggle-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.social-toggle-subtitle {
+  font-size: 0.625rem;
+  color: var(--text-secondary);
+}
+
+.social-toggle-btn {
+  width: 3rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.3s;
+  border: none;
+  cursor: pointer;
+
+  padding: 0;
+}
+
+.social-toggle-btn.active.training {
+  background-color: var(--success-main);
+}
+.social-toggle-btn.active.mfa {
+  background-color: var(--info-main);
+}
+
+.social-toggle-btn.inactive {
+  background-color: var(--text-disabled);
+}
+
+.social-toggle-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background-color: #fff;
+
+  transition: transform 0.3s;
+}
+
+.social-toggle-btn.active .social-toggle-thumb {
+  transform: translateX(1.75rem);
+}
+
+.social-toggle-btn.inactive .social-toggle-thumb {
+  transform: translateX(0.25rem);
+}

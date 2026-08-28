@@ -1,0 +1,444 @@
+:root {
+  --ach-color-course: var(--primary-main);
+  --ach-color-quiz: color-mix(in srgb, var(--primary-main) 85%, #ffffff);
+  --ach-color-social: color-mix(in srgb, var(--primary-dark) 85%, #ffffff);
+  --ach-color-xp: var(--primary-dark);
+  --ach-color-streak: color-mix(in srgb, var(--primary-main) 70%, #000000);
+  --ach-color-role: color-mix(in srgb, var(--primary-dark) 70%, #000000);
+  --ach-color-engagement: color-mix(in srgb, var(--primary-main) 65%, var(--primary-dark));
+}
+
+.achievements-container {
+  background-color: var(--background-default);
+  min-height: 100vh;
+  padding: 1.5rem 0 4rem 0;
+  font-family: 'Poppins', sans-serif;
+  background-image: 
+    none;
+}
+
+/* Centered & Professional Hero Header */
+.achievements-hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.badge-glow-container {
+  position: relative;
+  background: transparent;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem auto;
+  border-radius: 50%;
+}
+
+.hero-trophy-icon {
+  width: 128px !important;
+  height: 128px !important;
+  color: var(--primary-main);
+  margin: 0 auto;
+}
+
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3rem) !important;
+  font-weight: 900 !important;
+  color: var(--text-primary);
+  margin-bottom: 1rem !important;
+  letter-spacing: -0.03em !important;
+}
+
+.hero-title .highlight-text {
+  background: var(--primary-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.hero-subtitle {
+  color: var(--text-secondary);
+  max-width: 38rem;
+  margin: 0 auto !important;
+  line-height: 1.7 !important;
+  font-size: 1.05rem !important;
+}
+
+/* Overall Center Dashboard Card */
+.overall-stats-panel-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4.5rem;
+  padding: 0 1rem;
+}
+
+.overall-stats-panel {
+  width: 100%;
+  max-width: 780px;
+  padding: 2.5rem;
+  border-radius: 2rem !important;
+  background: var(--surface-glass) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--divider) !important;
+  transition: transform 0.3s ease;
+}
+
+.overall-stats-panel:hover {
+  transform: translateY(-2px);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+@media (max-width: 650px) {
+  .stats-header {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* Circular Dashboard Gauge */
+.circular-progress-glow {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: var(--background-paper);
+  border: 4px solid var(--primary-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.circular-progress-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-percent {
+  font-weight: 900 !important;
+  color: var(--text-primary);
+  line-height: 1.1 !important;
+  font-size: 2rem !important;
+}
+
+.stats-percent-label {
+  font-size: 0.65rem !important;
+  font-weight: 800 !important;
+  color: var(--primary-main);
+  letter-spacing: 0.15em;
+  margin-top: 2px;
+}
+
+/* Dashboard Info Section */
+.stats-info {
+  flex-grow: 1;
+}
+
+.stats-headline {
+  font-size: 1.6rem !important;
+  font-weight: 800 !important;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem !important;
+  letter-spacing: -0.01em;
+}
+
+.stats-subheadline {
+  color: var(--text-secondary);
+  font-size: 0.95rem !important;
+  line-height: 1.6 !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.progress-bar-container {
+  width: 100%;
+}
+
+.stats-progress-bar {
+  height: 10px !important;
+  border-radius: 5px !important;
+  background-color: var(--background-paper-alt) !important;
+}
+
+.stats-progress-bar .MuiLinearProgress-bar {
+  border-radius: 5px !important;
+  background: var(--primary-main) !important;
+}
+
+.progress-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Grid Title Section */
+.grid-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.sparkle-icon {
+  color: var(--yellow-500);
+  animation: pulseSparkle 2s ease-in-out infinite;
+}
+
+.grid-title {
+  font-weight: 800 !important;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+/* Premium Glass Achievements Card */
+.achievements-grid-mui {
+  justify-content: center;
+}
+
+.premium-achievement-card {
+  padding: 1.5rem 1.25rem;
+  border-radius: 1.5rem !important;
+  background: color-mix(in srgb, var(--primary-main) var(--difficulty-mix, 5%), var(--surface-glass)) !important;
+  backdrop-filter: blur(20px);
+  border: var(--difficulty-border-width, 1px) solid var(--difficulty-border, var(--divider)) !important;
+  position: relative;
+  overflow: hidden;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
+  min-width: 220px;
+  max-width: 250px;
+  flex-shrink: 0;
+  flex-grow: 1;
+}
+
+.achievements-row-container {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 24px;
+  overflow-x: auto;
+  padding: 10px 4px 20px 4px;
+  scroll-behavior: smooth;
+  width: 100%;
+}
+
+.achievements-row-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.achievements-row-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.achievements-row-container::-webkit-scrollbar-thumb {
+  background: var(--divider);
+  border-radius: 3px;
+}
+
+.achievements-row-container::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-main);
+}
+
+.premium-achievement-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: var(--difficulty-hover-border, var(--primary-main)) !important;
+  background: color-mix(in srgb, var(--primary-main) var(--difficulty-hover-mix, 12%), var(--surface-glass-strong)) !important;
+}
+
+/* Completed achievement card background tint (Difficulty theme-based coloring) */
+.premium-achievement-card.completed {
+  background: color-mix(in srgb, var(--primary-main) var(--difficulty-mix, 8%), var(--surface-glass)) !important;
+  border: var(--difficulty-border-width-completed, 1.5px) solid var(--difficulty-border, var(--divider)) !important;
+}
+
+.premium-achievement-card.completed:hover {
+  background: color-mix(in srgb, var(--primary-main) var(--difficulty-hover-mix, 14%), var(--surface-glass-strong)) !important;
+  border-color: var(--difficulty-hover-border, var(--primary-main)) !important;
+}
+
+/* Custom background glows based on category colors */
+.premium-achievement-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 140px;
+  background: transparent;
+  opacity: 0.05;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.premium-achievement-card:hover::before {
+  opacity: 0.12;
+}
+
+/* Locked items visual overlay style */
+.premium-achievement-card.locked {
+  opacity: 0.72;
+}
+
+.card-lock-overlay {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-disabled);
+}
+
+.card-lock-icon {
+  color: var(--text-disabled);
+}
+
+/* Glow Card Icon wrapper (container background removed) */
+.card-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.0rem;
+  transition: transform 0.3s ease;
+}
+
+.premium-achievement-card:hover .card-icon-wrapper {
+  transform: scale(1.1);
+}
+
+.card-icon-wrapper.in_progress {
+  color: var(--primary-main);
+}
+
+.card-icon-wrapper.locked {
+  color: var(--text-disabled);
+}
+
+.icon-main {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+/* Typography styles */
+.premium-card-title {
+  font-weight: 800 !important;
+  color: var(--text-primary);
+  margin-bottom: 0.4rem !important;
+  font-size: 0.95rem !important;
+}
+
+.premium-card-desc {
+  color: var(--text-primary);
+  font-size: 0.82rem !important;
+  font-weight: 500;
+  line-height: 1.6 !important;
+  margin-bottom: 1.25rem !important;
+  flex-grow: 1;
+}
+
+/* Card footer status row */
+.premium-card-footer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.achievement-unlocked-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--primary-main);
+  background-color: color-mix(in srgb, var(--primary-main) 12%, transparent);
+  padding: 6px 12px;
+  border-radius: 1rem;
+}
+
+.unlocked-icon {
+  color: var(--primary-main);
+}
+
+.achievement-unlocked-status span {
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Locked Footer Status style */
+.achievement-locked-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-disabled);
+}
+
+.achievement-locked-status span {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+/* In Progress Footer Status styling */
+.achievement-progress-status {
+  width: 100%;
+}
+
+.progress-text-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.card-progress-bar {
+  height: 6px !important;
+  border-radius: 3px !important;
+  background-color: var(--background-paper-alt) !important;
+}
+
+.card-progress-bar .MuiLinearProgress-bar {
+  border-radius: 3px !important;
+  background-color: var(--bar-accent-color) !important;
+}
+
+/* Keyframes animations */
+@keyframes floatHeroIcon {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+
+@keyframes pulseSparkle {
+  0% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+  50% { transform: scale(1.15) rotate(10deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+}

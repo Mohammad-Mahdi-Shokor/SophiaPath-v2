@@ -1,0 +1,711 @@
+.rsa-wrapper {
+  min-height: 100vh;
+  background-color: var(--background-default);
+  color: var(--text-primary);
+  padding: 1rem;
+  font-family: 'Outfit', 'Poppins', sans-serif;
+}
+
+@media (min-width: 640px) {
+  .rsa-wrapper {
+    padding: 1.5rem;
+  }
+}
+
+.rsa-container {
+  max-width: 80rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rsa-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--divider);
+  padding-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .rsa-header {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.rsa-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rsa-icon-box {
+  padding: 0.75rem;
+  background-color: rgba(var(--secondary-main-rgb), 0.1);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(var(--secondary-main-rgb), 0.2);
+  color: var(--secondary-main);
+}
+
+.rsa-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+@media (min-width: 640px) {
+  .rsa-title {
+    font-size: 1.875rem;
+  }
+}
+
+.rsa-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin: 0.25rem 0 0 0;
+}
+
+.rsa-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .rsa-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+.rsa-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .rsa-left-col {
+    grid-column: span 5 / span 5;
+  }
+}
+
+.rsa-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .rsa-right-col {
+    grid-column: span 7 / span 7;
+  }
+}
+
+.rsa-card {
+  background-color: var(--background-paper);
+  border: 1px solid var(--divider);
+  border-radius: 1rem;
+  padding: 1.25rem;
+
+  position: relative;
+}
+
+.rsa-card-title {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rsa-math-step {
+  background-color: rgba(var(--background-default-rgb), 0.5);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--divider);
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rsa-step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.rsa-step-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.rsa-step-desc {
+  font-size: 0.625rem;
+  color: var(--text-disabled);
+}
+
+.rsa-prime-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.rsa-input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsa-label {
+  font-size: 0.6875rem;
+  color: var(--text-disabled);
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.rsa-select {
+  width: 100%;
+  background-color: var(--background-paper);
+  border: 1px solid var(--divider);
+  color: var(--info-main);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: monospace;
+  outline: none;
+}
+
+.rsa-select:focus {
+  border-color: var(--info-main);
+
+}
+
+.rsa-select:disabled {
+  opacity: 0.5;
+}
+
+.rsa-equation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  background-color: var(--background-paper);
+  border-radius: 0.25rem;
+  border: 1px solid var(--divider);
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+.rsa-equation-left {
+  color: var(--text-disabled);
+}
+
+.rsa-equation-right {
+  color: var(--text-primary);
+  font-weight: 800;
+}
+
+.rsa-equation-highlight-n {
+  color: var(--secondary-main);
+}
+
+.rsa-equation-highlight-phi {
+  color: var(--warning-main);
+}
+
+.rsa-exponent-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rsa-pub-exp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 0.25rem;
+}
+
+.rsa-pub-exp-label {
+  font-size: 0.6875rem;
+  color: var(--secondary-main);
+  font-weight: 800;
+}
+
+.rsa-pub-exp-select {
+  width: 100%;
+  background-color: rgba(var(--secondary-main-rgb), 0.1);
+  border: 1px solid rgba(var(--secondary-main-rgb), 0.3);
+  color: var(--secondary-main);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: monospace;
+  outline: none;
+}
+
+.rsa-pub-exp-select:focus {
+  border-color: var(--secondary-main);
+
+}
+
+.rsa-priv-exp-box {
+  padding: 0.75rem;
+  background-color: rgba(var(--warning-main-rgb), 0.1);
+  border-radius: 0.25rem;
+  border: 1px solid rgba(var(--warning-main-rgb), 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+.rsa-priv-exp-label-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsa-priv-exp-label {
+  font-size: 0.6875rem;
+  color: var(--warning-main);
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 0.125rem;
+  font-family: 'Outfit', 'Poppins', sans-serif;
+}
+
+.rsa-priv-exp-formula {
+  font-size: 0.75rem;
+  color: rgba(var(--warning-main-rgb), 0.7);
+}
+
+.rsa-priv-exp-value {
+  color: var(--warning-main);
+  font-weight: 800;
+  font-size: 1.125rem;
+}
+
+.rsa-keys-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--divider);
+}
+
+.rsa-key-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  border: 1px solid;
+}
+
+.rsa-key-box.public {
+  background-color: rgba(var(--secondary-main-rgb), 0.1);
+  border-color: rgba(var(--secondary-main-rgb), 0.2);
+}
+
+.rsa-key-box.private {
+  background-color: rgba(var(--warning-main-rgb), 0.1);
+  border-color: rgba(var(--warning-main-rgb), 0.2);
+}
+
+.rsa-key-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.rsa-key-box.public .rsa-key-icon {
+  color: var(--secondary-main);
+}
+
+.rsa-key-box.private .rsa-key-icon {
+  color: var(--warning-main);
+}
+
+.rsa-key-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.rsa-key-box.public .rsa-key-label {
+  color: var(--secondary-main);
+}
+
+.rsa-key-box.private .rsa-key-label {
+  color: var(--warning-main);
+}
+
+.rsa-key-value {
+  font-family: monospace;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.rsa-input-label {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rsa-input-label-icon {
+  color: var(--success-main);
+}
+
+.rsa-text-input {
+  width: 100%;
+  background-color: var(--background-default);
+  border: 1px solid var(--divider);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--success-main);
+  font-size: 1.125rem;
+  font-family: monospace;
+  outline: none;
+  transition: all 0.2s;
+
+}
+
+.rsa-text-input:focus {
+  border-color: var(--success-main);
+}
+
+.rsa-input-hint {
+  font-size: 0.625rem;
+  color: var(--text-disabled);
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+.rsa-viz-card {
+  background-color: var(--background-paper);
+  border: 1px solid var(--divider);
+  border-radius: 1rem;
+  padding: 1.25rem;
+
+  min-height: 460px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .rsa-viz-card {
+    padding: 2rem;
+  }
+}
+
+.rsa-trace-header {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+.rsa-trace-header-icon {
+  color: var(--info-main);
+}
+
+.rsa-char-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+
+.rsa-char-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  border: 2px solid var(--divider);
+  min-width: 3rem;
+  background-color: var(--background-default);
+  cursor: pointer;
+  outline: none;
+}
+
+.rsa-char-btn:hover {
+  border-color: var(--text-disabled);
+}
+
+.rsa-char-btn.active {
+  background-color: rgba(var(--info-main-rgb), 0.2);
+  border-color: var(--info-main);
+
+  transform: scale(1.1);
+  z-index: 10;
+}
+
+.rsa-char-btn-text {
+  font-family: monospace;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.rsa-char-btn-c {
+  font-size: 0.5625rem;
+  color: var(--text-disabled);
+  text-transform: uppercase;
+  margin-top: 0.25rem;
+}
+
+.rsa-math-stage {
+  flex: 1;
+  background-color: var(--background-default);
+  border: 1px solid var(--divider);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.rsa-math-bg-icon {
+  position: absolute;
+  width: 12rem;
+  height: 12rem;
+  color: rgba(0,0,0,0.1);
+  right: 1rem;
+  bottom: 1rem;
+  pointer-events: none;
+}
+
+.rsa-math-grid {
+  display: grid;
+  gap: 2rem;
+  position: relative;
+  z-index: 10;
+}
+
+@media (min-width: 768px) {
+  .rsa-math-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.rsa-phase-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rsa-phase-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0.25rem;
+  border: 1px solid;
+  align-self: flex-start;
+}
+
+.rsa-phase-badge.enc {
+  background-color: rgba(var(--secondary-main-rgb), 0.1);
+  color: var(--secondary-main);
+  border-color: rgba(var(--secondary-main-rgb), 0.2);
+}
+
+.rsa-phase-badge.dec {
+  background-color: rgba(var(--warning-main-rgb), 0.1);
+  color: var(--warning-main);
+  border-color: rgba(var(--warning-main-rgb), 0.2);
+}
+
+.rsa-math-steps-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rsa-calc-box {
+  background-color: var(--background-paper);
+  border: 1px solid var(--divider);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.rsa-calc-box.highlight-enc {
+  background-color: rgba(var(--secondary-main-rgb), 0.1);
+  border-color: rgba(var(--secondary-main-rgb), 0.3);
+
+}
+
+.rsa-calc-box.highlight-dec {
+  background-color: rgba(var(--warning-main-rgb), 0.1);
+  border-color: rgba(var(--warning-main-rgb), 0.3);
+
+}
+
+.rsa-calc-label {
+  font-size: 0.625rem;
+  color: var(--text-disabled);
+  margin-bottom: 0.25rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.rsa-calc-label-highlight.enc {
+  color: rgba(var(--secondary-main-rgb), 0.8);
+}
+
+.rsa-calc-label-highlight.dec {
+  color: rgba(var(--warning-main-rgb), 0.8);
+}
+
+.rsa-calc-formula {
+  font-family: monospace;
+}
+
+.rsa-calc-eq {
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  margin-top: 0.5rem;
+  word-break: break-all;
+}
+
+.rsa-calc-eq sup.enc {
+  color: var(--secondary-main);
+}
+
+.rsa-calc-eq sup.dec {
+  color: var(--warning-main);
+}
+
+.rsa-calc-result {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid;
+  font-family: monospace;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.rsa-calc-result.enc {
+  border-top-color: rgba(var(--secondary-main-rgb), 0.2);
+  color: var(--secondary-main);
+}
+
+.rsa-calc-result.dec {
+  border-top-color: rgba(var(--warning-main-rgb), 0.2);
+  color: var(--warning-main);
+}
+
+.rsa-calc-arrow {
+  display: flex;
+  justify-content: center;
+  color: var(--text-disabled);
+}
+
+.rsa-char-highlight {
+  color: var(--info-main);
+  font-weight: 800;
+}
+
+.rsa-m-highlight {
+  color: var(--success-main);
+  font-weight: 800;
+}
+
+.rsa-awaiting {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  opacity: 0.6;
+}
+
+.rsa-awaiting svg {
+  color: var(--text-disabled);
+  margin-bottom: 1rem;
+}
+
+.rsa-awaiting h3 {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.rsa-awaiting p {
+  color: var(--text-disabled);
+  font-size: 0.875rem;
+  max-width: 24rem;
+}
+
+.rsa-cipher-belt {
+  background-color: var(--background-default);
+  border: 1px solid var(--divider);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  overflow-x: auto;
+
+}
+
+.rsa-cipher-belt-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-disabled);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.rsa-cipher-belt-array {
+  display: flex;
+  gap: 0.5rem;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: var(--secondary-main);
+  white-space: nowrap;
+}

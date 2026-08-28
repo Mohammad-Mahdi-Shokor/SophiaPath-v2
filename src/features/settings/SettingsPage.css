@@ -1,0 +1,111 @@
+.settings-page {
+  min-height: 100%;
+  padding: 1rem 0 2rem;
+}
+
+.settings-header {
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.settings-title {
+  margin-top: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+
+.settings-subtitle {
+  margin-top: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.settings-section-label {
+  padding-inline: 0.5rem;
+  color: var(--primary-main);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.settings-card {
+  margin-top: 0.8rem;
+  overflow: hidden;
+  border-radius: 30px;
+}
+
+.settings-row {
+  padding: 1.4rem 1.6rem !important;
+}
+
+.settings-row.interactive {
+  transition: background-color 0.25s ease;
+  cursor: pointer;
+}
+
+.settings-row.interactive:hover {
+  background: var(--action-hover);
+}
+
+.settings-row-icon {
+  min-width: 56px !important;
+}
+
+.settings-row-title {
+  font-weight: 700;
+}
+
+.settings-chevron {
+  color: var(--text-disabled);
+}
+
+.settings-primary-icon {
+  color: var(--primary-main);
+}
+
+.settings-action-button {
+  border-radius: 14px !important;
+}
+
+.settings-danger-row:hover {
+  background: rgba(255, 100, 124, 0.06);
+}
+
+.settings-danger-icon,
+.settings-danger-text {
+  color: var(--danger-main);
+}
+
+.settings-footer {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.settings-footer-copy {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 899px) {
+  .MuiListItemText-secondary,
+  .settings-subtitle,
+  .settings-row-description {
+    display: none !important;
+  }
+
+  .settings-row {
+    padding: 0.9rem 1.1rem !important;
+  }
+
+  .settings-header {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .settings-pointer-row {
+    display: none !important;
+  }
+}

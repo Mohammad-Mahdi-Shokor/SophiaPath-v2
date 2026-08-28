@@ -1,0 +1,338 @@
+/* AccessControlLab.css */
+
+.ac-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  color: var(--text-primary);
+  font-family: 'Outfit', 'Poppins', sans-serif;
+}
+
+.ac-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .ac-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.ac-tabs {
+  display: flex;
+  background-color: var(--background-paper);
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--divider);
+}
+
+.ac-tab-btn {
+  padding: 0.375rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.ac-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.ac-tab-btn.active {
+  background-color: var(--primary-main);
+  color: #ffffff;
+}
+
+.ac-desc {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  min-height: 3rem;
+  font-size: 0.875rem;
+}
+
+.ac-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .ac-grid-horizontal {
+    grid-template-columns: 1fr 2fr;
+  }
+  .ac-grid-vertical {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ac-panel {
+  background-color: var(--background-paper);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--divider);
+
+  display: flex;
+  flex-direction: column;
+}
+
+.ac-panel-dark {
+  background-color: #0e111d;
+  color: #fff;
+}
+
+.ac-user-badge {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 1rem;
+}
+
+.ac-panel-dark .ac-user-badge {
+  border-bottom-color: #334155;
+}
+
+.ac-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: var(--primary-main);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.ac-user-info-name {
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.ac-user-info-role {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.ac-panel-dark .ac-user-info-role {
+  color: #94a3b8;
+}
+
+.ac-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ac-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.ac-panel-dark .ac-label {
+  color: #cbd5e1;
+}
+
+.ac-input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ac-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--divider);
+  border-radius: 0.25rem;
+  color: var(--text-primary);
+  background-color: var(--background-default);
+  font-size: 0.875rem;
+  outline: none;
+  font-family: monospace;
+}
+
+.ac-panel-dark .ac-input {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+.ac-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--divider);
+  border-radius: 0.25rem;
+  color: var(--text-primary);
+  background-color: var(--background-default);
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.ac-panel-dark .ac-select {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+.ac-btn {
+  background-color: var(--primary-main);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.875rem;
+}
+
+.ac-btn:hover {
+  background-color: var(--primary-dark, #2563eb);
+}
+
+.ac-doc-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 16rem;
+  position: relative;
+  background-color: var(--background-default);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--divider);
+}
+
+.ac-doc-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--divider);
+  margin-bottom: 1rem;
+}
+
+.ac-doc-content {
+  flex: 1;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  border: 1px solid var(--divider);
+}
+
+.ac-doc-content.safe {
+  background-color: rgba(61, 133, 198, 0.05);
+  border-color: rgba(61, 133, 198, 0.2);
+}
+
+.ac-doc-content.danger {
+  background-color: rgba(255, 100, 124, 0.05);
+  border-color: rgba(255, 100, 124, 0.2);
+  color: var(--danger-main);
+}
+
+.ac-doc-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--danger-main);
+  background-color: rgba(255, 100, 124, 0.05);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+}
+
+.ac-doc-error-icon {
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+.ac-doc-error-text {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.ac-role-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+}
+
+.ac-profile-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.ac-role-title {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.ac-role-badge {
+  font-size: 2.25rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.ac-role-admin {
+  color: #c084fc;
+}
+
+.ac-role-user {
+  color: var(--primary-main);
+}
+
+.ac-success-msg {
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: 1px solid var(--divider);
+}
+
+.ac-success-msg.admin {
+  background-color: rgba(192, 132, 252, 0.1);
+  color: #a855f7;
+  border-color: rgba(192, 132, 252, 0.3);
+}
+
+.ac-success-msg.user {
+  background-color: var(--background-default);
+  color: var(--text-secondary);
+}
+
+.ac-code-box {
+  background-color: #000;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--success-main);
+  word-break: break-all;
+  border: 1px solid #334155;
+  margin-top: 0.5rem;
+}

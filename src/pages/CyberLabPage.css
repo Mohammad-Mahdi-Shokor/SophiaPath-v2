@@ -1,0 +1,228 @@
+.cyber-lab-container {
+  display: flex;
+  min-height: 75vh;
+  background-color: var(--background-default);
+  color: var(--text-primary);
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--divider);
+}
+
+.cyber-lab-sidebar {
+  width: 250px;
+  background-color: var(--background-paper);
+  border-right: 1px solid var(--divider);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.cyber-lab-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 800;
+  font-size: 1.2rem;
+  font-family: 'Outfit', sans-serif;
+  color: var(--primary-main);
+}
+
+.cyber-lab-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.cyber-lab-tab-btn:hover {
+  background: rgba(var(--primary-main-rgb), 0.06);
+  color: var(--text-primary);
+}
+
+.cyber-lab-tab-btn.is-active {
+  background: var(--hero-gradient);
+  color: #fff;
+
+}
+
+.cyber-lab-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cyber-lab-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 2rem;
+  background-color: var(--background-paper);
+  border-bottom: 1px solid var(--divider);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.cyber-lab-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+}
+
+.cyber-lab-security-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0,0,0,0.12);
+  padding: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--divider);
+}
+
+.cyber-lab-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-disabled);
+  transition: all 0.2s ease;
+}
+
+.cyber-lab-toggle-btn.vuln.active {
+  background: rgba(255, 100, 124, 0.15);
+  color: #FF647C;
+
+}
+
+.cyber-lab-toggle-btn.secure.active {
+  background: rgba(61, 220, 151, 0.15);
+  color: #3DDC97;
+
+}
+
+.cyber-lab-body {
+  padding: 2rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.cyber-lab-card {
+  background-color: var(--background-paper);
+  border: 1px solid var(--divider);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.cyber-lab-input {
+  width: 100%;
+  background: rgba(0,0,0,0.1);
+  border: 1px solid var(--divider);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-family: monospace;
+  outline: none;
+  margin-bottom: 10px;
+}
+
+.cyber-lab-input:focus {
+  border-color: var(--primary-main);
+}
+
+.cyber-lab-button {
+  background: var(--hero-gradient);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.cyber-lab-button:hover {
+  transform: translateY(-2px);
+}
+
+.cyber-lab-terminal {
+  background: #090a15;
+  color: #00ff66;
+  font-family: 'Consolas', monospace;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #1c233a;
+  min-height: 120px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.cyber-browser-mock {
+  border: 2px solid var(--divider);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  color: #1e293b;
+  min-height: 250px;
+
+}
+
+.cyber-browser-header {
+  background: #e2e8f0;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+}
+
+.cyber-browser-url {
+  background: #ffffff;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  flex: 1;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  font-family: monospace;
+  text-align: left;
+}
+
+.cyber-browser-body {
+  padding: 1.5rem;
+  min-height: 180px;
+  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .cyber-lab-container {
+    flex-direction: column;
+  }
+  .cyber-lab-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--divider);
+  }
+}

@@ -1,0 +1,298 @@
+/* XssLab.css */
+
+.xss-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  color: var(--text-primary);
+  font-family: 'Outfit', 'Poppins', sans-serif;
+}
+
+.xss-card {
+  background-color: var(--background-paper-alt);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--divider);
+}
+
+.xss-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .xss-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.xss-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.xss-tabs {
+  display: flex;
+  background-color: var(--background-paper);
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--divider);
+}
+
+.xss-tab-btn {
+  padding: 0.375rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.xss-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.xss-tab-btn.active {
+  background-color: var(--primary-main);
+  color: #ffffff;
+}
+
+.xss-desc {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  min-height: 3rem;
+  font-size: 0.875rem;
+}
+
+.xss-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .xss-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.xss-panel {
+  background-color: var(--background-paper);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--divider);
+
+  display: flex;
+  flex-direction: column;
+}
+
+.xss-panel-title {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--divider);
+  padding-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.xss-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.xss-comment {
+  padding: 0.5rem;
+  background-color: var(--background-default);
+  border: 1px solid var(--divider);
+  border-radius: 0.25rem;
+  color: var(--text-primary);
+  word-break: break-word;
+  font-size: 0.875rem;
+}
+
+.xss-comment-vuln {
+  color: var(--danger-main);
+  font-style: italic;
+}
+
+.xss-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.xss-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--divider);
+  border-radius: 0.25rem;
+  color: var(--text-primary);
+  background-color: var(--background-default);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.xss-input:focus {
+  border-color: var(--info-main);
+}
+
+.xss-btn {
+  background-color: var(--primary-main);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.875rem;
+}
+
+.xss-btn:hover {
+  background-color: var(--primary-dark, #2563eb);
+}
+
+.xss-result-box {
+  padding: 1rem;
+  background-color: var(--background-default);
+  border: 1px solid var(--divider);
+  border-radius: 0.25rem;
+  color: var(--text-primary);
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+.xss-terminal {
+  background-color: #0e111d;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #1e293b;
+  font-family: monospace;
+  font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.xss-term-header {
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.xss-term-hint {
+  margin-bottom: 1rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.xss-code-tag {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--danger-main);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.xss-alert-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.xss-alert-modal {
+  background-color: var(--background-paper);
+  padding: 1rem;
+  border-radius: 0.25rem;
+  border: 2px solid var(--danger-main);
+
+  animation: bounce 1s infinite;
+  width: 100%;
+}
+
+.xss-alert-header {
+  color: var(--danger-main);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.xss-alert-body {
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  font-family: sans-serif;
+  font-size: 0.875rem;
+}
+
+.xss-alert-btn {
+  margin-top: 1rem;
+  width: 100%;
+  background-color: var(--text-secondary);
+  color: var(--background-paper);
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.xss-alert-btn:hover {
+  background-color: var(--text-primary);
+}
+
+.xss-waiting {
+  color: #94a3b8;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-style: italic;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8,0,1,1); }
+  50% { transform: none; animation-timing-function: cubic-bezier(0,0,0.2,1); }
+}
+
+.xss-dom-box {
+  padding: 1rem;
+  background-color: var(--background-default);
+  border: 1px solid var(--divider);
+  border-radius: 0.25rem;
+  margin-top: 1rem;
+}
+
+.xss-dom-code {
+  font-size: 0.75rem;
+  color: var(--danger-main);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.xss-dom-msg {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 1.125rem;
+  word-break: break-all;
+}

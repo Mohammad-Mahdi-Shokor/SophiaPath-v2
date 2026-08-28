@@ -1,0 +1,237 @@
+/* SqliLab.css */
+
+.sqli-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  color: var(--text-primary);
+  font-family: 'Outfit', 'Poppins', sans-serif;
+}
+
+.sqli-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .sqli-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.sqli-tabs {
+  display: flex;
+  background-color: var(--background-paper);
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--divider);
+}
+
+.sqli-tab-btn {
+  padding: 0.375rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.sqli-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.sqli-tab-btn.active {
+  background-color: var(--primary-main);
+  color: #ffffff;
+}
+
+.sqli-desc {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  min-height: 3rem;
+  font-size: 0.875rem;
+}
+
+.sqli-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .sqli-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.sqli-panel {
+  background-color: var(--background-paper);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--divider);
+
+  display: flex;
+  flex-direction: column;
+}
+
+.sqli-panel-title {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  text-align: center;
+}
+
+.sqli-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sqli-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sqli-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.sqli-input {
+  padding: 0.5rem;
+  border: 1px solid var(--divider);
+  border-radius: 0.25rem;
+  color: var(--text-primary);
+  background-color: var(--background-default);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.sqli-input:focus {
+  border-color: var(--info-main);
+}
+
+.sqli-btn {
+  background-color: var(--primary-main);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.875rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.sqli-btn:hover {
+  background-color: var(--primary-dark, #2563eb);
+}
+
+.sqli-hint {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.sqli-code-tag {
+  background-color: rgba(128, 128, 128, 0.15);
+  color: var(--danger-main);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+}
+
+.sqli-result-success {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  text-align: center;
+  background-color: rgba(61, 220, 151, 0.1);
+  color: var(--success-main);
+  border: 1px solid var(--success-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.sqli-result-error {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  text-align: center;
+  background-color: rgba(255, 100, 124, 0.1);
+  color: var(--danger-main);
+  border: 1px solid var(--danger-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.sqli-terminal {
+  background-color: #0e111d;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #1e293b;
+  font-family: monospace;
+  font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.sqli-term-header {
+  color: #94a3b8;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sqli-query-box {
+  background-color: #000;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  color: #93c5fd;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.sqli-query-keyword {
+  color: #c084fc;
+}
+
+.sqli-query-param {
+  color: #f59e0b;
+}
+
+.sqli-query-vuln {
+  color: var(--danger-main);
+  font-weight: 700;
+}
+
+.sqli-term-footer {
+  margin-top: 1rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}

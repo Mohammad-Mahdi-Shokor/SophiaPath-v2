@@ -1,0 +1,66 @@
+"filename", "language", "JSON", "HTML", "Markdown", "JavaScript", "PostCSS", "XML", "JavaScript JSX", "Diff", "comment", "blank", "total"
+"c:\mostafa\homework\Capstone Project\sophiapath-web\README.md", "Markdown", 0, 0, 10, 0, 0, 0, 0, 0, 0, 9, 19
+"c:\mostafa\homework\Capstone Project\sophiapath-web\eslint.config.js", "JavaScript", 0, 0, 0, 28, 0, 0, 0, 0, 0, 2, 30
+"c:\mostafa\homework\Capstone Project\sophiapath-web\index.html", "HTML", 0, 13, 0, 0, 0, 0, 0, 0, 0, 1, 14
+"c:\mostafa\homework\Capstone Project\sophiapath-web\local_changes.diff", "Diff", 0, 0, 0, 0, 0, 0, 0, 3618, 6, 105, 3729
+"c:\mostafa\homework\Capstone Project\sophiapath-web\package-lock.json", "JSON", 4093, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4094
+"c:\mostafa\homework\Capstone Project\sophiapath-web\package.json", "JSON", 42, 0, 0, 0, 0, 0, 0, 0, 0, 1, 43
+"c:\mostafa\homework\Capstone Project\sophiapath-web\public\vite.svg", "XML", 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
+"c:\mostafa\homework\Capstone Project\sophiapath-web\scratch\gen_all_courses.js", "JavaScript", 0, 0, 0, 74, 0, 0, 0, 0, 0, 8, 82
+"c:\mostafa\homework\Capstone Project\sophiapath-web\scratch\gen_mobile_dev.js", "JavaScript", 0, 0, 0, 53, 0, 0, 0, 0, 0, 6, 59
+"c:\mostafa\homework\Capstone Project\sophiapath-web\scratch\inspect_exercises.cjs", "JavaScript", 0, 0, 0, 40, 0, 0, 0, 0, 0, 8, 48
+"c:\mostafa\homework\Capstone Project\sophiapath-web\scratch\inspect_exercises.js", "JavaScript", 0, 0, 0, 41, 0, 0, 0, 0, 0, 8, 49
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\App.css", "PostCSS", 0, 0, 0, 0, 193, 0, 0, 0, 4, 36, 233
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\App.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 25, 0, 2, 5, 32
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\assets\react.svg", "XML", 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\CppPlaygroundDialog.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 1870, 0, 86, 207, 2163
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\JavaOopUmlPlayground.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 3812, 0, 121, 343, 4276
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\ScrollToTop.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 9, 0, 0, 4, 13
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\common\BottomNavigation.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 72, 0, 0, 3, 75
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\course\CourseCard.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 41, 0, 0, 6, 47
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\course\Lesson.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 74, 0, 0, 9, 83
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\course\UmlDiagram.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 173, 0, 3, 17, 193
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\ui\AchievementCard.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 29, 0, 0, 3, 32
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\context\AuthContext.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 334, 0, 14, 51, 399
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\context\ThemeContext.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 37, 0, 0, 10, 47
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\achievements.js", "JavaScript", 0, 0, 0, 86, 0, 0, 0, 0, 17, 2, 105
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses.js", "JavaScript", 0, 0, 0, 5, 0, 0, 0, 0, 0, 2, 7
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\cybersecurity.js", "JavaScript", 0, 0, 0, 4138, 0, 0, 0, 0, 0, 0, 4138
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\index.js", "JavaScript", 0, 0, 0, 17, 0, 0, 0, 0, 0, 4, 21
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\mobileDev.js", "JavaScript", 0, 0, 0, 4138, 0, 0, 0, 0, 0, 0, 4138
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\philosophy.js", "JavaScript", 0, 0, 0, 4276, 0, 0, 0, 0, 0, 0, 4276
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\physics.js", "JavaScript", 0, 0, 0, 4138, 0, 0, 0, 0, 0, 0, 4138
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\achievements\AchievementsPage.css", "PostCSS", 0, 0, 0, 0, 352, 0, 0, 0, 15, 55, 422
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\achievements\AchievementsPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 215, 0, 8, 19, 242
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\chat\Chat.css", "PostCSS", 0, 0, 0, 0, 182, 0, 0, 0, 4, 33, 219
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\chat\ChatListPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 170, 0, 4, 16, 190
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\chat\ChatPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 292, 0, 8, 35, 335
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\editor\CodeEditor.css", "PostCSS", 0, 0, 0, 0, 177, 0, 0, 0, 6, 31, 214
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\editor\CodeEditorPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 308, 0, 9, 23, 340
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\profile\ProfilePage.css", "PostCSS", 0, 0, 0, 0, 322, 0, 0, 0, 9, 57, 388
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\profile\ProfilePage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 469, 0, 6, 48, 523
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\settings\SettingsPage.css", "PostCSS", 0, 0, 0, 0, 72, 0, 0, 0, 0, 20, 92
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\settings\SettingsPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 203, 0, 0, 14, 217
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\index.css", "PostCSS", 0, 0, 0, 0, 402, 0, 0, 0, 3, 31, 436
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\main.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 14, 0, 0, 1, 15
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\Auth.css", "PostCSS", 0, 0, 0, 0, 134, 0, 0, 0, 9, 22, 165
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\ChallengePage.css", "PostCSS", 0, 0, 0, 0, 200, 0, 0, 0, 5, 27, 232
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\ChallengePage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 341, 0, 12, 37, 390
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\CourseDetailPage.css", "PostCSS", 0, 0, 0, 0, 335, 0, 0, 0, 0, 56, 391
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\CourseDetailPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 293, 0, 5, 25, 323
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningContentPage.css", "PostCSS", 0, 0, 0, 0, 657, 0, 0, 0, 17, 105, 779
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningContentPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 2588, 0, 43, 238, 2869
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningPage.css", "PostCSS", 0, 0, 0, 0, 358, 0, 0, 0, 0, 71, 429
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 342, 0, 0, 38, 380
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningPathPage.css", "PostCSS", 0, 0, 0, 0, 262, 0, 0, 0, 1, 39, 302
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningPathPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 934, 0, 23, 99, 1056
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LoginPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 122, 0, 0, 10, 132
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\NavigationPage.css", "PostCSS", 0, 0, 0, 0, 239, 0, 0, 0, 0, 42, 281
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\NavigationPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 306, 0, 0, 42, 348
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\PhilosophyLabPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 2024, 0, 96, 168, 2288
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\QuizPage.css", "PostCSS", 0, 0, 0, 0, 371, 0, 0, 0, 3, 67, 441
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\QuizPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 1659, 0, 56, 175, 1890
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\RegisterPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 0, 316, 0, 1, 31, 348
+"c:\mostafa\homework\Capstone Project\sophiapath-web\src\theme\theme.js", "JavaScript", 0, 0, 0, 236, 0, 0, 0, 0, 0, 12, 248
+"c:\mostafa\homework\Capstone Project\sophiapath-web\vite.config.js", "JavaScript", 0, 0, 0, 31, 0, 0, 0, 0, 1, 2, 34
+"Total", "-", 4135, 13, 10, 17301, 4256, 2, 17072, 3618, 597, 2540, 49544

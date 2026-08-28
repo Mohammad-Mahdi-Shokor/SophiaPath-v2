@@ -1,0 +1,48 @@
+/* ══════════════════════════════════════════════════
+   SocratesAvatar — CSS Animations
+   ══════════════════════════════════════════════════ */
+
+.soc-avatar-wrap {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+}
+
+/* Whole SVG: gentle floating idle */
+.soc-svg {
+  animation: socFloat 4s ease-in-out infinite;
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+@keyframes socFloat {
+  0%, 100% { transform: translateY(0px); }
+  40%       { transform: translateY(-6px); }
+  70%       { transform: translateY(-3px); }
+}
+
+/* Head group: subtle nod */
+.soc-head-group {
+  transform-origin: 60px 62px;
+  animation: socNod 5s ease-in-out infinite;
+}
+
+@keyframes socNod {
+  0%, 100% { transform: rotate(0deg); }
+  20%       { transform: rotate(1.5deg); }
+  50%       { transform: rotate(-1deg); }
+  75%       { transform: rotate(0.5deg); }
+}
+
+/* Robe: gentle sway */
+.soc-robe {
+  transform-origin: 60px 155px;
+  animation: socRobeSway 4s ease-in-out infinite;
+}
+
+@keyframes socRobeSway {
+  0%, 100% { transform: rotate(0deg); }
+  30%       { transform: rotate(0.6deg); }
+  70%       { transform: rotate(-0.6deg); }
+}
