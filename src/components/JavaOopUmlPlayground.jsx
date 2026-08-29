@@ -2576,6 +2576,7 @@ export const JavaOopUmlPlayground = ({ open, onClose }) => {
     const initialClasses = javaToUmlClasses(EXAMPLES[0].code);
     return initialClasses[0] ? `${initialClasses[0].title}.java` : 'Runner.java';
   });
+  const [isUmlEditable, setIsUmlEditable] = useState(true);
 
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
@@ -5247,6 +5248,23 @@ export const JavaOopUmlPlayground = ({ open, onClose }) => {
                 <Box style={{ flexGrow: 1, position: 'relative', height: '100%', width: '100%', minHeight: 0, overflow: 'hidden' }}>
                   {/* Floating Buttons in UML editor space */}
                   <Box style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 200, display: 'flex', gap: '8px' }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={isUmlEditable}
+                          onChange={(e) => setIsUmlEditable(e.target.checked)}
+                          size="small"
+                          sx={{
+                            color: 'var(--text-secondary)',
+                            '&.Mui-checked': {
+                              color: 'var(--primary-main)',
+                            }
+                          }}
+                        />
+                      }
+                      label={<Typography variant="caption" style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Edit UML</Typography>}
+                      style={{ margin: 0, marginRight: '8px', background: 'var(--bg-card)', padding: '2px 8px', borderRadius: '8px', border: '1px solid var(--divider)', backdropFilter: 'blur(4px)' }}
+                    />
                     <Button
                       variant="contained"
                       size="small"
@@ -5268,24 +5286,26 @@ export const JavaOopUmlPlayground = ({ open, onClose }) => {
                     >
                       Preview UML
                     </Button>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={addClass}
-                      startIcon={<AddIcon />}
-                      style={{
-                        borderRadius: '8px',
-                        fontWeight: 800,
-                        fontSize: '0.75rem',
-                        background: 'rgba(61, 92, 255, 0.9)',
-                        backdropFilter: 'blur(4px)',
-                        color: '#fff',
-                        
-                        textTransform: 'none'
-                      }}
-                    >
-                      Create New Class
-                    </Button>
+                    {isUmlEditable && (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={addClass}
+                        startIcon={<AddIcon />}
+                        style={{
+                          borderRadius: '8px',
+                          fontWeight: 800,
+                          fontSize: '0.75rem',
+                          background: 'rgba(61, 92, 255, 0.9)',
+                          backdropFilter: 'blur(4px)',
+                          color: '#fff',
+                          
+                          textTransform: 'none'
+                        }}
+                      >
+                        Create New Class
+                      </Button>
+                    )}
                   </Box>
 
                   <Paper
@@ -5614,10 +5634,14 @@ export const JavaOopUmlPlayground = ({ open, onClose }) => {
                               }}
                             >
                               {/* Port circles for drag connecting */}
-                              <div className="uml-port uml-port-top" onMouseDown={(e) => handlePortMouseDown(e, umlClass.title, 'top')} />
-                              <div className="uml-port uml-port-bottom" onMouseDown={(e) => handlePortMouseDown(e, umlClass.title, 'bottom')} />
-                              <div className="uml-port uml-port-left" onMouseDown={(e) => handlePortMouseDown(e, umlClass.title, 'left')} />
-                              <div className="uml-port uml-port-right" onMouseDown={(e) => handlePortMouseDown(e, umlClass.title, 'right')} />
+                              {isUmlEditable && (
+                                <>
+                                  <div className="uml-port uml-port-top" onMouseDown={(e) => handlePortMouseDown(e, umlClass.title, 'top')} />
+                                  <div className="uml-port uml-port-bottom" onMouseDown={(e) => handlePortMouseDown(e, umlClass.title, 'bottom')} />
+                                  <div className="uml-port uml-port-left" onMouseDown={(e) => handlePortMouseDown(e, umlClass.title, 'left')} />
+                                  <div className="uml-port uml-port-right" onMouseDown={(e) => handlePortMouseDown(e, umlClass.title, 'right')} />
+                                </>
+                              )}
 
                               {/* Header Block (Class Title / Abstract / Extends) */}
                               <Box
@@ -5640,315 +5664,401 @@ export const JavaOopUmlPlayground = ({ open, onClose }) => {
                                 }}
                               >
                                 <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Box style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                    <Select
-                                      size="small"
-                                      value={umlClass.type === 'interface' ? 'interface' : (umlClass.abstract ? 'abstract' : 'class')}
-                                      onChange={(e) => updateClassType(classIdx, e.target.value)}
-                                      style={{ height: '24px', fontSize: '0.72rem', fontWeight: 800, fontFamily: '"Outfit", sans-serif', color: 'var(--primary-main)' }}
-                                      sx={{
-                                        '& .MuiOutlinedInput-notchedOutline': {
-                                          borderColor: 'rgba(28,176,246,0.2)'
-                                        },
-                                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                                          borderColor: 'var(--primary-main)'
-                                        }
-                                      }}
-                                    >
-                                      <MenuItem value="class" style={{ fontSize: '0.72rem', fontWeight: 700 }}>Class</MenuItem>
-                                      <MenuItem value="abstract" style={{ fontSize: '0.72rem', fontWeight: 700 }}>Abstract</MenuItem>
-                                      <MenuItem value="interface" style={{ fontSize: '0.72rem', fontWeight: 700 }}>Interface</MenuItem>
-                                    </Select>
-                                  </Box>
+                                  {isUmlEditable ? (
+                                    <>
+                                      <Box style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                        <Select
+                                          size="small"
+                                          value={umlClass.type === 'interface' ? 'interface' : (umlClass.abstract ? 'abstract' : 'class')}
+                                          onChange={(e) => updateClassType(classIdx, e.target.value)}
+                                          style={{ height: '24px', fontSize: '0.72rem', fontWeight: 800, fontFamily: '"Outfit", sans-serif', color: 'var(--primary-main)' }}
+                                          sx={{
+                                            '& .MuiOutlinedInput-notchedOutline': {
+                                              borderColor: 'rgba(28,176,246,0.2)'
+                                            },
+                                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                                              borderColor: 'var(--primary-main)'
+                                            }
+                                          }}
+                                        >
+                                          <MenuItem value="class" style={{ fontSize: '0.72rem', fontWeight: 700 }}>Class</MenuItem>
+                                          <MenuItem value="abstract" style={{ fontSize: '0.72rem', fontWeight: 700 }}>Abstract</MenuItem>
+                                          <MenuItem value="interface" style={{ fontSize: '0.72rem', fontWeight: 700 }}>Interface</MenuItem>
+                                        </Select>
+                                      </Box>
 
-                                  <IconButton size="small" onClick={() => deleteClass(classIdx)} style={{ color: 'var(--danger-main)', padding: '2px' }}>
-                                    <DeleteIcon fontSize="inherit" />
-                                  </IconButton>
+                                      <IconButton size="small" onClick={() => deleteClass(classIdx)} style={{ color: 'var(--danger-main)', padding: '2px' }}>
+                                        <DeleteIcon fontSize="inherit" />
+                                      </IconButton>
+                                    </>
+                                  ) : null}
                                 </Box>
 
-                                {umlClass.type === 'interface' ? (
-                                  <Typography variant="caption" style={{ color: '#10b981', fontWeight: 850, display: 'block', textAlign: 'center', fontSize: '0.62rem', textTransform: 'uppercase' }}>
-                                    &lt;&lt;Interface&gt;&gt;
-                                  </Typography>
-                                ) : (
-                                  umlClass.abstract && (
-                                    <Typography variant="caption" style={{ color: 'var(--primary-main)', fontWeight: 850, display: 'block', textAlign: 'center', fontSize: '0.62rem', textTransform: 'uppercase' }}>
-                                      &lt;&lt;Abstract&gt;&gt;
-                                    </Typography>
-                                  )
-                                )}
-
-                                <DebouncedInput
-                                  type="text"
-                                  value={umlClass.title}
-                                  onChange={(val) => updateClassTitle(classIdx, val)}
-                                  style={{
-                                    width: '90%',
-                                    display: 'block',
-                                    margin: '4px auto',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    borderBottom: '1.5px dashed var(--primary-main)',
-                                    color: isDarkMode ? '#fff' : '#000',
-                                    textAlign: 'center',
-                                    fontSize: '0.98rem',
-                                    fontWeight: 800,
-                                    fontFamily: '"Outfit", sans-serif',
-                                    outline: 'none'
-                                  }}
-                                />
-
-                                {/* Extends (Connection) Dropdown */}
-                                <Box style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                                  <Box style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <Typography variant="caption" style={{ color: 'var(--text-secondary)', fontWeight: 800, fontSize: '0.7rem' }}>
-                                      extends
-                                    </Typography>
-                                    <Select
-                                      size="small"
-                                      value={umlClass.extends || 'none'}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        updateClassExtends(classIdx, val === 'none' ? null : val);
-                                      }}
-                                      style={{ height: '22px', fontSize: '0.7rem', fontFamily: 'monospace' }}
-                                    >
-                                      <MenuItem value="none">None</MenuItem>
-                                      {umlClasses
-                                        .filter(c => c.title !== umlClass.title)
-                                        .map(c => (
-                                          <MenuItem key={c.title} value={c.title}>{c.title}</MenuItem>
-                                        ))
-                                      }
-                                    </Select>
-                                  </Box>
-
-                                  {umlClass.type !== 'interface' && (
-                                    <Box style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                      <Typography variant="caption" style={{ color: 'var(--text-secondary)', fontWeight: 800, fontSize: '0.7rem' }}>
-                                        implements
+                                {isUmlEditable ? (
+                                  <>
+                                    {umlClass.type === 'interface' ? (
+                                      <Typography variant="caption" style={{ color: '#10b981', fontWeight: 850, display: 'block', textAlign: 'center', fontSize: '0.62rem', textTransform: 'uppercase' }}>
+                                        &lt;&lt;Interface&gt;&gt;
                                       </Typography>
-                                      <Select
-                                        size="small"
-                                        multiple
-                                        value={umlClass.implements || []}
-                                        onChange={(e) => {
-                                          updateClassImplements(classIdx, e.target.value);
-                                        }}
-                                        renderValue={(selected) => selected.join(', ')}
-                                        style={{ height: '22px', minWidth: '80px', fontSize: '0.7rem', fontFamily: 'monospace' }}
-                                      >
-                                        {umlClasses
-                                          .filter(c => c.type === 'interface' && c.title !== umlClass.title)
-                                          .map(c => (
-                                            <MenuItem key={c.title} value={c.title}>
-                                              <Checkbox size="small" checked={(umlClass.implements || []).includes(c.title)} />
-                                              <span style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{c.title}</span>
-                                            </MenuItem>
-                                          ))
-                                        }
-                                      </Select>
+                                    ) : (
+                                      umlClass.abstract && (
+                                        <Typography variant="caption" style={{ color: 'var(--primary-main)', fontWeight: 850, display: 'block', textAlign: 'center', fontSize: '0.62rem', textTransform: 'uppercase' }}>
+                                          &lt;&lt;Abstract&gt;&gt;
+                                        </Typography>
+                                      )
+                                    )}
+
+                                    <DebouncedInput
+                                      type="text"
+                                      value={umlClass.title}
+                                      onChange={(val) => updateClassTitle(classIdx, val)}
+                                      style={{
+                                        width: '90%',
+                                        display: 'block',
+                                        margin: '4px auto',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        borderBottom: '1.5px dashed var(--primary-main)',
+                                        color: isDarkMode ? '#fff' : '#000',
+                                        textAlign: 'center',
+                                        fontSize: '0.98rem',
+                                        fontWeight: 800,
+                                        fontFamily: '"Outfit", sans-serif',
+                                        outline: 'none'
+                                      }}
+                                    />
+
+                                    {/* Extends (Connection) Dropdown */}
+                                    <Box style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                      <Box style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <Typography variant="caption" style={{ color: 'var(--text-secondary)', fontWeight: 800, fontSize: '0.7rem' }}>
+                                          extends
+                                        </Typography>
+                                        <Select
+                                          size="small"
+                                          value={umlClass.extends || 'none'}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            updateClassExtends(classIdx, val === 'none' ? null : val);
+                                          }}
+                                          style={{ height: '22px', fontSize: '0.7rem', fontFamily: 'monospace' }}
+                                        >
+                                          <MenuItem value="none">None</MenuItem>
+                                          {umlClasses
+                                            .filter(c => c.title !== umlClass.title)
+                                            .map(c => (
+                                              <MenuItem key={c.title} value={c.title}>{c.title}</MenuItem>
+                                            ))
+                                          }
+                                        </Select>
+                                      </Box>
+
+                                      {umlClass.type !== 'interface' && (
+                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                          <Typography variant="caption" style={{ color: 'var(--text-secondary)', fontWeight: 800, fontSize: '0.7rem' }}>
+                                            implements
+                                          </Typography>
+                                          <Select
+                                            size="small"
+                                            multiple
+                                            value={umlClass.implements || []}
+                                            onChange={(e) => {
+                                              updateClassImplements(classIdx, e.target.value);
+                                            }}
+                                            renderValue={(selected) => selected.join(', ')}
+                                            style={{ height: '22px', minWidth: '80px', fontSize: '0.7rem', fontFamily: 'monospace' }}
+                                          >
+                                            {umlClasses
+                                              .filter(c => c.type === 'interface' && c.title !== umlClass.title)
+                                              .map(c => (
+                                                <MenuItem key={c.title} value={c.title}>
+                                                  <Checkbox size="small" checked={(umlClass.implements || []).includes(c.title)} />
+                                                  <span style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{c.title}</span>
+                                                </MenuItem>
+                                              ))
+                                            }
+                                          </Select>
+                                        </Box>
+                                      )}
                                     </Box>
-                                  )}
-                                </Box>
+                                  </>
+                                ) : (
+                                  <Box style={{ textAlign: 'center' }}>
+                                    {umlClass.type === 'interface' ? (
+                                      <Typography variant="caption" style={{ color: '#10b981', fontWeight: 800, display: 'block', fontSize: '0.65rem', textTransform: 'uppercase' }}>
+                                        &lt;&lt;Interface&gt;&gt;
+                                      </Typography>
+                                    ) : (
+                                      umlClass.abstract && (
+                                        <Typography variant="caption" style={{ color: 'var(--primary-main)', fontWeight: 800, display: 'block', fontSize: '0.65rem', textTransform: 'uppercase' }}>
+                                          &lt;&lt;Abstract&gt;&gt;
+                                        </Typography>
+                                      )
+                                    )}
+                                    <Typography variant="subtitle2" style={{ fontWeight: 900, fontFamily: '"Outfit", sans-serif', color: 'var(--text-primary)' }}>
+                                      {umlClass.title}
+                                    </Typography>
+                                    {umlClass.extends && (
+                                      <Typography variant="caption" style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
+                                        extends {umlClass.extends}
+                                      </Typography>
+                                    )}
+                                    {umlClass.implements && umlClass.implements.length > 0 && (
+                                      <Typography variant="caption" style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', display: 'block' }}>
+                                        implements {umlClass.implements.join(', ')}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                )}
                               </Box>
 
                               {/* Attributes Block */}
                               <Box style={{ padding: '10px', borderBottom: '1.5px solid rgba(28,176,246,0.15)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography variant="caption" style={{ fontWeight: 800, color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
-                                    Attributes (Fields)
-                                  </Typography>
-                                  <IconButton size="small" onClick={() => addAttribute(classIdx)} style={{ color: 'var(--primary-main)', padding: '2px' }}>
-                                    <AddIcon fontSize="inherit" />
-                                  </IconButton>
-                                </Box>
-
-                                {umlClass.attributes.map((attr, attrIdx) => (
-                                  <Box key={attrIdx} style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <Box style={{ display: 'flex', gap: '4px', width: '100%', alignItems: 'center' }}>
-                                      <Select
-                                        size="small"
-                                        value={attr.visibility}
-                                        onChange={(e) => updateAttribute(classIdx, attrIdx, { visibility: e.target.value })}
-                                        style={{ height: '24px', fontSize: '0.72rem', fontFamily: 'monospace' }}
-                                      >
-                                        <MenuItem value="public">+</MenuItem>
-                                        <MenuItem value="private">-</MenuItem>
-                                        <MenuItem value="protected">#</MenuItem>
-                                        <MenuItem value="package-private">~</MenuItem>
-                                      </Select>
-                                      <Select
-                                        size="small"
-                                        value={attr.type}
-                                        onChange={(e) => updateAttribute(classIdx, attrIdx, { type: e.target.value })}
-                                        style={{
-                                          height: '24px',
-                                          fontSize: '0.72rem',
-                                          fontFamily: 'monospace',
-                                          background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                                          border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
-                                          borderRadius: '4px',
-                                          color: isDarkMode ? '#ffffff' : '#1e1e2f',
-                                          width: `${Math.max(70, (attr.type ? attr.type.length : 0) * 8 + 24)}px`,
-                                          padding: 0
-                                        }}
-                                        sx={{
-                                          '& .MuiSelect-select': {
-                                            paddingTop: '2px',
-                                            paddingBottom: '2px',
-                                            paddingLeft: '6px',
-                                            paddingRight: '20px'
-                                          }
-                                        }}
-                                      >
-                                        {getAttributeTypes(attr.type).map(t => (
-                                          <MenuItem key={t} value={t} style={{ fontSize: '0.72rem', fontFamily: 'monospace' }}>{t}</MenuItem>
-                                        ))}
-                                      </Select>
-                                      <DebouncedInput
-                                        type="text"
-                                        value={attr.name}
-                                        placeholder="name"
-                                        onChange={(val) => updateAttribute(classIdx, attrIdx, { name: val })}
-                                        style={{
-                                          flexGrow: 1,
-                                          minWidth: '40px',
-                                          background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                                          border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
-                                          borderRadius: '4px',
-                                          color: isDarkMode ? '#ffffff' : '#1e1e2f',
-                                          fontSize: '0.72rem',
-                                          padding: '2px 4px',
-                                          fontFamily: 'monospace',
-                                          outline: 'none'
-                                        }}
-                                      />
-                                      <FormControlLabel
-                                        control={
-                                          <Checkbox
-                                            size="small"
-                                            checked={attr.isStatic}
-                                            onChange={(e) => updateAttribute(classIdx, attrIdx, { isStatic: e.target.checked })}
-                                            sx={{ padding: 0 }}
-                                          />
-                                        }
-                                        label="S"
-                                        style={{ margin: 0 }}
-                                        slotProps={{ typography: { style: { fontSize: '0.6rem', fontWeight: 800, marginLeft: '1px' } } }}
-                                      />
-                                      <IconButton size="small" onClick={() => deleteAttribute(classIdx, attrIdx)} style={{ color: 'var(--danger-main)', padding: '2px' }}>
-                                        <DeleteIcon fontSize="inherit" />
+                                {isUmlEditable ? (
+                                  <>
+                                    <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <Typography variant="caption" style={{ fontWeight: 800, color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
+                                        Attributes (Fields)
+                                      </Typography>
+                                      <IconButton size="small" onClick={() => addAttribute(classIdx)} style={{ color: 'var(--primary-main)', padding: '2px' }}>
+                                        <AddIcon fontSize="inherit" />
                                       </IconButton>
                                     </Box>
-                                  </Box>
-                                ))}
+
+                                    {umlClass.attributes.map((attr, attrIdx) => (
+                                      <Box key={attrIdx} style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <Box style={{ display: 'flex', gap: '4px', width: '100%', alignItems: 'center' }}>
+                                          <Select
+                                            size="small"
+                                            value={attr.visibility}
+                                            onChange={(e) => updateAttribute(classIdx, attrIdx, { visibility: e.target.value })}
+                                            style={{ height: '24px', fontSize: '0.72rem', fontFamily: 'monospace' }}
+                                          >
+                                            <MenuItem value="public">+</MenuItem>
+                                            <MenuItem value="private">-</MenuItem>
+                                            <MenuItem value="protected">#</MenuItem>
+                                            <MenuItem value="package-private">~</MenuItem>
+                                          </Select>
+                                          <Select
+                                            size="small"
+                                            value={attr.type}
+                                            onChange={(e) => updateAttribute(classIdx, attrIdx, { type: e.target.value })}
+                                            style={{
+                                              height: '24px',
+                                              fontSize: '0.72rem',
+                                              fontFamily: 'monospace',
+                                              background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                                              border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+                                              borderRadius: '4px',
+                                              color: isDarkMode ? '#ffffff' : '#1e1e2f',
+                                              width: `${Math.max(70, (attr.type ? attr.type.length : 0) * 8 + 24)}px`,
+                                              padding: 0
+                                            }}
+                                            sx={{
+                                              '& .MuiSelect-select': {
+                                                paddingTop: '2px',
+                                                paddingBottom: '2px',
+                                                paddingLeft: '6px',
+                                                paddingRight: '20px'
+                                              }
+                                            }}
+                                          >
+                                            {getAttributeTypes(attr.type).map(t => (
+                                              <MenuItem key={t} value={t} style={{ fontSize: '0.72rem', fontFamily: 'monospace' }}>{t}</MenuItem>
+                                            ))}
+                                          </Select>
+                                          <DebouncedInput
+                                            type="text"
+                                            value={attr.name}
+                                            placeholder="name"
+                                            onChange={(val) => updateAttribute(classIdx, attrIdx, { name: val })}
+                                            style={{
+                                              flexGrow: 1,
+                                              minWidth: '40px',
+                                              background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                                              border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+                                              borderRadius: '4px',
+                                              color: isDarkMode ? '#ffffff' : '#1e1e2f',
+                                              fontSize: '0.72rem',
+                                              padding: '2px 4px',
+                                              fontFamily: 'monospace',
+                                              outline: 'none'
+                                            }}
+                                          />
+                                          <FormControlLabel
+                                            control={
+                                              <Checkbox
+                                                size="small"
+                                                checked={attr.isStatic}
+                                                onChange={(e) => updateAttribute(classIdx, attrIdx, { isStatic: e.target.checked })}
+                                                sx={{ padding: 0 }}
+                                              />
+                                            }
+                                            label="S"
+                                            style={{ margin: 0 }}
+                                            slotProps={{ typography: { style: { fontSize: '0.6rem', fontWeight: 800, marginLeft: '1px' } } }}
+                                          />
+                                          <IconButton size="small" onClick={() => deleteAttribute(classIdx, attrIdx)} style={{ color: 'var(--danger-main)', padding: '2px' }}>
+                                            <DeleteIcon fontSize="inherit" />
+                                          </IconButton>
+                                        </Box>
+                                      </Box>
+                                    ))}
+                                  </>
+                                ) : (
+                                  <>
+                                    {umlClass.attributes.map((attr, attrIdx) => {
+                                      const visSign = attr.visibility === 'public' ? '+' : (attr.visibility === 'protected' ? '#' : (attr.visibility === 'package-private' ? '~' : '-'));
+                                      return (
+                                        <Typography
+                                          key={attrIdx}
+                                          variant="caption"
+                                          style={{
+                                            fontFamily: 'monospace',
+                                            color: 'var(--text-primary)',
+                                            textDecoration: attr.isStatic ? 'underline' : 'none',
+                                            fontWeight: attr.isStatic ? 800 : 400
+                                          }}
+                                        >
+                                          {visSign} {attr.name}: {attr.type}
+                                        </Typography>
+                                      );
+                                    })}
+                                  </>
+                                )}
                               </Box>
 
                               {/* Methods Block */}
                               <Box style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography variant="caption" style={{ fontWeight: 800, color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
-                                    Methods (Actions)
-                                  </Typography>
-                                  <IconButton size="small" onClick={() => addMethod(classIdx)} style={{ color: 'var(--primary-main)', padding: '2px' }}>
-                                    <AddIcon fontSize="inherit" />
-                                  </IconButton>
-                                </Box>
-
-                                {umlClass.methods.map((method, methodIdx) => (
-                                  <Box key={methodIdx} style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'nowrap' }}>
-                                    <Select
-                                      size="small"
-                                      value={method.visibility}
-                                      onChange={(e) => updateMethod(classIdx, methodIdx, { visibility: e.target.value })}
-                                      style={{ height: '24px', fontSize: '0.72rem', fontFamily: 'monospace' }}
-                                    >
-                                      <MenuItem value="public">+</MenuItem>
-                                      <MenuItem value="private">-</MenuItem>
-                                      <MenuItem value="protected">#</MenuItem>
-                                      <MenuItem value="package-private">~</MenuItem>
-                                    </Select>
-                                    <Select
-                                      size="small"
-                                      value={method.returnType}
-                                      disabled={method.returnType === 'constructor'}
-                                      onChange={(e) => updateMethod(classIdx, methodIdx, { returnType: e.target.value })}
-                                      style={{
-                                        height: '24px',
-                                        fontSize: '0.72rem',
-                                        fontFamily: 'monospace',
-                                        background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                                        border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
-                                        borderRadius: '4px',
-                                        color: isDarkMode ? '#ffffff' : '#1e1e2f',
-                                        width: `${Math.max(70, (method.returnType ? method.returnType.length : 0) * 8 + 24)}px`,
-                                        padding: 0
-                                      }}
-                                      sx={{
-                                        '& .MuiSelect-select': {
-                                          paddingTop: '2px',
-                                          paddingBottom: '2px',
-                                          paddingLeft: '6px',
-                                          paddingRight: '20px'
-                                        }
-                                      }}
-                                    >
-                                      {getMethodReturnTypes(method.returnType).map(t => (
-                                        <MenuItem key={t} value={t} style={{ fontSize: '0.72rem', fontFamily: 'monospace' }}>{t}</MenuItem>
-                                      ))}
-                                    </Select>
-                                    <DebouncedInput
-                                      type="text"
-                                      value={method.name}
-                                      placeholder="name"
-                                      onChange={(val) => updateMethod(classIdx, methodIdx, { name: val })}
-                                      style={{
-                                        flexGrow: 1,
-                                        minWidth: '40px',
-                                        background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                                        border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
-                                        borderRadius: '4px',
-                                        color: isDarkMode ? '#ffffff' : '#1e1e2f',
-                                        fontSize: '0.72rem',
-                                        padding: '2px 4px',
-                                        fontFamily: 'monospace',
-                                        outline: 'none'
-                                      }}
-                                    />
-                                    <Box style={{ display: 'flex', gap: '2px' }}>
-                                      <FormControlLabel
-                                        control={
-                                          <Checkbox
-                                            size="small"
-                                            checked={method.isStatic}
-                                            onChange={(e) => updateMethod(classIdx, methodIdx, { isStatic: e.target.checked })}
-                                            sx={{ padding: 0 }}
-                                          />
-                                        }
-                                        label="S"
-                                        style={{ margin: 0 }}
-                                        slotProps={{ typography: { style: { fontSize: '0.6rem', fontWeight: 800 } } }}
-                                      />
-                                      <FormControlLabel
-                                        control={
-                                          <Checkbox
-                                            size="small"
-                                            checked={method.isAbstract}
-                                            onChange={(e) => updateMethod(classIdx, methodIdx, { isAbstract: e.target.checked })}
-                                            sx={{ padding: 0 }}
-                                          />
-                                        }
-                                        label="A"
-                                        style={{ margin: 0 }}
-                                        slotProps={{ typography: { style: { fontSize: '0.6rem', fontWeight: 800 } } }}
-                                      />
+                                {isUmlEditable ? (
+                                  <>
+                                    <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <Typography variant="caption" style={{ fontWeight: 800, color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
+                                        Methods (Actions)
+                                      </Typography>
+                                      <IconButton size="small" onClick={() => addMethod(classIdx)} style={{ color: 'var(--primary-main)', padding: '2px' }}>
+                                        <AddIcon fontSize="inherit" />
+                                      </IconButton>
                                     </Box>
-                                    <IconButton size="small" onClick={() => deleteMethod(classIdx, methodIdx)} style={{ color: 'var(--danger-main)', padding: '2px' }}>
-                                      <DeleteIcon fontSize="inherit" />
-                                    </IconButton>
-                                  </Box>
-                                ))}
+
+                                    {umlClass.methods.map((method, methodIdx) => (
+                                      <Box key={methodIdx} style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                                        <Select
+                                          size="small"
+                                          value={method.visibility}
+                                          onChange={(e) => updateMethod(classIdx, methodIdx, { visibility: e.target.value })}
+                                          style={{ height: '24px', fontSize: '0.72rem', fontFamily: 'monospace' }}
+                                        >
+                                          <MenuItem value="public">+</MenuItem>
+                                          <MenuItem value="private">-</MenuItem>
+                                          <MenuItem value="protected">#</MenuItem>
+                                          <MenuItem value="package-private">~</MenuItem>
+                                        </Select>
+                                        <Select
+                                          size="small"
+                                          value={method.returnType}
+                                          disabled={method.returnType === 'constructor'}
+                                          onChange={(e) => updateMethod(classIdx, methodIdx, { returnType: e.target.value })}
+                                          style={{
+                                            height: '24px',
+                                            fontSize: '0.72rem',
+                                            fontFamily: 'monospace',
+                                            background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                                            border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+                                            borderRadius: '4px',
+                                            color: isDarkMode ? '#ffffff' : '#1e1e2f',
+                                            width: `${Math.max(70, (method.returnType ? method.returnType.length : 0) * 8 + 24)}px`,
+                                            padding: 0
+                                          }}
+                                          sx={{
+                                            '& .MuiSelect-select': {
+                                              paddingTop: '2px',
+                                              paddingBottom: '2px',
+                                              paddingLeft: '6px',
+                                              paddingRight: '20px'
+                                            }
+                                          }}
+                                        >
+                                          {getMethodReturnTypes(method.returnType).map(t => (
+                                            <MenuItem key={t} value={t} style={{ fontSize: '0.72rem', fontFamily: 'monospace' }}>{t}</MenuItem>
+                                          ))}
+                                        </Select>
+                                        <DebouncedInput
+                                          type="text"
+                                          value={method.name}
+                                          placeholder="name"
+                                          onChange={(val) => updateMethod(classIdx, methodIdx, { name: val })}
+                                          style={{
+                                            flexGrow: 1,
+                                            minWidth: '40px',
+                                            background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                                            border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+                                            borderRadius: '4px',
+                                            color: isDarkMode ? '#ffffff' : '#1e1e2f',
+                                            fontSize: '0.72rem',
+                                            padding: '2px 4px',
+                                            fontFamily: 'monospace',
+                                            outline: 'none'
+                                          }}
+                                        />
+                                        <Box style={{ display: 'flex', gap: '2px' }}>
+                                          <FormControlLabel
+                                            control={
+                                              <Checkbox
+                                                size="small"
+                                                checked={method.isStatic}
+                                                onChange={(e) => updateMethod(classIdx, methodIdx, { isStatic: e.target.checked })}
+                                                sx={{ padding: 0 }}
+                                              />
+                                            }
+                                            label="S"
+                                            style={{ margin: 0 }}
+                                            slotProps={{ typography: { style: { fontSize: '0.6rem', fontWeight: 800 } } }}
+                                          />
+                                          <FormControlLabel
+                                            control={
+                                              <Checkbox
+                                                size="small"
+                                                checked={method.isAbstract}
+                                                onChange={(e) => updateMethod(classIdx, methodIdx, { isAbstract: e.target.checked })}
+                                                sx={{ padding: 0 }}
+                                              />
+                                            }
+                                            label="A"
+                                            style={{ margin: 0 }}
+                                            slotProps={{ typography: { style: { fontSize: '0.6rem', fontWeight: 800 } } }}
+                                          />
+                                        </Box>
+                                        <IconButton size="small" onClick={() => deleteMethod(classIdx, methodIdx)} style={{ color: 'var(--danger-main)', padding: '2px' }}>
+                                          <DeleteIcon fontSize="inherit" />
+                                        </IconButton>
+                                      </Box>
+                                    ))}
+                                  </>
+                                ) : (
+                                  <>
+                                    {umlClass.methods.map((method, methodIdx) => {
+                                      const visSign = method.visibility === 'public' ? '+' : (method.visibility === 'protected' ? '#' : (method.visibility === 'package-private' ? '~' : '-'));
+                                      const paramsText = (method.parameters || []).map(p => `${p.name}: ${p.type}`).join(', ');
+                                      const retText = method.returnType === 'constructor' ? '' : `: ${method.returnType}`;
+                                      return (
+                                        <Typography
+                                          key={methodIdx}
+                                          variant="caption"
+                                          style={{
+                                            fontFamily: 'monospace',
+                                            color: 'var(--text-primary)',
+                                            textDecoration: method.isStatic ? 'underline' : 'none',
+                                            fontStyle: method.isAbstract ? 'italic' : 'normal',
+                                            fontWeight: (method.isStatic || method.isAbstract) ? 800 : 400
+                                          }}
+                                        >
+                                          {visSign} {method.name}({paramsText}){retText}
+                                        </Typography>
+                                      );
+                                    })}
+                                  </>
+                                )}
                               </Box>
                             </Box>
                           );

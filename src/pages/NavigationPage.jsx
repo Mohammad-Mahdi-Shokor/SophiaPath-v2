@@ -18,7 +18,11 @@ import {
   Popover,
   Tooltip,
   Badge,
-  ListItem} from '@mui/material';
+  ListItem,
+  Collapse,
+  Select,
+  MenuItem,
+  FormControl} from '@mui/material';
 import {
   AutoAwesome as AutoAwesomeIcon,
   Brightness6 as Brightness6Icon,
@@ -26,14 +30,15 @@ import {
   EmojiEvents as EmojiEventsIcon,
   Logout as LogoutIcon,
   Menu as MenuIcon,
+  ExpandLess,
+  ExpandMore,
+  MenuBook as MenuBookIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
   Timeline as TimelineIcon,
-  ChatBubbleOutline as ChatIcon,
   Code as CodeIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
-  Groups as GroupsIcon,
   School as SchoolIcon,
   Science as ScienceIcon,
   InfoOutlined as InfoIcon,
@@ -52,21 +57,14 @@ import LearningPathPage from './LearningPathPage';
 import QuizPage from './QuizPage';
 import LearningContentPage from './LearningContentPage';
 import ChallengePage from './labs/ChallengePage';
-import PhilosophyLabPage from './PhilosophyLabPage';
-import ChatListPage from '../features/chat/ChatListPage';
-import ChatPage from '../features/chat/ChatPage';
+import CourseSectionsPage from './CourseSectionsPage';
 import CyberLabPage from './CyberLabPage';
-import GroupChatPage from '../features/chat/GroupChatPage';
-import GroupJoinLinkHandler from '../features/chat/GroupJoinLinkHandler';
-import CommunityListPage from '../features/community/CommunityListPage';
-import CommunityDetailPage from '../features/community/CommunityDetailPage';
-import QuestionDetailPage from '../features/community/QuestionDetailPage';
 import LabsPage from './LabsPage';
 import SecurityChallenges from './labs/SecurityChallenges';
 
 
 import { useNavigate, Routes, Route, useLocation, Navigate, useParams } from 'react-router-dom';
-import { socialStore } from '../data/socialStore';
+
 import logoImg from '../assets/sp-logo.png';
 const formatLogTime = (dateVal) => {
   if (!dateVal) return '';
@@ -122,14 +120,7 @@ const getRouteKey = (pathname) => {
   if (!pathname) return '';
   const segments = pathname.split('/').filter(Boolean);
   if (segments.length === 0) return '/';
-  if (segments[0] === 'communities') {
-    if (segments.length === 1) return 'communities-list';
-    if (segments.length === 2) return `community-${segments[1]}`;
-    if (segments.length === 4 && segments[2] === 'room') return `community-${segments[1]}-room-${segments[3]}`;
-    if (segments.length === 6 && segments[4] === 'question') return `question-${segments[5]}`;
-    return 'communities';
-  }
-  if (segments[0] === 'chat' || segments[0] === 'chats' || segments[0] === 'group') return 'chats';
+
   if (segments[0] === 'course' || segments[0] === 'learning-path' || segments[0] === 'learning') return pathname;
   return segments[0];
 };
@@ -162,7 +153,7 @@ const TUTORIAL_STEPS = [
   {
     target: '.nav-menu-list',
     title: 'Sidebar Items',
-    description: 'Navigate easily to milestones achievements, playgrounds, chat rooms, and communities.',
+    description: 'Navigate easily to milestones achievements and playgrounds.',
     placement: 'right'
   },
   {
@@ -191,6 +182,8 @@ const TUTORIAL_STEPS = [
   }
 ];
 
+
+
 const NavigationPage = () => {
   const { user, logout, hasRole } = useAuth();
   const { toggleTheme, isDarkMode } = useAppTheme();
@@ -199,6 +192,8 @@ const NavigationPage = () => {
   const [logoStyle, setLogoStyle] = useState(() => localStorage.getItem('sophiapath_logo_style') || 'split');
   const [showGlobalBg, setShowGlobalBg] = useState(() => localStorage.getItem('sophiapath_global_bg') === 'true');
   const [bgStyle, setBgStyle] = useState(() => localStorage.getItem('sophiapath_bg_style') || 'constellation');
+  
+
 
   const [anchorEl, setAnchorEl] = useState(null);
   const handleLevelInfoClick = (event) => {
@@ -347,16 +342,6 @@ const NavigationPage = () => {
           title: 'Video Walkthrough',
           description: 'Click this play icon to watch a video walk-through demonstrating the solution.',
           placement: 'top'
-        }
-      ];
-    } else if (path === '/philosophy-lab') {
-      targetKey = 'philosophy_lab';
-      steps = [
-        {
-          target: '.glass-panel button:first-of-type',
-          title: 'Make Your Choice',
-          description: 'Click these choice buttons to select your moral options for each philosophical scenario.',
-          placement: 'bottom'
         }
       ];
     } else if (path === '/cyber-lab') {
@@ -658,96 +643,7 @@ const NavigationPage = () => {
           }
         ];
       }
-    } else if (path === '/communities') {
-      targetKey = 'community';
-      steps = [
-        {
-          target: '.community-list-header input',
-          title: 'Search Communities',
-          description: 'Type keywords here to filter active learning communities.',
-          placement: 'bottom'
-        },
-        {
-          target: '.community-list-header button:last-of-type',
-          title: 'Create a Community',
-          description: 'Start your own private or public study community.',
-          placement: 'bottom'
-        }
-      ];
-    } else if (path.startsWith('/communities/') && path.includes('/room/') && path.includes('/question/')) {
-      targetKey = 'question_thread';
-      steps = [
-        {
-          target: '.question-comment-input textarea',
-          title: 'Write a comment',
-          description: 'Type your reply or answer to the community question here.',
-          placement: 'top'
-        },
-        {
-          target: '.question-send-btn',
-          title: 'Post comment',
-          description: 'Submits your comment to the thread. Cooldown starts immediately.',
-          placement: 'top'
-        }
-      ];
-    } else if (path.startsWith('/communities/')) {
-      targetKey = 'community_detail';
-      steps = [
-        {
-          target: '.community-ask-btn',
-          title: 'Ask a Question',
-          description: 'Click this button to open the question submission form.',
-          placement: 'bottom'
-        }
-      ];
-    } else if (path === '/chats') {
-      targetKey = 'chats';
-      steps = [
-        {
-          target: '.chat-search-field input',
-          title: 'Search Conversations',
-          description: 'Type a friend\'s username here to filter your active chat list.',
-          placement: 'bottom'
-        },
-        {
-          target: '.chat-list-card button',
-          title: 'New Group Chat',
-          description: 'Click here to create a new group chat room and select friends to add.',
-          placement: 'bottom'
-        }
-      ];
-    } else if (path.startsWith('/chat/')) {
-      targetKey = 'chat_room';
-      steps = [
-        {
-          target: '.chat-text-field textarea',
-          title: 'Type Message',
-          description: 'Type your chat messages here. You can attach images or add emojis using the composer buttons.',
-          placement: 'top'
-        },
-        {
-          target: '.chat-send-btn',
-          title: 'Send Message',
-          description: 'Click this button to send your message instantly to your friend.',
-          placement: 'top'
-        }
-      ];
-    } else if (path.startsWith('/group/')) {
-      targetKey = 'group_chat_room';
-      steps = [
-        {
-          target: '.chat-input-field textarea',
-          title: 'Type Message to Group',
-          description: 'Type your message for the entire group here. Mention members using @.',
-          placement: 'top'
-        },
-        {
-          target: '.chat-send-btn',
-          title: 'Send Message to Group',
-          description: 'Click this button to post your message instantly to the group.',
-          placement: 'top'
-        }
-      ];
+
     } else if (path === '/achievements') {
       targetKey = 'achievements';
       steps = [
@@ -1155,36 +1051,6 @@ const NavigationPage = () => {
         let countData = await countRes.json();
         let unreadCountVal = countData.count;
 
-        // Check if inside active chat / group chat to auto-mute
-        const chatMatch = location.pathname.match(/^\/chat\/(\d+)/);
-        const activeChatPartnerId = chatMatch ? chatMatch[1] : null;
-
-        const groupMatch = location.pathname.match(/^\/group\/(\d+)/);
-        const activeGroupId = groupMatch ? groupMatch[1] : null;
-
-        const readPromises = [];
-        notifs = notifs.map(n => {
-          if (!n.isRead) {
-            const isViewingChat = n.type === 'chat' && String(n.sourceId) === String(activeChatPartnerId);
-            const isViewingGroup = n.type === 'group_chat' && String(n.sourceId) === String(activeGroupId);
-            if (isViewingChat || isViewingGroup) {
-              n.isRead = true;
-              unreadCountVal = Math.max(0, unreadCountVal - 1);
-              readPromises.push(
-                fetch(`/api/notifications/${n.id}/read`, { method: 'POST', headers })
-              );
-            }
-          }
-          return n;
-        });
-
-        if (readPromises.length > 0) {
-          try {
-            await Promise.all(readPromises);
-          } catch (e) {
-            console.error('Failed to auto-read current chat notifications:', e);
-          }
-        }
 
         setNotifications(notifs);
         setUnreadCount(unreadCountVal);
@@ -1256,14 +1122,7 @@ const NavigationPage = () => {
       // Navigation routing based on notification type
       if (notif.type === 'system_role') {
         navigate('/profile');
-      } else if (notif.type === 'community_role') {
-        navigate(`/communities/${notif.sourceId}`);
-      } else if (notif.type === 'comment' || notif.type === 'reply') {
-        navigate(`/communities/${notif.sourceId}`);
-      } else if (notif.type === 'chat') {
-        navigate(`/chat/${notif.sourceId}`);
-      } else if (notif.type === 'group_chat' || notif.type === 'group_role') {
-        navigate(`/group/${notif.sourceId}`);
+
       } else if (notif.type === 'achievement') {
         navigate('/achievements');
       }
@@ -1273,69 +1132,7 @@ const NavigationPage = () => {
   };
 
   const getGroupedNotifications = () => {
-    const grouped = [];
-    const unreadGroups = {}; // key: 'chat:sourceId', 'group_chat:sourceId', 'comment:sourceId', 'reply:sourceId'
-
-    for (const notif of notifications) {
-      if (!notif.isRead && (notif.type === 'chat' || notif.type === 'group_chat' || notif.type === 'comment' || notif.type === 'reply')) {
-        const key = `${notif.type}:${notif.sourceId}`;
-        if (!unreadGroups[key]) {
-          unreadGroups[key] = [];
-        }
-        unreadGroups[key].push(notif);
-      } else {
-        grouped.push({ ...notif, originalIds: [notif.id] });
-      }
-    }
-
-    for (const key in unreadGroups) {
-      const groupNotifs = unreadGroups[key];
-      // Sort by date descending (most recent first)
-      groupNotifs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      
-      const mostRecent = groupNotifs[0];
-      const count = groupNotifs.length;
-      
-      if (count > 1) {
-        let mergedTitle = mostRecent.title;
-        let mergedMessage = '';
-        if (mostRecent.type === 'chat') {
-          const parts = mostRecent.message.split(': ');
-          const sender = parts[0] || 'User';
-          const lastMsg = parts.slice(1).join(': ') || '';
-          mergedMessage = `${sender} (${count} messages): ${lastMsg}`;
-        } else if (mostRecent.type === 'group_chat') {
-          // Group chat
-          const parts = mostRecent.message.split(' - ');
-          const groupName = parts[0] || 'Group';
-          const rest = parts.slice(1).join(' - ') || '';
-          const subParts = rest.split(': ');
-          const sender = subParts[0] || 'User';
-          const lastMsg = subParts.slice(1).join(': ') || '';
-          mergedMessage = `${groupName} - ${sender} (${count} messages): ${lastMsg}`;
-        } else if (mostRecent.type === 'comment') {
-          mergedTitle = 'New Comments';
-          mergedMessage = `${count} people commented on your post`;
-        } else if (mostRecent.type === 'reply') {
-          mergedTitle = 'New Replies';
-          mergedMessage = `${count} people replied to your comment`;
-        }
-
-        grouped.push({
-          ...mostRecent,
-          title: mergedTitle,
-          message: mergedMessage,
-          originalIds: groupNotifs.map(n => n.id)
-        });
-      } else {
-        grouped.push({
-          ...mostRecent,
-          originalIds: [mostRecent.id]
-        });
-      }
-    }
-
-    return grouped.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return notifications.map(n => ({ ...n, originalIds: [n.id] })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   };
 
   useEffect(() => {
@@ -1365,10 +1162,10 @@ const NavigationPage = () => {
       items.push({ label: 'Dashboard', path: '/', icon: <DashboardRoundedIcon /> });
     }
     items.push({ label: 'Courses', path: '/courses', icon: <SchoolIcon /> });
+    items.push({ label: 'Course Sections', path: '/sections', icon: <MenuBookIcon /> });
     items.push({ label: 'Labs', path: '/labs', icon: <ScienceIcon /> });
     items.push({ label: 'Achievements', path: '/achievements', icon: <EmojiEventsIcon /> });
-    items.push({ label: 'Chats', path: '/chats', icon: <ChatIcon /> });
-    items.push({ label: 'Communities', path: '/communities', icon: <GroupsIcon /> });
+
     items.push({ label: 'Profile', path: '/profile', icon: <PersonIcon /> });
     items.push({ label: 'Settings', path: '/settings', icon: <SettingsIcon /> });
     return items;
@@ -1377,12 +1174,11 @@ const NavigationPage = () => {
   const pageTitles = {
     '/': Number(user?.roleID) === 1 ? 'Syllabus Editor' : 'Dashboard',
     '/courses': 'Your Courses',
+    '/sections': 'Course Sections',
     '/labs': 'Interactive Labs',
     '/learning-path': 'Your Roadmap',
     '/challenge': 'Chapter Challenge',
     '/achievements': 'Your Achievements',
-    '/chats': 'Messages',
-    '/communities': 'Learning Communities',
     '/profile': 'Your Profile',
     '/settings': 'Settings'};
 
@@ -1391,12 +1187,11 @@ const NavigationPage = () => {
       ? 'Manage and edit course sections, lessons, and content.'
       : 'Manage your platform, users, courses, and system settings.',
     '/courses': 'Browse courses, continue learning, and track your progress.',
+    '/sections': 'Quickly jump into specific course sections and modules.',
     '/labs': 'Practice through interactive labs.',
     '/learning-path': 'Follow your personalized learning journey and unlock new milestones.',
     '/challenge': 'Sharpen your skills with problem-solving challenges.',
     '/achievements': 'View your achievements, streaks, and overall progress.',
-    '/chats': 'Chat with friends, learners, and experts in real time.',
-    '/communities': 'Join communities, participate in discussions, and connect with learners worldwide.',
     '/profile': 'View your profile, accomplishments, and learning activity.',
     '/settings': 'Customize your account, preferences, accessibility, and application settings.'};
 
@@ -1526,6 +1321,7 @@ const NavigationPage = () => {
             const active = location.pathname === item.path;
             const isGuestAccessible =
               item.path === '/courses' ||
+              item.path === '/sections' ||
               item.path === '/communities' ||
               item.path === '/labs' ||
               item.path === '/settings';
@@ -1570,6 +1366,8 @@ const NavigationPage = () => {
               </div>
             );
           })}
+
+
         </List>
       </div>
 
@@ -1839,33 +1637,6 @@ const NavigationPage = () => {
       };
     }
 
-    if (path.startsWith('/chat/')) {
-      return {
-        title: 'Messages',
-        description: 'Connect with other learners and share your insights.'
-      };
-    }
-
-    if (path.startsWith('/group/')) {
-      return {
-        title: 'Group Chat',
-        description: 'Collaborate with your learning squad.'
-      };
-    }
-
-    if (path.startsWith('/communities')) {
-      return {
-        title: 'Learning Communities',
-        description: 'Join community channels, ask questions, and share knowledge.'
-      };
-    }
-
-    if (path === '/philosophy-lab') {
-      return {
-        title: 'Fallacy Matcher',
-        description: 'Test your critical thinking by matching arguments with logical fallacies.'
-      };
-    }
 
     if (path === '/cyber-lab') {
       return {
@@ -1887,10 +1658,7 @@ const NavigationPage = () => {
     location.pathname.startsWith('/learning-path') ||
     location.pathname.startsWith('/learning/') ||
     location.pathname.startsWith('/quiz/') ||
-    location.pathname.startsWith('/chat/') ||
-    location.pathname.startsWith('/group/') ||
-    location.pathname.startsWith('/communities/') ||
-    location.pathname.startsWith('/philosophy-lab') ||
+
     location.pathname.startsWith('/cyber-lab') ||
     location.pathname.startsWith('/challenge');
 
@@ -1900,10 +1668,10 @@ const NavigationPage = () => {
     }
     const isGuestAccessible =
       location.pathname === '/courses' ||
+      location.pathname === '/sections' ||
       location.pathname.startsWith('/course/') ||
-      location.pathname.startsWith('/communities') ||
+
       location.pathname === '/labs' ||
-      location.pathname === '/philosophy-lab' ||
       location.pathname === '/cyber-lab' ||
       location.pathname === '/settings';
 
@@ -1926,10 +1694,8 @@ const NavigationPage = () => {
     );
   }
 
-  const isChatRoute = location.pathname.startsWith('/chat') || location.pathname.startsWith('/group');
-
   return (
-    <Box className={`nav-shell ${isStickyFooterPage ? 'has-sticky-footer' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isChatRoute ? 'is-chat-page' : ''}`}>
+    <Box className={`nav-shell ${isStickyFooterPage ? 'has-sticky-footer' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {showGlobalBg && <ConstellationBackground styleType={bgStyle} />}
       {/* Floating Animated Brand Logo */}
       {!isMobile && (
@@ -2141,12 +1907,6 @@ const NavigationPage = () => {
                               <Box style={{ marginRight: '12px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                                 {notif.type === 'achievement' ? (
                                   <EmojiEventsIcon style={{ color: '#FFB547', fontSize: '20px' }} />
-                                ) : notif.type === 'chat' ? (
-                                  <ChatIcon style={{ color: 'var(--primary-main)', fontSize: '20px' }} />
-                                ) : notif.type === 'group_chat' ? (
-                                  <GroupsIcon style={{ color: 'var(--primary-main)', fontSize: '20px' }} />
-                                ) : notif.type === 'comment' || notif.type === 'reply' ? (
-                                  <ChatIcon style={{ color: 'var(--primary-main)', fontSize: '20px' }} />
                                 ) : (
                                   <NotificationsIcon style={{ color: 'var(--text-secondary)', fontSize: '20px' }} />
                                 )}
@@ -2155,7 +1915,7 @@ const NavigationPage = () => {
                                 primary={
                                   <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
                                     <Typography variant="subtitle2" style={{ fontWeight: notif.isRead ? 600 : 800, color: 'var(--text-primary)', fontSize: '13px' }}>
-                                      {notif.type === 'chat' && notif.originalIds?.length > 1 ? 'New Chat Messages' : notif.type === 'group_chat' && notif.originalIds?.length > 1 ? 'New Group Messages' : notif.title}
+                                      {notif.title}
                                     </Typography>
                                     <Typography variant="caption" style={{ color: 'var(--text-secondary)', fontSize: '9px', whiteSpace: 'nowrap' }}>
                                       {formatLogTime(notif.createdAt)}
@@ -2187,19 +1947,12 @@ const NavigationPage = () => {
                 <Route path="/" element={<AnimatedPage><AdminDashboardPage /></AnimatedPage>} />
               </Route>
               <Route path="/courses" element={<AnimatedPage><LearningPage /></AnimatedPage>} />
+              <Route path="/sections" element={<AnimatedPage><CourseSectionsPage /></AnimatedPage>} />
               <Route path="/labs" element={<AnimatedPage><LabsPage /></AnimatedPage>} />
               <Route path="/challenge" element={<AnimatedPage><ChallengePage /></AnimatedPage>} />
               <Route path="/profile" element={<AnimatedPage><ProfilePage /></AnimatedPage>} />
               <Route path="/achievements" element={<AnimatedPage><AchievementsPage /></AnimatedPage>} />
-              <Route path="/chats" element={<AnimatedPage><ChatListPage /></AnimatedPage>} />
 
-
-              <Route path="/chat/:userId" element={<AnimatedPage><ChatPage /></AnimatedPage>} />
-              <Route path="/group/:groupId" element={<AnimatedPage><GroupChatPage /></AnimatedPage>} />
-              <Route path="/communities" element={<AnimatedPage><CommunityListPage /></AnimatedPage>} />
-              <Route path="/communities/:communityId" element={<AnimatedPage><CommunityDetailPage /></AnimatedPage>} />
-              <Route path="/communities/:communityId/room/:roomId" element={<AnimatedPage><CommunityDetailPage /></AnimatedPage>} />
-              <Route path="/communities/:communityId/room/:roomId/question/:questionId" element={<AnimatedPage><QuestionDetailPage /></AnimatedPage>} />
               <Route path="/settings" element={<AnimatedPage><SettingsPage /></AnimatedPage>} />
 
               <Route path="/course/:courseId" element={<AnimatedPage><CourseDetailPage /></AnimatedPage>} />
@@ -2207,11 +1960,9 @@ const NavigationPage = () => {
 
               <Route path="/quiz/:courseDomain/:lessonId" element={<AnimatedPage><QuizPage /></AnimatedPage>} />
               <Route path="/learning/:courseId/:sectionId/:lessonId" element={<AnimatedPage><LearningContentPage /></AnimatedPage>} />
-              <Route path="/philosophy-lab" element={<AnimatedPage><PhilosophyLabPage /></AnimatedPage>} />
               <Route path="/cyber-lab" element={<AnimatedPage><CyberLabPage /></AnimatedPage>} />
               <Route path="/security-challenges" element={<AnimatedPage><SecurityChallenges /></AnimatedPage>} />
-              <Route path="/communities/join-invite/:communityId" element={<AnimatedPage><JoinInviteHandler /></AnimatedPage>} />
-              <Route path="/group/join/:token" element={<AnimatedPage><GroupJoinLinkHandler /></AnimatedPage>} />
+
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </AnimatePresence>
@@ -2226,85 +1977,6 @@ const NavigationPage = () => {
   );
 };
 
-const JoinInviteHandler = () => {
-  const { communityId } = useParams();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const join = async () => {
-      try {
-        let decodedId = communityId;
-        // Decode secure salted checksum hash with fallback to old XOR base36 for backward compatibility
-        if (isNaN(Number(communityId))) {
-          if (communityId.includes('-')) {
-            const parts = communityId.split('-');
-            if (parts.length >= 3) {
-              const [mainPart, checksumPart1, checksumPart2] = parts;
-              const salted = parseInt(mainPart, 36);
-              const id = Math.round((salted - 27182818284) / 31415926535);
-
-              let hash1 = 0;
-              let hash2 = 0;
-              const str = String(id) + "SophiaSecretSaltSuperLong123!";
-              for (let i = 0; i < str.length; i++) {
-                hash1 = (hash1 << 5) - hash1 + str.charCodeAt(i);
-                hash1 |= 0;
-                hash2 = (hash2 << 7) - hash2 + str.charCodeAt(i) * 17;
-                hash2 |= 0;
-              }
-              const expectedChecksum1 = Math.abs(hash1).toString(36);
-              const expectedChecksum2 = Math.abs(hash2).toString(36);
-
-              if (checksumPart1 === expectedChecksum1 && checksumPart2 === expectedChecksum2) {
-                decodedId = id;
-              } else {
-                console.error("Invalid invite double checksum!");
-                navigate('/communities');
-                return;
-              }
-            } else {
-              const [mainPart, checksumPart] = parts;
-              const salted = parseInt(mainPart, 36);
-              const id = Math.round((salted - 271828) / 314159);
-
-              let hash = 0;
-              const str = String(id) + "SophiaSecretSalt123!";
-              for (let i = 0; i < str.length; i++) {
-                hash = (hash << 5) - hash + str.charCodeAt(i);
-                hash |= 0;
-              }
-              const expectedChecksum = Math.abs(hash).toString(36);
-              if (checksumPart === expectedChecksum) {
-                decodedId = id;
-              } else {
-                console.error("Invalid invite checksum!");
-                navigate('/communities');
-                return;
-              }
-            }
-          } else {
-            const xor = parseInt(communityId, 36);
-            if (!isNaN(xor)) {
-              decodedId = xor ^ 98213;
-            }
-          }
-        }
-        await socialStore.joinCommunityByInvite(decodedId);
-        navigate(`/communities/${decodedId}`);
-      } catch (e) {
-        console.error(e);
-        navigate('/communities');
-      }
-    };
-    join();
-  }, [communityId, navigate]);
-
-  return (
-    <Box sx={{ p: 4, textAlign: 'center' }}>
-      <Typography>Joining community via invite link...</Typography>
-    </Box>
-  );
-};
 
 
 export default NavigationPage;

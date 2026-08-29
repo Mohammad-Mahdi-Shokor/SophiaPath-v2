@@ -89,7 +89,7 @@ const AchievementsPage = () => {
     const t = title.toLowerCase();
     if (t.includes('cybersecurity') || t.includes('network') || t.includes('security')) return 'Technology';
     if (t.includes('physics') || t.includes('science') || t.includes('chemistry')) return 'Science';
-    if (t.includes('philosophy') || t.includes('history') || t.includes('literature')) return 'Humanities';
+    if (t.includes('history') || t.includes('literature')) return 'Humanities';
     if (t.includes('marketing') || t.includes('business') || t.includes('management')) return 'Business';
     if (t.includes('design') || t.includes('graphic') || t.includes('art')) return 'Design';
     if (t.includes('mobile') || t.includes('web') || t.includes('app') || t.includes('code') || t.includes('development') || t.includes('ai') || t.includes('artificial')) return 'Technology';

@@ -46,14 +46,12 @@ import {
   DesktopWindows as LaptopIcon
 } from '@mui/icons-material';
 
-import IntroToCybersecurityIcon from '../assets/IntroToCybersecurity.png';
-import CryptographyIcon from '../assets/cryptography.png';
-import CommonVulnerabilitiesIcon from '../assets/commonVulnerabilities.png';
-import CppIcon from '../assets/cpp.png';
-import OopIcon from '../assets/oop.png';
-import DataStructuresIcon from '../assets/datast.png';
-import IntroToPhilosophyIcon from '../assets/IntroToPhilosophy.png';
-
+import IntroToCybersecurityIcon from "../assets/sections/IntroToCybersecurity.png";
+import CryptographyIcon from "../assets/sections/cryptography.png";
+import CommonVulnerabilitiesIcon from "../assets/sections/commonVulnerabilities.png";
+import CppIcon from '../assets/sections/cpp.png';
+import OopIcon from '../assets/sections/oop.png';
+import DataStructuresIcon from '../assets/sections/datast.png';
 const getSectionIcon = (title) => {
   if (!title) return null;
   const t = title.toLowerCase();
@@ -63,7 +61,6 @@ const getSectionIcon = (title) => {
   if (t.includes('c++') || t.includes('cpp')) return CppIcon;
   if (t.includes('oop') || t.includes('object')) return OopIcon;
   if (t.includes('data structures') || t.includes('structure')) return DataStructuresIcon;
-  if (t.includes('philosophy') || t.includes('logic')) return IntroToPhilosophyIcon;
   return null;
 };
 
@@ -986,25 +983,7 @@ const LearningPathPage = () => {
                   View Cheatsheet
                 </Button>
               )}
-              {(courseId?.toLowerCase()?.includes('philosophy') || course?.title?.toLowerCase()?.includes('philosophy')) && (
-                <Button
-                  variant="contained"
-                  startIcon={<SchoolIcon />}
-                  onClick={() => navigate('/philosophy-lab', { state: { course } })}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '12px',
-                    fontWeight: 800,
-                    fontSize: '0.85rem',
-                    textTransform: 'none',
-                    background: '#FF6B6B',
-                    color: '#fff',
-                    fontFamily: '"Outfit", sans-serif'
-                  }}
-                >
-                  Interactive Philosophy Lab
-                </Button>
-              )}
+
               {(courseId?.toLowerCase()?.includes('cyber') || course?.title?.toLowerCase()?.includes('cyber')) && (
                 <Button
                   variant="contained"

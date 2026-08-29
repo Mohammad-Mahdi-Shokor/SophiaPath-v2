@@ -32,17 +32,15 @@ import {
   BugReport as BugReportIcon,
   Code as CodeIcon,
   Class as ClassIcon,
-  Schema as SchemaIcon,
-  Psychology as PsychologyIcon
+  Schema as SchemaIcon
 } from '@mui/icons-material';
 
-import IntroToCybersecurityIcon from '../assets/IntroToCybersecurity.png';
-import CryptographyIcon from '../assets/cryptography.png';
-import CommonVulnerabilitiesIcon from '../assets/commonVulnerabilities.png';
-import CppIcon from '../assets/cpp.png';
-import OopIcon from '../assets/oop.png';
-import DataStructuresIcon from '../assets/datast.png';
-import IntroToPhilosophyIcon from '../assets/IntroToPhilosophy.png';
+import IntroToCybersecurityIcon from '../assets/sections/IntroToCybersecurity.png';
+import CryptographyIcon from '../assets/sections/cryptography.png';
+import CommonVulnerabilitiesIcon from '../assets/sections/commonVulnerabilities.png';
+import CppIcon from '../assets/sections/cpp.png';
+import OopIcon from '../assets/sections/oop.png';
+import DataStructuresIcon from '../assets/sections/datast.png';
 
 const getSectionIcon = (title) => {
   if (!title) return null;
@@ -53,7 +51,7 @@ const getSectionIcon = (title) => {
   if (t.includes('c++') || t.includes('cpp')) return CppIcon;
   if (t.includes('oop') || t.includes('object')) return OopIcon;
   if (t.includes('data structures') || t.includes('structure')) return DataStructuresIcon;
-  if (t.includes('philosophy') || t.includes('logic')) return IntroToPhilosophyIcon;
+
   return null;
 };
 

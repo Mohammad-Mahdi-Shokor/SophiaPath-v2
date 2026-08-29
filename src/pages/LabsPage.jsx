@@ -77,14 +77,6 @@ const labsData = [
     iconKey: "security",
     labsCount: 11,
     labs: []
-  },
-  {
-    title: "Philosophy",
-    description: "Engage with Socrates AI dialogue systems, investigate fallacy matchers, and resolve classical paradoxes.",
-    category: "Humanities",
-    iconKey: "philosophy",
-    labsCount: 7,
-    labs: []
   }
 ];
 
@@ -226,70 +218,6 @@ const SEARCHABLE_LABS = [
     labCategoryTitle: 'Cybersecurity',
     category: 'Security'
   },
-  // Philosophy
-  {
-    id: 'dialogue',
-    title: 'Socrates AI Cognitive Dialogue',
-    description: 'Engage with the Socrates AI agent to challenge cognitive biases, examine logical contradictions, and refine ethical definitions.',
-    path: '/philosophy-lab?tab=0',
-    iconName: 'brain',
-    labCategoryTitle: 'Philosophy',
-    category: 'Humanities'
-  },
-  {
-    id: 'fallacy',
-    title: 'Cognitive Fallacy Matcher',
-    description: 'Analyze real-world arguments, identify logical fallacies, and map them to their correct classical definitions.',
-    path: '/philosophy-lab?tab=1',
-    iconName: 'help',
-    labCategoryTitle: 'Philosophy',
-    category: 'Humanities'
-  },
-  {
-    id: 'theseus',
-    title: 'Identity Paradox: Ship of Theseus',
-    description: 'Experiment with identity paradoxes. Replace physical components and analyze the continuity of identity over time.',
-    path: '/philosophy-lab?tab=2',
-    iconName: 'ship',
-    labCategoryTitle: 'Philosophy',
-    category: 'Humanities'
-  },
-  {
-    id: 'trolley',
-    title: 'Trolley Dilemma Matrix',
-    description: 'Evaluate classic moral dilemmas under utilitarianism, deontology, and virtue ethics with live decision matrices.',
-    path: '/philosophy-lab?tab=3',
-    iconName: 'compass',
-    labCategoryTitle: 'Philosophy',
-    category: 'Humanities'
-  },
-  {
-    id: 'cave',
-    title: "Allegory of Forms: Plato's Cave",
-    description: 'Journey from sensory shadows to objective enlightenment. Explore classical epistemological models in an interactive format.',
-    path: '/philosophy-lab?tab=4',
-    iconName: 'brain',
-    labCategoryTitle: 'Philosophy',
-    category: 'Humanities'
-  },
-  {
-    id: 'political',
-    title: 'Geopolitical Compass',
-    description: 'Map socio-economic ideological axes and explore political theory on a formal two-dimensional grid.',
-    path: '/philosophy-lab?tab=5',
-    iconName: 'compass',
-    labCategoryTitle: 'Philosophy',
-    category: 'Humanities'
-  },
-  {
-    id: 'religions',
-    title: 'Religion Tree Map',
-    description: 'Explore the historical relationships, lineages, and core beliefs of major faith traditions in an interactive tree.',
-    path: '/philosophy-lab?tab=6',
-    iconName: 'compass',
-    labCategoryTitle: 'Philosophy',
-    category: 'Humanities'
-  }
 ];
 
 const getLabIcon = (iconName) => {
@@ -333,8 +261,6 @@ const getLabGroupIcon = (iconKey) => {
       return <CodeIcon />;
     case 'security':
       return <SecurityIcon />;
-    case 'philosophy':
-      return <PsychologyIcon />;
     default:
       return <CodeIcon />;
   }
@@ -360,13 +286,9 @@ const LabsPage = () => {
     return labParam || null;
   });
 
-  const categories = ['All', 'Computer Science', 'Security', 'Humanities'];
+  const categories = ['All', 'Computer Science', 'Security'];
 
   const handleSelectLabGroup = (name) => {
-    if (name === 'Philosophy') {
-      navigate('/philosophy-lab');
-      return;
-    }
     if (name === 'Cybersecurity') {
       navigate('/cyber-lab');
       return;

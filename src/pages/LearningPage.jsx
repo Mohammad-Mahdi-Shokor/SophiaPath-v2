@@ -38,15 +38,11 @@ import './LearningPage.css';
 
 import computerScienceIcon from '../assets/courses/computerScience.png';
 import cybersecurityIcon from '../assets/courses/cybersecurity.png';
-import philosophyCourseIcon from '../assets/courses/philosophy.png';
 
 const getCourseImage = (title) => {
   const t = (title || '').toLowerCase();
   if (t.includes('cyber') || t.includes('security')) {
     return cybersecurityIcon;
-  }
-  if (t.includes('philosoph')) {
-    return philosophyCourseIcon;
   }
   if (t.includes('computer') || t.includes('science') || t.includes('c++') || t.includes('programming') || t.includes('oop')) {
     return computerScienceIcon;
@@ -65,9 +61,7 @@ const getCourseDomain = (title) => {
   if (t.includes('physics') || t.includes('science') || t.includes('math') || t.includes('chem')) {
     return 'Science';
   }
-  if (t.includes('philosophy') || t.includes('ethics') || t.includes('history') || t.includes('art') || t.includes('humanities')) {
-    return 'Humanities';
-  }
+
   if (t.includes('design') || t.includes('graphic') || t.includes('ui') || t.includes('ux') || t.includes('creative')) {
     return 'Design';
   }
@@ -304,8 +298,7 @@ const LearningPage = () => {
         return <PhoneAndroidIcon />;
       case 'physics':
         return <ScienceIcon />;
-      case 'philosophy':
-        return <PsychologyIcon />;
+
       case 'artificial intelligence':
         return <SmartToyIcon />;
       case 'web development':
@@ -413,8 +406,6 @@ const LearningPage = () => {
               const progress = totalLessons > 0 ? (lessonsFinished / totalLessons) * 100 : 0;
 
               const isCybersecurity = course.title.toLowerCase().includes('cybersecurity');
-              const isPhilosophy = course.title.toLowerCase() === 'philosophy';
-
               return (
                 <Paper
                   key={course.title}
@@ -472,8 +463,7 @@ const LearningPage = () => {
                     src={getCourseImage(course.title)}
                     alt=""
                     className={`learning-course-card-bg ${
-                      (course.title || '').toLowerCase().includes('science') || (course.title || '').toLowerCase().includes('computer') || (course.title || '').toLowerCase().includes('c++') ? 'cs-icon-bg' :
-                      (course.title || '').toLowerCase().includes('philosoph') ? 'philosophy-icon-bg' : ''
+                      (course.title || '').toLowerCase().includes('science') || (course.title || '').toLowerCase().includes('computer') || (course.title || '').toLowerCase().includes('c++') ? 'cs-icon-bg' : ''
                     }`}
                   />
 
