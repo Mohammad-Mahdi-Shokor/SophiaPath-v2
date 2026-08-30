@@ -103,7 +103,7 @@ const CourseSectionsPage = () => {
               key={section.id}
               className="learning-course-card glass-panel"
               elevation={0}
-              onClick={() => navigate(`/learning-path/${activeCourseId}`, { state: { initialSectionIndex: index } })}
+              onClick={() => navigate(`/learning-path/${activeCourseId}`, { state: { initialSectionId: section.id, initialSectionIndex: index } })}
               style={{ position: 'relative' }}
             >
               <img

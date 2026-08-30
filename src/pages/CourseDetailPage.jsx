@@ -95,31 +95,36 @@ const CourseDetailPage = () => {
             about: bc.about || '',
             imageUrl: bc.imageUrl || '',
             comingsoon: bc.comingsoon || false,
-            sections: (bc.sections || []).map(sec => {
-              const uniqueLessons = [];
-              const seenTitles = new Set();
-              (sec.lessons || []).forEach(les => {
-                const norm = (les.title || '').trim().toLowerCase();
-                if (norm && !seenTitles.has(norm)) {
-                  seenTitles.add(norm);
-                  uniqueLessons.push({
-                    id: les.id,
-                    category: les.category || 'learning',
-                    chapterName: les.chapterName || '',
-                    title: les.title || 'Untitled Lesson',
-                    orderIndex: les.orderIndex || 0,
-                    pages: les.pages || []
+            sections: (bc.sections || [])
+              .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+              .map(sec => {
+                const uniqueLessons = [];
+                const seenKeys = new Set();
+                (sec.lessons || [])
+                  .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                  .forEach(les => {
+                    const norm = (les.title || '').trim().toLowerCase();
+                    const key = les.id ? String(les.id) : `${norm}_${les.orderIndex || 0}`;
+                    if (norm && !seenKeys.has(key)) {
+                      seenKeys.add(key);
+                      uniqueLessons.push({
+                        id: les.id,
+                        category: les.category || 'learning',
+                        chapterName: les.chapterName || '',
+                        title: les.title || 'Untitled Lesson',
+                        orderIndex: les.orderIndex || 0,
+                        pages: les.pages || []
+                      });
+                    }
                   });
-                }
-              });
 
-              return {
-                id: sec.id,
-                title: sec.title,
-                description: sec.description || '',
-                lessons: uniqueLessons
-              };
-            })
+                return {
+                  id: sec.id,
+                  title: sec.title,
+                  description: sec.description || '',
+                  lessons: uniqueLessons
+                };
+              })
           }));
 
           const matched = mappedList.find(c =>
@@ -211,9 +216,11 @@ const CourseDetailPage = () => {
     if (!isRegistered) {
       await registerCourse(course.title);
     }
+    const targetSec = course?.sections?.[sectionIndex];
     navigate(`/learning-path/${course.id}`, { 
       state: { 
         course,
+        initialSectionId: targetSec?.id,
         initialSectionIndex: sectionIndex,
         targetLessonId: lessonObj.id
       } 

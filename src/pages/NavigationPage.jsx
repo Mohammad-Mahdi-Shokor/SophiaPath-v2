@@ -1164,7 +1164,6 @@ const NavigationPage = () => {
     items.push({ label: 'Courses', path: '/courses', icon: <SchoolIcon /> });
     items.push({ label: 'Course Sections', path: '/sections', icon: <MenuBookIcon /> });
     items.push({ label: 'Labs', path: '/labs', icon: <ScienceIcon /> });
-    items.push({ label: 'Achievements', path: '/achievements', icon: <EmojiEventsIcon /> });
 
     items.push({ label: 'Profile', path: '/profile', icon: <PersonIcon /> });
     items.push({ label: 'Settings', path: '/settings', icon: <SettingsIcon /> });
@@ -1670,7 +1669,9 @@ const NavigationPage = () => {
       location.pathname === '/courses' ||
       location.pathname === '/sections' ||
       location.pathname.startsWith('/course/') ||
-
+      location.pathname.startsWith('/learning-path') ||
+      location.pathname.startsWith('/learning/') ||
+      location.pathname.startsWith('/quiz/') ||
       location.pathname === '/labs' ||
       location.pathname === '/cyber-lab' ||
       location.pathname === '/settings';
