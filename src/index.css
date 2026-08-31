@@ -843,3 +843,18 @@ button,
   opacity: 1;
 }
 
+/* Monaco C++ Debugger Line Highlight */
+.monaco-executing-line-bg {
+  background: rgba(61, 92, 255, 0.22) !important;
+  border-left: 3px solid #3D5CFF !important;
+}
+
+.monaco-executing-line-glyph {
+  background: #38BDF8 !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  margin-left: 5px !important;
+  margin-top: 5px !important;
+}
+

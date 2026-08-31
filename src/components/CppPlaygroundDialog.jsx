@@ -20,10 +20,15 @@ import {
   Terminal as TerminalIcon,
   Refresh as ResetIcon,
   GetApp as DownloadIcon,
-  FileUpload as UploadIcon
+  FileUpload as UploadIcon,
+  Memory as MemoryIcon,
+  ViewSidebar as SplitIcon,
+  FastForward as StepIcon
 } from '@mui/icons-material';
 import Editor from '@monaco-editor/react';
 import html2canvas from 'html2canvas';
+import { traceCppExecution } from './cppMemoryTracer';
+import { CppMemoryInspectorView } from './CppMemoryInspectorView';
 
 const validateCppSyntax = (cppCode) => {
   let line = 1;
@@ -759,6 +764,10 @@ export const translateCppToJsAsync = (cppCode) => {
     .replace(/\/\/.*$/gm, "")
     .replace(/\/\*[\s\S]*?\*\//g, "");
 
+  // Strip #include and using namespace std;
+  code = code.replace(/#include\s*<[^>]+>/g, "");
+  code = code.replace(/using\s+namespace\s+std\s*;/g, "");
+
   // Replace string and character literals with placeholders to make translation safe
   const stringLiterals = [];
   code = code.replace(/"(\\.|[^"\\])*"/g, (match) => {
@@ -770,14 +779,105 @@ export const translateCppToJsAsync = (cppCode) => {
     return `__STR_LITERAL_${stringLiterals.length - 1}__`;
   });
 
-  // 2. Find int main()
-  const mainBodyMatch = /int\s+main\s*\(\s*\)\s*\{([\s\S]*)\}/.exec(code);
-  let body = mainBodyMatch[1].trim();
+  // Remove forward declarations e.g. int test(int a);
+  code = code.replace(/^\s*(?:void|int|double|float|bool|string|char)\s+[a-zA-Z_]\w*\s*\([^)]*\)\s*;/gm, "");
 
-  // 3. Remove standard return statement
-  body = body.replace(/\breturn\s+0\s*;/g, "");
+  // Helper to translate statements inside function / main bodies
+  const translateBlock = (blockCode) => {
+    let body = blockCode;
+    body = body.replace(/std::cout/g, "cout").replace(/std::cin/g, "cin").replace(/std::endl/g, "endl");
 
-  // 4. Set up helper variables and context in the generated JS
+    // Replace cin >> ...
+    const cinRegex = /cin\s*(>>\s*[a-zA-Z_][a-zA-Z0-9_]*\s*)+;/g;
+    body = body.replace(cinRegex, (match) => {
+      const vars = match.split('>>').slice(1).map(v => v.replace(/;$/, '').trim());
+      return vars.map(v => `${v} = await readInput();`).join(' ');
+    });
+
+    // Replace cout << ...
+    const coutRegex = /cout\s*(<<\s*[^;]+)+;/g;
+    body = body.replace(coutRegex, (match) => {
+      const parts = match.split('<<').slice(1).map(p => p.replace(/;$/, '').trim());
+      const pushes = parts.map(part => {
+        if (part === 'endl' || part === '"\\n"' || part === "'\\n'") {
+          return `onStdout("\\n");`;
+        }
+        return `onStdout(${part});`;
+      });
+      return pushes.join(' ');
+    });
+
+    // Replace variable declarations: int x = 10; -> let x = 10;
+    const typeDeclRegex = /\b(int|double|float|string|bool|char|auto)\s+(\*?\s*[a-zA-Z_]\w*)/g;
+    body = body.replace(typeDeclRegex, (match, type, varName) => {
+      return `let ${varName.replace(/^\*/, '').trim()}`;
+    });
+
+    return body;
+  };
+
+  // Find all functions: [returnType, name, params, body]
+  let functionsJs = '';
+  let mainBody = '';
+
+  const funcHeaderRegex = /(void|int|double|float|bool|string|char)\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*\{/g;
+  let match;
+
+  const functions = [];
+  while ((match = funcHeaderRegex.exec(code)) !== null) {
+    const returnType = match[1];
+    const funcName = match[2];
+    const rawParams = match[3];
+    const startIndex = match.index;
+    const bodyStartIndex = startIndex + match[0].length;
+
+    // Find matching closing brace
+    let depth = 1;
+    let endIndex = bodyStartIndex;
+    while (depth > 0 && endIndex < code.length) {
+      if (code[endIndex] === '{') depth++;
+      else if (code[endIndex] === '}') depth--;
+      endIndex++;
+    }
+
+    const funcBody = code.slice(bodyStartIndex, endIndex - 1);
+    functions.push({
+      returnType,
+      name: funcName,
+      rawParams,
+      body: funcBody
+    });
+  }
+
+  functions.forEach(fn => {
+    if (fn.name === 'main') {
+      let mBody = fn.body.replace(/\breturn\s+0\s*;/g, "");
+      mainBody = translateBlock(mBody);
+    } else {
+      const params = fn.rawParams
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean)
+        .map(p => p.replace(/^(int|double|float|bool|string|char)\s+&?/, '').trim())
+        .join(', ');
+
+      const translatedFuncBody = translateBlock(fn.body);
+      functionsJs += `
+        function ${fn.name}(${params}) {
+          ${translatedFuncBody}
+        }
+      `;
+    }
+  });
+
+  // Fallback if main wasn't detected by header regex
+  if (!mainBody && code.includes('main')) {
+    const mainBodyMatch = /int\s+main\s*\(\s*\)\s*\{([\s\S]*)\}/.exec(code);
+    if (mainBodyMatch) {
+      mainBody = translateBlock(mainBodyMatch[1].replace(/\breturn\s+0\s*;/g, ""));
+    }
+  }
+
   let js = `
     const readInput = async () => {
       const token = await onReadInput();
@@ -787,40 +887,9 @@ export const translateCppToJsAsync = (cppCode) => {
       }
       return token;
     };
+    ${functionsJs}
+    ${mainBody}
   `;
-
-  // 5. Clean namespace prefixes
-  body = body.replace(/std::cout/g, "cout").replace(/std::cin/g, "cin").replace(/std::endl/g, "endl");
-
-  // 6. Translate C++ variable declarations
-  const types = ['int', 'double', 'float', 'string', 'bool', 'char', 'auto'];
-  types.forEach(type => {
-    const regex = new RegExp(`\\b${type}\\b`, 'g');
-    body = body.replace(regex, 'let');
-  });
-
-  // 7. Translate cin >> var1 >> var2;
-  const cinRegex = /cin\s*(>>\s*[a-zA-Z_][a-zA-Z0-9_]*\s*)+;/g;
-  body = body.replace(cinRegex, (match) => {
-    const vars = match.split('>>').slice(1).map(v => v.replace(/;$/, '').trim());
-    return vars.map(v => `${v} = await readInput();`).join(' ');
-  });
-
-  // 8. Translate cout << var1 << "string" << endl;
-  const coutRegex = /cout\s*(<<\s*[^;]+)+;/g;
-  body = body.replace(coutRegex, (match) => {
-    const parts = match.split('<<').slice(1).map(p => p.replace(/;$/, '').trim());
-    const pushes = parts.map(part => {
-      if (part === 'endl' || part === '"\\n"' || part === "'\\n'") {
-        return `onStdout("\\n");`;
-      }
-      return `onStdout(${part});`;
-    });
-    return pushes.join(' ');
-  });
-
-  // Append translated body
-  js += "\n" + body;
 
   // Restore string literals
   stringLiterals.forEach((str, idx) => {
@@ -1366,6 +1435,161 @@ export const CppPlaygroundDialog = ({ open, onClose, initialCode }) => {
   const [currentInputVal, setCurrentInputVal] = useState('');
   const inputResolverRef = useRef(null);
 
+  // Memory Inspector & Line-by-Line Stepper States
+  const [viewMode, setViewMode] = useState('terminal'); // 'terminal' | 'memory' | 'split'
+  const [executionSteps, setExecutionSteps] = useState([]);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+
+  const monacoEditorRef = useRef(null);
+  const monacoInstanceRef = useRef(null);
+  const decorationsRef = useRef([]);
+  const autoPlayIntervalRef = useRef(null);
+
+  const handleEditorMount = (editor, monaco) => {
+    monacoEditorRef.current = editor;
+    monacoInstanceRef.current = monaco;
+  };
+
+  const updateEditorLineHighlight = (lineNum) => {
+    if (!monacoEditorRef.current || !monacoInstanceRef.current) return;
+    const monaco = monacoInstanceRef.current;
+    if (!lineNum || lineNum <= 0) {
+      decorationsRef.current = monacoEditorRef.current.deltaDecorations(decorationsRef.current, []);
+      return;
+    }
+
+    decorationsRef.current = monacoEditorRef.current.deltaDecorations(decorationsRef.current, [
+      {
+        range: new monaco.Range(lineNum, 1, lineNum, 1),
+        options: {
+          isWholeLine: true,
+          className: 'monaco-executing-line-bg',
+          glyphMarginClassName: 'monaco-executing-line-glyph',
+          overviewRuler: {
+            color: '#3DDC97',
+            position: monaco.editor.OverviewRulerLane.Full
+          }
+        }
+      }
+    ]);
+    monacoEditorRef.current.revealLineInCenter(lineNum);
+  };
+
+  const handleStartStepping = () => {
+    try {
+      const steps = traceCppExecution(code);
+      if (!steps || steps.length === 0) {
+        alert("No executable statements found inside int main().");
+        return;
+      }
+      setExecutionSteps(steps);
+      setCurrentStepIndex(0);
+      setViewMode('memory');
+      updateEditorLineHighlight(steps[0].lineNumber);
+      if (steps[0].stdout !== undefined) {
+        setTerminalOutput(steps[0].stdout || 'Terminal ready.');
+      }
+    } catch (err) {
+      setTerminalOutput(prev => prev + `\n❌ SYNTAX / TRACING ERROR: ${err.message}\n`);
+    }
+  };
+
+  const handleStepNext = () => {
+    if (executionSteps.length === 0) {
+      handleStartStepping();
+      return;
+    }
+    if (currentStepIndex < executionSteps.length - 1) {
+      const nextIdx = currentStepIndex + 1;
+      setCurrentStepIndex(nextIdx);
+      const step = executionSteps[nextIdx];
+      updateEditorLineHighlight(step.lineNumber);
+      if (step.stdout !== undefined) {
+        setTerminalOutput(step.stdout || 'Terminal ready.');
+      }
+    } else {
+      setIsAutoPlaying(false);
+    }
+  };
+
+  const handleStepPrev = () => {
+    if (currentStepIndex > 0) {
+      const prevIdx = currentStepIndex - 1;
+      setCurrentStepIndex(prevIdx);
+      const step = executionSteps[prevIdx];
+      updateEditorLineHighlight(step.lineNumber);
+      if (step.stdout !== undefined) {
+        setTerminalOutput(step.stdout || 'Terminal ready.');
+      }
+    }
+  };
+
+  const handleRunAllSteps = () => {
+    try {
+      const steps = traceCppExecution(code);
+      if (steps.length === 0) return;
+      setExecutionSteps(steps);
+      const lastIdx = steps.length - 1;
+      setCurrentStepIndex(lastIdx);
+      updateEditorLineHighlight(steps[lastIdx].lineNumber);
+      if (steps[lastIdx].stdout !== undefined) {
+        setTerminalOutput(steps[lastIdx].stdout || 'Program executed successfully.');
+      }
+      setIsAutoPlaying(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleAutoPlay = () => {
+    if (isAutoPlaying) {
+      setIsAutoPlaying(false);
+    } else {
+      if (executionSteps.length === 0 || currentStepIndex >= executionSteps.length - 1) {
+        try {
+          const steps = traceCppExecution(code);
+          if (steps.length === 0) return;
+          setExecutionSteps(steps);
+          setCurrentStepIndex(0);
+          setViewMode('memory');
+          updateEditorLineHighlight(steps[0].lineNumber);
+        } catch (err) {
+          return;
+        }
+      }
+      setIsAutoPlaying(true);
+    }
+  };
+
+  useEffect(() => {
+    if (isAutoPlaying) {
+      autoPlayIntervalRef.current = setInterval(() => {
+        setCurrentStepIndex((prev) => {
+          if (prev < executionSteps.length - 1) {
+            const nextIdx = prev + 1;
+            const step = executionSteps[nextIdx];
+            updateEditorLineHighlight(step?.lineNumber);
+            if (step?.stdout !== undefined) {
+              setTerminalOutput(step.stdout || 'Terminal ready.');
+            }
+            return nextIdx;
+          } else {
+            setIsAutoPlaying(false);
+            return prev;
+          }
+        });
+      }, 750);
+    } else {
+      if (autoPlayIntervalRef.current) {
+        clearInterval(autoPlayIntervalRef.current);
+      }
+    }
+    return () => {
+      if (autoPlayIntervalRef.current) clearInterval(autoPlayIntervalRef.current);
+    };
+  }, [isAutoPlaying, executionSteps]);
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (initialCode) {
@@ -1376,6 +1600,10 @@ export const CppPlaygroundDialog = ({ open, onClose, initialCode }) => {
     setTerminalOutput('Terminal ready. Click "RUN CODE" to execute.');
     setActiveTab('compiler');
     setPseudocode('');
+    setExecutionSteps([]);
+    setCurrentStepIndex(0);
+    setIsAutoPlaying(false);
+    updateEditorLineHighlight(0);
   }, [initialCode, open]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -1386,6 +1614,17 @@ export const CppPlaygroundDialog = ({ open, onClose, initialCode }) => {
     setCurrentInputVal('');
 
     try {
+      try {
+        const steps = traceCppExecution(code);
+        setExecutionSteps(steps);
+        if (steps.length > 0) {
+          setCurrentStepIndex(steps.length - 1);
+          updateEditorLineHighlight(steps[steps.length - 1].lineNumber);
+        }
+      } catch {
+        // Fallback gracefully
+      }
+
       const onStdout = (text) => {
         setTerminalOutput(prev => prev + text);
       };
@@ -2064,6 +2303,7 @@ export const CppPlaygroundDialog = ({ open, onClose, initialCode }) => {
                   language="cpp"
                   value={code}
                   onChange={(val) => setCode(val || '')}
+                  onMount={handleEditorMount}
                   theme={theme.palette.mode === 'dark' ? 'vs-dark' : 'light'}
                   options={{
                     fontSize: 13,
@@ -2071,88 +2311,274 @@ export const CppPlaygroundDialog = ({ open, onClose, initialCode }) => {
                     automaticLayout: true,
                     scrollBeyondLastLine: false,
                     padding: { top: 12, bottom: 12 },
-                    lineNumbersMinChars: 3
+                    lineNumbersMinChars: 3,
+                    glyphMargin: true
                   }}
                 />
               </Box>
             </Box>
 
-            {/* Console / Terminal Column */}
-            <Box style={{ flex: 0.8, display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0, height: '100%' }}>
-              {/* Output terminal header with Run button */}
-              <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '36px' }}>
-                <Typography variant="subtitle2" style={{ fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Interactive Terminal Output
-                </Typography>
-                <Button
-                  variant="contained"
-                  disabled={isRunning}
-                  onClick={handleRun}
-                  startIcon={<PlayIcon />}
-                  size="small"
-                  style={{
-                    padding: '6px 16px',
-                    borderRadius: '8px',
-                    fontWeight: 800,
-                    textTransform: 'none',
-                    background: 'var(--hero-gradient)',
-                    color: '#fff',
-                    fontSize: '0.78rem',
-                    boxShadow: 'none'
-                  }}
-                >
-                  {isRunning ? "RUNNING..." : "RUN CODE"}
-                </Button>
+            {/* Console / Terminal & Memory Visualizer Column */}
+            <Box style={{ flex: 1.1, display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0, height: '100%' }}>
+              {/* Output terminal / Memory header with Run & Step buttons */}
+              <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '36px', flexWrap: 'wrap', gap: '8px' }}>
+                {/* View Mode Switcher */}
+                <Box style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.25)', padding: '3px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <button
+                    onClick={() => setViewMode('terminal')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: viewMode === 'terminal' ? 'var(--primary-main)' : 'transparent',
+                      color: viewMode === 'terminal' ? '#fff' : 'var(--text-secondary)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <TerminalIcon style={{ fontSize: '14px' }} /> Terminal
+                  </button>
+                  <button
+                    onClick={() => {
+                      setViewMode('memory');
+                      if (executionSteps.length === 0) handleStartStepping();
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: viewMode === 'memory' ? 'var(--primary-main)' : 'transparent',
+                      color: viewMode === 'memory' ? '#fff' : 'var(--text-secondary)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <MemoryIcon style={{ fontSize: '14px' }} /> Memory
+                  </button>
+                  <button
+                    onClick={() => {
+                      setViewMode('split');
+                      if (executionSteps.length === 0) handleStartStepping();
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: viewMode === 'split' ? 'var(--primary-main)' : 'transparent',
+                      color: viewMode === 'split' ? '#fff' : 'var(--text-secondary)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <SplitIcon style={{ fontSize: '14px' }} /> Split
+                  </button>
+                </Box>
+
+                <Box style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleStartStepping}
+                    startIcon={<StepIcon />}
+                    size="small"
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      textTransform: 'none',
+                      borderColor: '#38BDF8',
+                      color: '#38BDF8',
+                      fontSize: '0.75rem'
+                    }}
+                  >
+                    STEP LINE
+                  </Button>
+
+                  <Button
+                    variant="contained"
+                    disabled={isRunning}
+                    onClick={handleRun}
+                    startIcon={<PlayIcon />}
+                    size="small"
+                    style={{
+                      padding: '5px 14px',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      textTransform: 'none',
+                      background: 'var(--hero-gradient)',
+                      color: '#fff',
+                      fontSize: '0.75rem',
+                      boxShadow: 'none'
+                    }}
+                  >
+                    {isRunning ? "RUNNING..." : "RUN ALL"}
+                  </Button>
+                </Box>
               </Box>
               
-              <Paper
-                elevation={0}
-                style={{
-                  flexGrow: 1,
-                  padding: '16px',
-                  backgroundColor: '#0c0d12',
-                  borderRadius: '16px',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  fontFamily: '"Roboto Mono", monospace',
-                  fontSize: '0.82rem',
-                  color: '#3DDC97',
-                  whiteSpace: 'pre-wrap',
-                  overflowY: 'auto',
-                  height: '100%',
-                  minHeight: '350px',
-                  
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'flex-start'
-                }}
-              >
-                <div style={{ flexGrow: 1, overflowY: 'auto' }}>
-                  {terminalOutput}
-                  {isWaitingForInput && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                      <span style={{ color: '#FF9F43', fontWeight: 800 }}>{`> `}</span>
-                      <input
-                        type="text"
-                        value={currentInputVal}
-                        onChange={(e) => setCurrentInputVal(e.target.value)}
-                        onKeyDown={handleInputSubmit}
-                        autoFocus
-                        placeholder="Type input and press Enter..."
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          outline: 'none',
-                          color: '#3DDC97',
-                          fontFamily: '"Roboto Mono", monospace',
-                          fontSize: '0.82rem',
-                          flexGrow: 1,
-                          caretColor: '#3DDC97'
-                        }}
-                      />
+              {/* Content Panel based on viewMode */}
+              {viewMode === 'memory' ? (
+                <Paper
+                  elevation={0}
+                  style={{
+                    flexGrow: 1,
+                    padding: '12px',
+                    backgroundColor: '#0c0d12',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    overflowY: 'auto',
+                    height: '100%',
+                    minHeight: '350px'
+                  }}
+                >
+                  <CppMemoryInspectorView
+                    currentStep={currentStepIndex}
+                    totalSteps={executionSteps.length || 1}
+                    stepData={executionSteps[currentStepIndex]}
+                    onStepNext={handleStepNext}
+                    onStepPrev={handleStepPrev}
+                    onRunAll={handleRunAllSteps}
+                    onReset={handleStartStepping}
+                    isAutoPlaying={isAutoPlaying}
+                    onToggleAutoPlay={handleToggleAutoPlay}
+                  />
+                </Paper>
+              ) : viewMode === 'split' ? (
+                <Box style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minHeight: 0 }}>
+                  {/* Memory View (Top) */}
+                  <Paper
+                    elevation={0}
+                    style={{
+                      flex: 1.2,
+                      padding: '12px',
+                      backgroundColor: '#0c0d12',
+                      borderRadius: '14px',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      overflowY: 'auto',
+                      minHeight: 0
+                    }}
+                  >
+                    <CppMemoryInspectorView
+                      currentStep={currentStepIndex}
+                      totalSteps={executionSteps.length || 1}
+                      stepData={executionSteps[currentStepIndex]}
+                      onStepNext={handleStepNext}
+                      onStepPrev={handleStepPrev}
+                      onRunAll={handleRunAllSteps}
+                      onReset={handleStartStepping}
+                      isAutoPlaying={isAutoPlaying}
+                      onToggleAutoPlay={handleToggleAutoPlay}
+                    />
+                  </Paper>
+
+                  {/* Terminal View (Bottom) */}
+                  <Paper
+                    elevation={0}
+                    style={{
+                      flex: 0.8,
+                      padding: '12px 14px',
+                      backgroundColor: '#0c0d12',
+                      borderRadius: '14px',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      fontFamily: '"Roboto Mono", monospace',
+                      fontSize: '0.78rem',
+                      color: '#3DDC97',
+                      whiteSpace: 'pre-wrap',
+                      overflowY: 'auto',
+                      minHeight: 0
+                    }}
+                  >
+                    <div style={{ flexGrow: 1, overflowY: 'auto' }}>
+                      {terminalOutput}
+                      {isWaitingForInput && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                          <span style={{ color: '#FF9F43', fontWeight: 800 }}>{`> `}</span>
+                          <input
+                            type="text"
+                            value={currentInputVal}
+                            onChange={(e) => setCurrentInputVal(e.target.value)}
+                            onKeyDown={handleInputSubmit}
+                            autoFocus
+                            placeholder="Type input..."
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              outline: 'none',
+                              color: '#3DDC97',
+                              fontFamily: '"Roboto Mono", monospace',
+                              fontSize: '0.78rem',
+                              flexGrow: 1,
+                              caretColor: '#3DDC97'
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </Paper>
+                  </Paper>
+                </Box>
+              ) : (
+                <Paper
+                  elevation={0}
+                  style={{
+                    flexGrow: 1,
+                    padding: '16px',
+                    backgroundColor: '#0c0d12',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    fontFamily: '"Roboto Mono", monospace',
+                    fontSize: '0.82rem',
+                    color: '#3DDC97',
+                    whiteSpace: 'pre-wrap',
+                    overflowY: 'auto',
+                    height: '100%',
+                    minHeight: '350px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'flex-start'
+                  }}
+                >
+                  <div style={{ flexGrow: 1, overflowY: 'auto' }}>
+                    {terminalOutput}
+                    {isWaitingForInput && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                        <span style={{ color: '#FF9F43', fontWeight: 800 }}>{`> `}</span>
+                        <input
+                          type="text"
+                          value={currentInputVal}
+                          onChange={(e) => setCurrentInputVal(e.target.value)}
+                          onKeyDown={handleInputSubmit}
+                          autoFocus
+                          placeholder="Type input and press Enter..."
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            outline: 'none',
+                            color: '#3DDC97',
+                            fontFamily: '"Roboto Mono", monospace',
+                            fontSize: '0.82rem',
+                            flexGrow: 1,
+                            caretColor: '#3DDC97'
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </Paper>
+              )}
             </Box>
           </Box>
         ) : (
