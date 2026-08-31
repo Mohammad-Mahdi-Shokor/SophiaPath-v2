@@ -28,6 +28,42 @@
   gap: 0.75rem;
 }
 
+.learning-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.learning-download-cheatsheet-btn {
+  border-radius: 10px !important;
+  font-weight: 800 !important;
+  font-size: 0.85rem !important;
+  text-transform: none !important;
+  background: var(--hero-gradient) !important;
+  color: #fff !important;
+  font-family: 'Outfit', sans-serif !important;
+  padding: 6px 16px !important;
+  box-shadow: 0 2px 8px rgba(61, 92, 255, 0.25) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  white-space: nowrap !important;
+  line-height: 1.5 !important;
+}
+
+.learning-download-cheatsheet-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(61, 92, 255, 0.35) !important;
+}
+
+.learning-close-btn {
+  color: var(--text-secondary) !important;
+  transition: color 0.2s ease, transform 0.2s ease !important;
+}
+
+.learning-close-btn:hover {
+  color: var(--text-primary) !important;
+  transform: scale(1.08);
+}
+
 .learning-lesson-title {
   font-weight: 700;
 }
@@ -431,6 +467,28 @@
 
 
 @media (max-width: 600px) {
+  .learning-header-content {
+    padding: 0.5rem 0.75rem;
+  }
+  .learning-header-left {
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .learning-lesson-title {
+    font-size: 1rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+  .learning-header-right {
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  .learning-download-cheatsheet-btn {
+    padding: 5px 12px !important;
+    font-size: 0.78rem !important;
+  }
   .learning-slide-paper {
     padding: 1.5rem;
     border-radius: 24px;

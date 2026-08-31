@@ -3345,30 +3345,28 @@ const LearningContentPage = () => {
               </Typography>
             </div>
           </div>
-          {lesson.title.toLowerCase().includes('cheatsheet') && (
-            <Button
-              variant="contained"
-              onClick={handleDownloadCheatsheet}
-              startIcon={<DownloadIcon />}
-              style={{
-                marginRight: '12px',
-                borderRadius: '10px',
-                fontWeight: 800,
-                fontSize: '0.85rem',
-                textTransform: 'none',
-                background: 'var(--hero-gradient)',
-                color: '#fff',
-                fontFamily: '"Outfit", sans-serif'}}
+          <div className="learning-header-right">
+            {lesson.title.toLowerCase().includes('cheatsheet') && (
+              <Button
+                variant="contained"
+                onClick={handleDownloadCheatsheet}
+                startIcon={<DownloadIcon />}
+                className="learning-download-cheatsheet-btn"
+              >
+                Download
+              </Button>
+            )}
+            <IconButton 
+              onClick={() => {
+                const originalCourseId = location.state?.course?.id || courseId;
+                navigate(`/learning-path/${originalCourseId}`, { state: location.state });
+              }} 
+              className="learning-close-btn"
+              aria-label="Close"
             >
-              Download
-            </Button>
-          )}
-          <IconButton onClick={() => {
-            const originalCourseId = location.state?.course?.id || courseId;
-            navigate(`/learning-path/${originalCourseId}`, { state: location.state });
-          }} className="learning-close-btn">
-            <CloseIcon />
-          </IconButton>
+              <CloseIcon />
+            </IconButton>
+          </div>
         </Container>
         <LinearProgress
           variant="determinate"
