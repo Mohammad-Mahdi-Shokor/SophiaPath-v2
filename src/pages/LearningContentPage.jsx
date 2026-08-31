@@ -1684,7 +1684,19 @@ const LearningContentPage = () => {
   const [lesson, setLesson] = useState(null);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportProgressText, setExportProgressText] = useState('');
   const [portalElement, setPortalElement] = useState(null);
+
+  // Preload jsPDF in background for instant PDF downloads
+  useEffect(() => {
+    if (!window.jspdf && !document.getElementById('jspdf-cdn-script')) {
+      const script = document.createElement('script');
+      script.id = 'jspdf-cdn-script';
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
 
   useEffect(() => {
     const target = document.querySelector('.nav-content');
@@ -1851,27 +1863,34 @@ const LearningContentPage = () => {
   const pages = lesson?.pages || [];
 
   const handleDownloadCheatsheet = () => {
-    if (!lesson) return;
+    if (!lesson || !hasPages) return;
 
     const loadJsPDF = () => {
       return new Promise((resolve, reject) => {
-        if (window.jspdf) {
+        if (window.jspdf && window.jspdf.jsPDF) {
           resolve(window.jspdf.jsPDF);
           return;
         }
+        const existingScript = document.getElementById('jspdf-cdn-script');
+        if (existingScript) {
+          if (window.jspdf && window.jspdf.jsPDF) {
+            resolve(window.jspdf.jsPDF);
+            return;
+          }
+          existingScript.addEventListener('load', () => resolve(window.jspdf.jsPDF));
+          return;
+        }
         const script = document.createElement('script');
+        script.id = 'jspdf-cdn-script';
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        script.onload = () => {
-          resolve(window.jspdf.jsPDF);
-        };
-        script.onerror = () => {
-          reject(new Error("Failed to load jsPDF"));
-        };
+        script.onload = () => resolve(window.jspdf.jsPDF);
+        script.onerror = () => reject(new Error("Failed to load jsPDF"));
         document.head.appendChild(script);
       });
     };
 
     setIsExportingPdf(true);
+    setExportProgressText('Preparing pages...');
 
     setTimeout(async () => {
       try {
@@ -1881,143 +1900,107 @@ const LearningContentPage = () => {
           throw new Error("Export container not found");
         }
 
-        const originalSlides = exportContainer.querySelectorAll('.cheatsheet-pdf-export-slide');
-        if (originalSlides.length === 0) {
+        const slides = exportContainer.querySelectorAll('.cheatsheet-pdf-export-slide');
+        if (slides.length === 0) {
           throw new Error("No slides found for export");
         }
 
-        // Create a temporary hidden container to render our split sub-slides
-        const tempContainer = document.createElement('div');
-        tempContainer.id = 'cheatsheet-pdf-temp-container';
-        tempContainer.style.position = 'fixed';
-        tempContainer.style.left = '-9999px';
-        tempContainer.style.top = '-9999px';
-        tempContainer.style.width = '800px';
-        tempContainer.style.boxSizing = 'border-box';
-        tempContainer.style.backgroundColor = 'var(--background-default)';
-        tempContainer.style.color = 'var(--text-primary)';
-        tempContainer.style.padding = '40px';
-        document.body.appendChild(tempContainer);
-
-        const themeBg = getComputedStyle(document.documentElement).getPropertyValue('--background-default').trim() || '#1E1E38';
-        const maxPageHeight = 850; // Maximum allowed block height per page in sub-slide
-
-        // Distribute blocks into sub-slides
-        for (let i = 0; i < originalSlides.length; i++) {
-          const origSlide = originalSlides[i];
-          const titleEl = origSlide.querySelector('h2');
-          const titleText = titleEl ? titleEl.innerText : `Section ${i + 1}`;
-          const blocks = origSlide.querySelectorAll('.cheatsheet-pdf-block');
-
-          let currentSubSlide = null;
-          let currentSubSlideBlocksList = null;
-          let currentHeight = 0;
-          let subSlideIndex = 1;
-
-          const createNewSubSlide = () => {
-            currentSubSlide = document.createElement('div');
-            currentSubSlide.className = 'cheatsheet-pdf-export-slide';
-            currentSubSlide.style.backgroundColor = 'var(--background-paper)';
-            currentSubSlide.style.border = '1px solid var(--divider)';
-            currentSubSlide.style.borderRadius = '16px';
-            currentSubSlide.style.padding = '40px';
-            currentSubSlide.style.marginBottom = '30px';
-            currentSubSlide.style.boxSizing = 'border-box';
-            currentSubSlide.style.width = '720px'; // 800px - padding
-
-            const subTitleEl = document.createElement('h2');
-            subTitleEl.style.fontFamily = 'Outfit, sans-serif';
-            subTitleEl.style.fontSize = '1.8rem';
-            subTitleEl.style.fontWeight = '700';
-            subTitleEl.style.color = 'var(--primary-main)';
-            subTitleEl.style.marginTop = '0';
-            subTitleEl.style.marginBottom = '20px';
-            subTitleEl.innerText = subSlideIndex === 1 ? titleText : `${titleText} (Cont.)`;
-            currentSubSlide.appendChild(subTitleEl);
-
-            currentSubSlideBlocksList = document.createElement('div');
-            currentSubSlideBlocksList.className = 'slide-blocks-list';
-            currentSubSlide.appendChild(currentSubSlideBlocksList);
-
-            tempContainer.appendChild(currentSubSlide);
-            currentHeight = 60; // Base height for margins + header
-            subSlideIndex++;
-          };
-
-          createNewSubSlide();
-
-          for (let j = 0; j < blocks.length; j++) {
-            const block = blocks[j];
-            const clonedBlock = block.cloneNode(true);
-            const blockHeight = block.offsetHeight || 100;
-
-            if (currentHeight + blockHeight > maxPageHeight && currentSubSlideBlocksList.children.length > 0) {
-              createNewSubSlide();
-            }
-
-            currentSubSlideBlocksList.appendChild(clonedBlock);
-            currentHeight += blockHeight + 16;
-          }
-        }
-
-        const subSlides = tempContainer.querySelectorAll('.cheatsheet-pdf-export-slide');
-
         const pdf = new jsPDFClass({
           orientation: 'portrait',
-          unit: 'px',
+          unit: 'pt',
           format: 'a4'
         });
 
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
 
-        for (let i = 0; i < subSlides.length; i++) {
-          const slide = subSlides[i];
+        const marginX = 28;
+        const marginY = 28;
+        const usableWidth = pdfWidth - (marginX * 2);
+        const usableHeight = pdfHeight - (marginY * 2);
+
+        const computedBg = getComputedStyle(document.documentElement).getPropertyValue('--background-default').trim() || (isDarkMode ? '#0F172A' : '#F8FAFC');
+        const computedPaper = getComputedStyle(document.documentElement).getPropertyValue('--background-paper').trim() || (isDarkMode ? '#1E293B' : '#FFFFFF');
+
+        let totalPdfPages = 0;
+
+        for (let i = 0; i < slides.length; i++) {
+          const slide = slides[i];
+          setExportProgressText(`Rendering topic ${i + 1} of ${slides.length}...`);
+
           const canvas = await html2canvas(slide, {
-            scale: 2,
+            scale: 1.5,
             useCORS: true,
-            backgroundColor: themeBg,
+            backgroundColor: computedPaper,
+            logging: false,
             scrollY: 0,
             scrollX: 0
           });
 
-          const imgData = canvas.toDataURL('image/jpeg', 0.95);
-          
-          const padding = 30;
-          const maxAllowedWidth = pdfWidth - (padding * 2);
-          const maxAllowedHeight = pdfHeight - (padding * 2);
+          const scaleFactor = usableWidth / canvas.width;
+          const maxCanvasPageHeight = usableHeight / scaleFactor;
 
-          let imgWidth = maxAllowedWidth;
-          let imgHeight = (canvas.height * imgWidth) / canvas.width;
+          if (canvas.height <= maxCanvasPageHeight) {
+            // Entire slide fits cleanly on one PDF page
+            if (totalPdfPages > 0) {
+              pdf.addPage();
+            }
+            totalPdfPages++;
 
-          if (imgHeight > maxAllowedHeight) {
-            imgHeight = maxAllowedHeight;
-            imgWidth = (canvas.width * imgHeight) / canvas.height;
+            pdf.setFillColor(computedBg);
+            pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+
+            const renderHeight = canvas.height * scaleFactor;
+            const imgData = canvas.toDataURL('image/jpeg', 0.92);
+            pdf.addImage(imgData, 'JPEG', marginX, marginY, usableWidth, renderHeight);
+          } else {
+            // Long slide: slice across multiple pages so nothing is cut off
+            const numChunks = Math.ceil(canvas.height / maxCanvasPageHeight);
+
+            for (let c = 0; c < numChunks; c++) {
+              const srcY = c * maxCanvasPageHeight;
+              const srcH = Math.min(maxCanvasPageHeight, canvas.height - srcY);
+
+              const chunkCanvas = document.createElement('canvas');
+              chunkCanvas.width = canvas.width;
+              chunkCanvas.height = srcH;
+              const chunkCtx = chunkCanvas.getContext('2d');
+
+              chunkCtx.fillStyle = computedPaper;
+              chunkCtx.fillRect(0, 0, chunkCanvas.width, chunkCanvas.height);
+
+              chunkCtx.drawImage(
+                canvas,
+                0, srcY, canvas.width, srcH,
+                0, 0, canvas.width, srcH
+              );
+
+              const chunkImgData = chunkCanvas.toDataURL('image/jpeg', 0.92);
+              const chunkRenderHeight = srcH * scaleFactor;
+
+              if (totalPdfPages > 0) {
+                pdf.addPage();
+              }
+              totalPdfPages++;
+
+              pdf.setFillColor(computedBg);
+              pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+
+              pdf.addImage(chunkImgData, 'JPEG', marginX, marginY, usableWidth, chunkRenderHeight);
+            }
           }
-
-          if (i > 0) {
-            pdf.addPage();
-          }
-
-          pdf.setFillColor(themeBg);
-          pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
-
-          const xOffset = (pdfWidth - imgWidth) / 2;
-          const yOffset = (pdfHeight - imgHeight) / 2;
-
-          pdf.addImage(imgData, 'JPEG', xOffset, yOffset, imgWidth, imgHeight);
         }
 
-        document.body.removeChild(tempContainer);
-
+        setExportProgressText('Saving PDF document...');
         pdf.save(`${lesson.title.replace(/\s+/g, '_')}_Cheatsheet.pdf`);
       } catch (err) {
         console.error("PDF generation failed:", err);
         alert("Failed to generate PDF cheatsheet. Please try again.");
       } finally {
         setIsExportingPdf(false);
+        setExportProgressText('');
       }
-    }, 600);
+    }, 60);
   };
   const currentPage = hasPages ? pages[currentPageIndex] : null;
   const progress = hasPages ? ((currentPageIndex + 1) / pages.length) * 100 : 0;
@@ -3327,6 +3310,7 @@ const LearningContentPage = () => {
   }
 
   const hasVulnerabilityChallenge = !!(currentPage && currentPage.blocks && currentPage.blocks.some(b => b.type === 'vulnerability_challenge'));
+  const isCheatsheet = Boolean(lesson?.title?.toLowerCase().includes('cheatsheet'));
 
   return (
     <Box className="learning-content-page">
@@ -3346,7 +3330,7 @@ const LearningContentPage = () => {
             </div>
           </div>
           <div className="learning-header-right">
-            {lesson.title.toLowerCase().includes('cheatsheet') && (
+            {isCheatsheet && (
               <Button
                 variant="contained"
                 onClick={handleDownloadCheatsheet}
@@ -3375,51 +3359,103 @@ const LearningContentPage = () => {
         />
       </header>
 
-      <Container maxWidth={false} style={hasVulnerabilityChallenge ? { maxWidth: '1240px' } : { maxWidth: '900px' }} className="learning-slide-deck">
-        <AnimatePresence mode="wait">
-          {currentPage && (
-            <motion.div
-              key={currentPageIndex}
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
-              transition={{ duration: 0.28, ease: 'easeOut' }}
-              className={`learning-slide-container ${hasVulnerabilityChallenge ? 'wider' : ''}`}
-            >
-              <Paper className="learning-slide-paper glass-panel-strong" elevation={0}>
-                {currentPage.pageTitle && (
-                  <Typography variant="h4" className="slide-page-title" gutterBottom>
-                    {currentPage.pageTitle}
+      <Container 
+        maxWidth={false} 
+        style={
+          isCheatsheet 
+            ? { maxWidth: '1280px' } 
+            : (hasVulnerabilityChallenge ? { maxWidth: '1240px' } : { maxWidth: '900px' })
+        } 
+        className={`learning-slide-deck ${isCheatsheet ? 'cheatsheet-deck-mode' : ''}`}
+      >
+        <div className={`learning-main-layout ${isCheatsheet ? 'with-cheatsheet-sidebar' : ''}`}>
+          <div className="learning-slide-area">
+            <AnimatePresence mode="wait">
+              {currentPage && (
+                <motion.div
+                  key={currentPageIndex}
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -30 }}
+                  transition={{ duration: 0.28, ease: 'easeOut' }}
+                  className={`learning-slide-container ${hasVulnerabilityChallenge || isCheatsheet ? 'wider' : ''}`}
+                >
+                  <Paper className="learning-slide-paper glass-panel-strong" elevation={0}>
+                    {currentPage.pageTitle && (
+                      <Typography variant="h4" className="slide-page-title" gutterBottom>
+                        {currentPage.pageTitle}
+                      </Typography>
+                    )}
+                    <div className="slide-blocks-list">
+                      {currentPage.blocks?.map((block, idx) => renderBlock(block, idx))}
+                    </div>
+                    {pages.length === 1 && (!currentPage?.blocks?.some(b => b.type === 'vulnerability_challenge') || isPageCompleted(currentPageIndex)) && (
+                      <Box style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
+                        <Button
+                          variant="contained"
+                          onClick={handleFinish}
+                          disabled={!isPageCompleted(currentPageIndex)}
+                          style={{
+                            background: 'var(--hero-gradient)',
+                            color: '#fff',
+                            fontWeight: 800,
+                            padding: '12px 28px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            textTransform: 'none',
+                            fontSize: '0.95rem'
+                          }}
+                        >
+                          Finish Lesson
+                        </Button>
+                      </Box>
+                    )}
+                  </Paper>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {isCheatsheet && pages.length > 1 && (
+            <aside className="cheatsheet-nav-sidebar glass-panel" aria-label="Cheatsheet Topics">
+              <div className="cheatsheet-sidebar-header">
+                <div className="cheatsheet-sidebar-title-row">
+                  <BookIcon className="cheatsheet-sidebar-icon" />
+                  <Typography variant="subtitle2" className="cheatsheet-sidebar-heading">
+                    Topics Index
                   </Typography>
-                )}
-                <div className="slide-blocks-list">
-                  {currentPage.blocks?.map((block, idx) => renderBlock(block, idx))}
                 </div>
-                {pages.length === 1 && (!currentPage?.blocks?.some(b => b.type === 'vulnerability_challenge') || isPageCompleted(currentPageIndex)) && (
-                  <Box style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
-                    <Button
-                      variant="contained"
-                      onClick={handleFinish}
-                      disabled={!isPageCompleted(currentPageIndex)}
-                      style={{
-                        background: 'var(--hero-gradient)',
-                        color: '#fff',
-                        fontWeight: 800,
-                        padding: '12px 28px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        textTransform: 'none',
-                        fontSize: '0.95rem'
-                      }}
+                <span className="cheatsheet-sidebar-counter">
+                  {currentPageIndex + 1} / {pages.length}
+                </span>
+              </div>
+              
+              <div className="cheatsheet-sidebar-list">
+                {pages.map((page, idx) => {
+                  const isActive = currentPageIndex === idx;
+                  const title = page.pageTitle || page.title || `Topic ${idx + 1}`;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCurrentPageIndex(idx)}
+                      className={`cheatsheet-sidebar-item ${isActive ? 'is-active' : ''}`}
+                      title={title}
                     >
-                      Finish Lesson
-                    </Button>
-                  </Box>
-                )}
-              </Paper>
-            </motion.div>
+                      <span className={`cheatsheet-item-num ${isActive ? 'is-active' : ''}`}>
+                        {idx + 1}
+                      </span>
+                      <span className="cheatsheet-item-title">
+                        {title}
+                      </span>
+                      {isActive && <RightIcon className="cheatsheet-active-arrow" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
           )}
-        </AnimatePresence>
+        </div>
       </Container>
 
       {pages.length > 1 && (portalElement ? createPortal(
@@ -3571,7 +3607,8 @@ const LearningContentPage = () => {
             background: 'var(--background-paper)', 
             border: '1px solid var(--divider)', 
             color: 'var(--text-primary)', 
-            textAlign: 'center' 
+            textAlign: 'center',
+            minWidth: '320px'
           } 
         }}
       >
@@ -3579,8 +3616,8 @@ const LearningContentPage = () => {
           <Typography variant="h6" style={{ fontWeight: 800, marginBottom: '8px', fontFamily: 'Outfit', color: 'var(--text-primary)' }}>
             Generating Cheatsheet PDF
           </Typography>
-          <Typography variant="body2" style={{ opacity: 0.8, marginBottom: '20px', color: 'var(--text-secondary)' }}>
-            Taking high-definition screenshots of your lesson slides...
+          <Typography variant="body2" style={{ opacity: 0.85, marginBottom: '20px', color: 'var(--text-secondary)' }}>
+            {exportProgressText || 'Preparing high-definition pages...'}
           </Typography>
           <LinearProgress color="primary" />
         </DialogContent>
