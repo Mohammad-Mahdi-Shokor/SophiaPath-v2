@@ -87,6 +87,7 @@
   transition: left 0.25s ease-in-out;
 }
 
+.sidebar-collapsed-rail ~ .nav-main .learning-content-footer,
 .sidebar-collapsed .learning-content-footer {
   left: 5.5rem;
 }

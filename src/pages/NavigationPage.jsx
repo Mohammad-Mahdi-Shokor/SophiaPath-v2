@@ -1228,20 +1228,59 @@ const NavigationPage = () => {
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            gap: '1rem',
-            padding: '0.75rem 1rem'
+            gap: '0.75rem',
+            padding: sidebarCollapsed ? '0.75rem 0.25rem' : '0.75rem 0.75rem',
+            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+            cursor: 'pointer',
+            userSelect: 'none',
+            transition: 'padding 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
+          onClick={sidebarCollapsed ? () => setSidebarCollapsed(false) : () => navigate('/courses')}
+          title={sidebarCollapsed ? "Expand Navigation" : "SophiaPath Home"}
         >
-          {/* Empty placeholder reserving space for the floating animated logo */}
-          <div style={{ width: '40px', height: '40px', flexShrink: 0 }} />
-          {!sidebarCollapsed && (
-            <div>
-              <Typography className="nav-brand-title">
-                <span style={{ color: 'var(--primary-main)' }}>Sophia</span>
-                <span style={{ color: 'var(--primary-dark)' }}>Path</span>
-              </Typography>
-            </div>
-          )}
+          <motion.div
+            layout
+            animate={{
+              scale: sidebarCollapsed ? 0.95 : 1
+            }}
+            whileHover={{ scale: 1.12, rotate: [0, -5, 5, 0] }}
+            whileTap={{ scale: 0.92 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className={`nav-brand-logo-container ${logoStyle === 'gradient' ? 'sp-logo-gradient' : ''}`}
+            style={{
+              width: '38px',
+              height: '38px',
+              flexShrink: 0,
+              position: 'relative',
+              WebkitMaskImage: `url(${logoImg})`,
+              maskImage: `url(${logoImg})`,
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              maskPosition: 'center',
+              WebkitMaskSize: 'contain',
+              maskSize: 'contain'
+            }}
+          >
+            <div className="nav-logo-left-half" />
+            <div className="nav-logo-right-half" />
+          </motion.div>
+          <AnimatePresence>
+            {!sidebarCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, width: 0, x: -8 }}
+                animate={{ opacity: 1, width: 'auto', x: 0 }}
+                exit={{ opacity: 0, width: 0, x: -8 }}
+                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}
+              >
+                <Typography className="nav-brand-title">
+                  <span style={{ color: 'var(--primary-main)' }}>Sophia</span>
+                  <span style={{ color: 'var(--primary-dark)' }}>Path</span>
+                </Typography>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {!sidebarCollapsed ? (
@@ -1698,85 +1737,37 @@ const NavigationPage = () => {
   return (
     <Box className={`nav-shell ${isStickyFooterPage ? 'has-sticky-footer' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {showGlobalBg && <ConstellationBackground styleType={bgStyle} />}
-      {/* Floating Animated Brand Logo */}
-      {!isMobile && (
-        <motion.div
-          animate={{
-            left: sidebarCollapsed ? '2.4rem' : '3.5rem',
-            top: sidebarCollapsed ? '2.4rem' : '3.25rem',
-            width: sidebarCollapsed ? '2.2rem' : '2.5rem',
-            height: sidebarCollapsed ? '2.2rem' : '2.5rem'
-          }}
-          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          className={`nav-brand-logo-container absolute-corner-logo ${logoStyle === 'gradient' ? 'sp-logo-gradient' : ''}`}
-          style={{
-            position: 'fixed',
-            zIndex: 1200, // Render above sidebar but below dialog modals
-            cursor: sidebarCollapsed ? 'pointer' : 'default',
-            WebkitMaskImage: `url(${logoImg})`,
-            maskImage: `url(${logoImg})`,
-            WebkitMaskRepeat: 'no-repeat',
-            maskRepeat: 'no-repeat',
-            WebkitMaskPosition: 'center',
-            maskPosition: 'center',
-            WebkitMaskSize: 'contain',
-            maskSize: 'contain'}}
-          onClick={() => {
-            if (sidebarCollapsed) {
-              setSidebarCollapsed(false);
-            }
-          }}
-          title={sidebarCollapsed ? "Open Navigation" : undefined}
-        >
-          <div className="nav-logo-left-half" />
-          <div className="nav-logo-right-half" />
-        </motion.div>
-      )}
-
-      {/* Floating Toggle Button (Visible in both states) */}
-      {!isMobile && (
-        <motion.div
-          animate={{
-            left: sidebarCollapsed ? '4.5rem' : '17.2rem',
-            opacity: sidebarCollapsed ? 0 : 1,
-            scale: sidebarCollapsed ? 0 : 1
-          }}
-          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          style={{
-            position: 'fixed',
-            top: '56px',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 1200,
-            pointerEvents: sidebarCollapsed ? 'none' : 'auto'}}
-        >
-          <IconButton
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="nav-sidebar-toggle-btn animate-fade-in"
-            size="small"
-            sx={{
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--divider)',
-              background: 'var(--background-paper) !important',
-              
-              width: '24px',
-              height: '24px',
-              transition: 'background 0.2s, color 0.2s',
-              '&:hover': {
-                background: 'var(--primary-main) !important',
-                color: '#fff !important'
-              }
-            }}
-          >
-            {sidebarCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </IconButton>
-        </motion.div>
-      )}
-
       {!isMobile && (
         <aside
           className={`nav-desktop-rail ${sidebarCollapsed ? 'sidebar-collapsed-rail' : ''}`}
         >
           {shellNav}
+          <IconButton
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="nav-sidebar-toggle-btn animate-fade-in"
+            size="small"
+            sx={{
+              position: 'absolute',
+              right: '-13px',
+              top: '26px',
+              zIndex: 1200,
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--divider)',
+              background: 'var(--background-paper) !important',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              width: '26px',
+              height: '26px',
+              transition: 'background 0.2s, color 0.2s, transform 0.2s',
+              '&:hover': {
+                background: 'var(--primary-main) !important',
+                color: '#fff !important',
+                transform: 'scale(1.1)'
+              }
+            }}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? <ChevronRightIcon sx={{ fontSize: 16 }} /> : <ChevronLeftIcon sx={{ fontSize: 16 }} />}
+          </IconButton>
         </aside>
       )}
       {isMobile && renderDrawer()}

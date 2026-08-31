@@ -2,10 +2,10 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 1.5rem;
-  padding: 1.5rem;
-  align-items: start;
-  transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 0;
+  padding: 0;
+  align-items: stretch;
+  transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-shell.has-sticky-footer {
@@ -22,14 +22,12 @@
   gap: 0 !important;
 }
 
-
-
 .nav-desktop-rail {
   position: sticky;
-  top: 1.5rem;
-  height: calc(100vh - 3rem);
+  top: 0;
+  height: 100vh;
   overflow: visible;
-  z-index: 10; /* Render above the background corner logo */
+  z-index: 100;
   will-change: transform;
   width: 260px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -42,25 +40,27 @@
 .nav-shell-sidebar {
   width: 100%;
   box-sizing: border-box;
-  height: 100%;
-  padding: 1rem;
-  border-radius: 20px;
+  height: 100vh;
+  padding: 1.25rem 1rem;
+  border-radius: 0;
   background: var(--surface-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--divider);
+  border: none;
+  border-right: 1px solid var(--divider);
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   position: relative;
   overflow: hidden; /* Clean masking of text during width animation */
-  transition: border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
               background 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Keep sidebar styling when collapsed, just reduce horizontal padding */
 .nav-shell-sidebar.is-collapsed {
-  padding: 1rem 0.25rem;
+  padding: 1.25rem 0.25rem;
 }
 
 .nav-brand {
@@ -196,6 +196,16 @@
 .nav-menu-icon {
   min-width: 42px;
   color: inherit;
+  transition: min-width 0.3s ease;
+}
+
+.is-collapsed .nav-menu-item:hover {
+  transform: none;
+}
+
+.is-collapsed .nav-menu-icon {
+  min-width: unset;
+  margin: 0 auto;
 }
 
 .nav-sidebar-footer {
@@ -220,7 +230,8 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0;
+  min-height: 100vh;
 }
 
 .nav-topbar {
@@ -228,10 +239,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.85rem 1.25rem;
-  border-radius: 16px;
+  padding: 1rem 1.75rem;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 90;
   flex-wrap: wrap; /* Ensure items wrap if they exceed horizontal viewport */
-  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 
@@ -287,6 +306,8 @@
 
 .nav-content {
   min-width: 0;
+  padding: 1.5rem 1.75rem 2.5rem;
+  flex: 1;
 }
 
 .nav-page-motion {
