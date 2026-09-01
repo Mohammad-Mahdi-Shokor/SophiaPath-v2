@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Button,
   IconButton,
   Tooltip
 } from '@mui/material';
@@ -50,7 +49,6 @@ export const CppMemoryInspectorView = ({
   }
 
   const {
-    lineNumber,
     activeScope = 'main()',
     stack = [],
     heap = []
@@ -67,188 +65,108 @@ export const CppMemoryInspectorView = ({
   });
 
   return (
-    <Box style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '10px' }}>
-      {/* 1. Compact Step Controls Bar */}
-      <Box
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '6px 10px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid var(--divider)',
-          borderRadius: '10px',
-          flexWrap: 'wrap',
-          gap: '6px'
-        }}
-      >
-        {/* Step & Line & Scope info */}
-        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span
-            style={{
-              padding: '2px 8px',
-              borderRadius: '6px',
-              background: 'var(--primary-main)',
-              color: '#fff',
-              fontWeight: 800,
-              fontSize: '0.72rem',
-              fontFamily: '"Roboto Mono", monospace'
-            }}
-          >
-            Step {currentStep + 1}/{totalSteps}
-          </span>
-
-          {lineNumber > 0 && (
-            <span
-              style={{
-                color: '#38BDF8',
-                fontWeight: 700,
-                fontSize: '0.75rem',
-                fontFamily: '"Roboto Mono", monospace'
-              }}
-            >
-              Line {lineNumber}
-            </span>
-          )}
-
-          <span
-            style={{
-              fontSize: '0.7rem',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              background: 'rgba(255, 255, 255, 0.06)',
-              color: 'var(--text-secondary)',
-              fontFamily: '"Roboto Mono", monospace'
-            }}
-          >
-            Active Scope: <strong style={{ color: '#fff' }}>{activeScope}</strong>
-          </span>
-        </Box>
-
-        {/* Step Buttons */}
-        <Box style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Tooltip title="Previous Line">
-            <span>
-              <IconButton
-                size="small"
-                onClick={onStepPrev}
-                disabled={currentStep <= 0}
-                style={{ color: currentStep > 0 ? 'var(--text-primary)' : 'var(--text-disabled)', padding: '4px' }}
-              >
-                <StepPrevIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-
-          <Button
-            size="small"
-            variant="contained"
-            onClick={onStepNext}
-            disabled={currentStep >= totalSteps - 1}
-            startIcon={<StepNextIcon style={{ fontSize: '15px' }} />}
-            style={{
-              padding: '3px 10px',
-              borderRadius: '6px',
-              fontWeight: 800,
-              textTransform: 'none',
-              fontSize: '0.74rem',
-              background: '#3D5CFF',
-              color: '#fff',
-              boxShadow: 'none'
-            }}
-          >
-            Next Line
-          </Button>
-
-          <Tooltip title={isAutoPlaying ? "Pause Auto-Run" : "Auto-Run (Line by Line)"}>
-            <IconButton
-              size="small"
-              onClick={onToggleAutoPlay}
-              style={{
-                padding: '4px',
-                color: isAutoPlaying ? '#FF6B6B' : '#38BDF8',
-                background: isAutoPlaying ? 'rgba(255, 107, 107, 0.12)' : 'rgba(56, 189, 248, 0.12)'
-              }}
-            >
-              {isAutoPlaying ? <PauseIcon fontSize="small" /> : <PlayIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Restart to Line 1">
-            <IconButton size="small" onClick={onReset} style={{ color: 'var(--text-secondary)', padding: '4px' }}>
-              <ResetIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
+    <Box
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        flexGrow: 1,
+        overflowY: 'auto',
+        gap: '10px'
+      }}
+    >
+      {/* Title Header: Matching Interactive Output */}
+      <Box style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+        <MemoryIcon style={{ fontSize: '15px', color: 'var(--text-secondary)' }} />
+        <Typography variant="caption" style={{ color: 'var(--text-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Memory Inspector
+        </Typography>
       </Box>
-
-      {/* 2. Unified Memory Table (Grouped by Stack Frame Scope) */}
-      <Paper
-        elevation={0}
-        style={{
-          flexGrow: 1,
-          overflowY: 'auto',
-          padding: '10px',
-          background: '#0a0c12',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '14px'
-        }}
-      >
         {stack.length === 0 ? (
-          <Box style={{ padding: '24px 8px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.78rem', fontStyle: 'italic' }}>
+          <Paper
+            elevation={0}
+            style={{
+              padding: '24px 8px',
+              textAlign: 'center',
+              color: 'var(--text-secondary)',
+              fontSize: '0.78rem',
+              fontStyle: 'italic',
+              background: '#0a0c12',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.08)'
+            }}
+          >
             No variables in memory yet.
-          </Box>
+          </Paper>
         ) : (
           Array.from(scopesMap.entries()).map(([scopeName, scopeVars], sIdx) => (
-            <Box key={sIdx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {/* Stack Frame Header */}
+            <Paper
+              key={sIdx}
+              elevation={0}
+              style={{
+                padding: '12px',
+                background: '#0a0c12',
+                border: scopeName === activeScope ? '1px solid rgba(61, 92, 255, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}
+            >
+              {/* Stack Frame Header Card (Left-Aligned) */}
               <Box
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 8px',
-                  background: scopeName === activeScope ? 'rgba(61, 92, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-                  border: scopeName === activeScope ? '1px solid rgba(61, 92, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
-                  borderRadius: '6px'
+                  gap: '8px',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
                 }}
               >
-                <ScopeIcon style={{ fontSize: '14px', color: scopeName === 'main()' ? '#38bdf8' : '#c084fc' }} />
-                <Typography style={{ fontWeight: 800, fontFamily: '"Roboto Mono", monospace', fontSize: '0.75rem', color: scopeName === activeScope ? '#fff' : 'var(--text-secondary)' }}>
-                  Stack Frame: <span style={{ color: scopeName === 'main()' ? '#38bdf8' : '#c084fc' }}>{scopeName}</span>
+                <ScopeIcon style={{ fontSize: '15px', color: scopeName === 'main()' ? '#38bdf8' : '#c084fc' }} />
+                <Typography style={{ fontWeight: 800, fontFamily: '"Roboto Mono", monospace', fontSize: '0.8rem', color: scopeName === 'main()' ? '#38bdf8' : '#c084fc' }}>
+                  {scopeName}
                 </Typography>
                 {scopeName === activeScope && (
-                  <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: '#3D5CFF', color: '#fff', fontWeight: 800, marginLeft: 'auto' }}>
+                  <span
+                    style={{
+                      fontSize: '0.62rem',
+                      fontWeight: 800,
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: '#3D5CFF',
+                      color: '#fff',
+                      letterSpacing: '0.04em'
+                    }}
+                  >
                     Active
                   </span>
                 )}
               </Box>
 
-              {/* Table Column Header */}
+              {/* Table Column Header: Address, Variable, Type, Value */}
               <Box
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.2fr 0.9fr 1.3fr 1.6fr',
+                  gridTemplateColumns: 'minmax(84px, 1.1fr) minmax(55px, 0.9fr) minmax(48px, 0.75fr) minmax(90px, 1.35fr)',
                   gap: '8px',
-                  padding: '2px 8px',
+                  padding: '2px 6px',
                   fontFamily: '"Roboto Mono", monospace',
-                  fontSize: '0.66rem',
+                  fontSize: '0.68rem',
                   fontWeight: 800,
                   color: 'var(--text-secondary)',
-                  textTransform: 'uppercase'
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
                 }}
               >
+                <span>Address</span>
                 <span>Variable</span>
                 <span>Type</span>
-                <span>Address</span>
                 <span>Value</span>
               </Box>
 
               {/* Scope Variables Rows */}
-              <Box style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <Box style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {scopeVars.map((item, idx) => {
                   const baseType = item.type?.replace('*', '').replace(/\[\d+\]/, '');
                   const typeColor = TYPE_COLORS[baseType] || '#38bdf8';
@@ -256,7 +174,6 @@ export const CppMemoryInspectorView = ({
                   const isCreatedNow = item.isCreated;
                   const isModifiedNow = item.isUpdated && item.hasChanged;
 
-                  // Row background & border based on state
                   let rowBg = 'rgba(255, 255, 255, 0.02)';
                   let rowBorder = '1px solid transparent';
                   if (isCreatedNow) {
@@ -272,7 +189,7 @@ export const CppMemoryInspectorView = ({
                       key={idx}
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '1.2fr 0.9fr 1.3fr 1.6fr',
+                        gridTemplateColumns: 'minmax(84px, 1.1fr) minmax(55px, 0.9fr) minmax(48px, 0.75fr) minmax(90px, 1.35fr)',
                         gap: '8px',
                         alignItems: 'center',
                         padding: '6px 8px',
@@ -284,14 +201,19 @@ export const CppMemoryInspectorView = ({
                         transition: 'all 0.25s ease'
                       }}
                     >
-                      {/* Name */}
+                      {/* 1. Memory Address */}
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
+                        {item.address}
+                      </span>
+
+                      {/* 2. Variable Name */}
                       <span style={{ fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {isCreatedNow && <span style={{ color: '#3DDC97', fontSize: '10px' }} title="Created">●</span>}
                         {isModifiedNow && <span style={{ color: '#F59E0B', fontSize: '10px' }} title="Modified">●</span>}
                         {item.name}
                       </span>
 
-                      {/* Type */}
+                      {/* 3. Type */}
                       <span>
                         <span
                           style={{
@@ -307,12 +229,7 @@ export const CppMemoryInspectorView = ({
                         </span>
                       </span>
 
-                      {/* Memory Address */}
-                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
-                        {item.address}
-                      </span>
-
-                      {/* Value: Green for created, Amber for modified with crossed-out previous */}
+                      {/* 4. Value: Green for created, Amber for modified with crossed-out previous */}
                       <span>
                         {item.isPointer ? (
                           <Box style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
@@ -415,14 +332,25 @@ export const CppMemoryInspectorView = ({
                   );
                 })}
               </Box>
-            </Box>
+            </Paper>
           ))
         )}
 
         {/* 3. Heap Allocations Section (Only shown if dynamic memory is used) */}
         {heap.length > 0 && (
-          <Box style={{ marginTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '8px' }}>
-            <Typography variant="caption" style={{ color: '#38BDF8', fontWeight: 800, fontFamily: '"Roboto Mono", monospace', display: 'block', marginBottom: '6px' }}>
+          <Paper
+            elevation={0}
+            style={{
+              padding: '12px',
+              background: '#0a0c12',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+              borderRadius: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}
+          >
+            <Typography variant="caption" style={{ color: '#38BDF8', fontWeight: 800, fontFamily: '"Roboto Mono", monospace', display: 'block' }}>
               Heap Allocations (Dynamic Memory)
             </Typography>
             <Box style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -447,9 +375,8 @@ export const CppMemoryInspectorView = ({
                 </Box>
               ))}
             </Box>
-          </Box>
+          </Paper>
         )}
-      </Paper>
     </Box>
   );
 };

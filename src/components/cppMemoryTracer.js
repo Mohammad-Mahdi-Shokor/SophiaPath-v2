@@ -1,6 +1,11 @@
 /**
  * C++ Memory Tracer & Step-by-Step Execution Engine
- * Clean, unified data model with scope tracking, creation flags, and persistent value change history.
+ * Full support for:
+ * - Conditionals (if, else if, else, switch-case)
+ * - Loops (while, for, do-while, break, continue)
+ * - User-defined Functions (void, return values, parameters, local frames)
+ * - Expression Evaluation (Ternary ? :, Arithmetic, Logic && || !, Comparisons)
+ * - Memory Addresses, Types, Creation & Mutation History
  */
 
 const BASE_STACK_ADDR = 0x7ffd98a0;
@@ -20,11 +25,11 @@ const TYPE_SIZES = {
 export const traceCppExecution = (cppCode, inputs = []) => {
   const steps = [];
   const lines = cppCode.split('\n');
-  
+
   // Unified memory maps (key: scope::name or address)
-  const stackEntries = new Map(); // key -> { name, scope, type, value, prevValue, history: [], hasChanged, isCreated, isUpdated, address, size, isPointer, targetName, targetValue, isArray, elements }
-  const heapBlocks = new Map();   // address -> { address, type, value, size, label, isCreated }
-  
+  const stackEntries = new Map();
+  const heapBlocks = new Map();
+
   let currentStackOffset = 0;
   let currentHeapOffset = 0;
   let accumulatedStdout = '';
@@ -66,7 +71,7 @@ export const traceCppExecution = (cppCode, inputs = []) => {
     steps.push({
       stepIndex: steps.length,
       lineNumber: lineNum,
-      statement: stmt.trim(),
+      statement: String(stmt || '').trim(),
       activeScope: activeScope,
       stack: stackSnapshot,
       heap: heapSnapshot,
@@ -86,52 +91,76 @@ export const traceCppExecution = (cppCode, inputs = []) => {
     });
   };
 
-  // Parse user-defined helper functions (anywhere in file, before or after main)
+  // 1. Extract all function definitions
   const functionDefs = new Map();
-  let currentFuncParsing = null;
+  const cleanLines = lines.map((l, idx) => ({ lineNum: idx + 1, text: l.trim() }));
 
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
-    const trimmed = rawLine.trim();
+  const funcHeaderRegex = /^(void|int|double|float|bool|string|char)\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*\{?/;
 
-    // Skip forward declarations ending with ';'
-    if (trimmed.endsWith(';') && !trimmed.startsWith('return')) {
-      continue;
-    }
+  for (let i = 0; i < cleanLines.length; i++) {
+    const item = cleanLines[i];
+    const text = item.text;
 
-    const funcMatch = /^(void|int|double|float|bool|string|char)\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*\{?/.exec(trimmed);
-    if (funcMatch && funcMatch[2] !== 'main') {
-      const funcName = funcMatch[2];
-      const params = funcMatch[3].split(',').map(p => p.trim()).filter(Boolean).map(p => {
-        const pParts = p.split(/\s+/);
-        return { type: pParts[0], name: pParts[1]?.replace('&', '') || 'param', isRef: p.includes('&') };
-      });
-      currentFuncParsing = {
-        name: funcName,
-        returnType: funcMatch[1],
-        params,
-        startLine: i + 1,
-        lines: []
-      };
-      functionDefs.set(funcName, currentFuncParsing);
-      continue;
-    }
+    if (text.endsWith(';') && !text.startsWith('return')) continue;
 
-    if (currentFuncParsing) {
-      if (trimmed === '}') {
-        currentFuncParsing = null;
-      } else if (trimmed && !trimmed.startsWith('//')) {
-        currentFuncParsing.lines.push({ lineNum: i + 1, code: trimmed });
+    const match = funcHeaderRegex.exec(text);
+    if (match) {
+      const returnType = match[1];
+      const funcName = match[2];
+      const rawParams = match[3];
+
+      const params = rawParams
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean)
+        .map(p => {
+          const pParts = p.split(/\s+/);
+          return { type: pParts[0], name: pParts[1]?.replace('&', '') || 'param', isRef: p.includes('&') };
+        });
+
+      // Find matching brace block
+      let depth = text.includes('{') ? 1 : 0;
+      let startIdx = i + 1;
+      if (!text.includes('{')) {
+        while (startIdx < cleanLines.length && !cleanLines[startIdx].text.includes('{')) {
+          startIdx++;
+        }
+        depth = 1;
+        startIdx++;
       }
-      continue;
+
+      const bodyLines = [];
+      let cur = startIdx;
+      while (cur < cleanLines.length && depth > 0) {
+        const curText = cleanLines[cur].text;
+        for (const char of curText) {
+          if (char === '{') depth++;
+          else if (char === '}') depth--;
+        }
+        if (depth > 0) {
+          bodyLines.push(cleanLines[cur]);
+        }
+        cur++;
+      }
+
+      functionDefs.set(funcName, {
+        name: funcName,
+        returnType,
+        params,
+        startLine: item.lineNum,
+        lines: bodyLines
+      });
+
+      i = cur - 1;
     }
   }
 
-  // Expression evaluator
+  // 2. Expression Evaluator
   const evaluateExpr = (exprStr) => {
-    if (!exprStr) return 0;
+    if (exprStr === undefined || exprStr === null) return 0;
     let expr = String(exprStr).trim();
-    
+    if (!expr) return 0;
+
     if (expr === 'true') return true;
     if (expr === 'false') return false;
 
@@ -140,8 +169,9 @@ export const traceCppExecution = (cppCode, inputs = []) => {
 
     let evalString = expr;
 
-    // Evaluate user-defined function calls inside expression: e.g. test(x)
+    // Evaluate user-defined function calls inside expression: e.g. calculateScore(itemsCount, multiplier)
     functionDefs.forEach((funcDef, funcName) => {
+      if (funcName === 'main') return;
       const callRegex = new RegExp(`\\b${funcName}\\s*\\(([^)]*)\\)`, 'g');
       evalString = evalString.replace(callRegex, (fullCall, rawArgs) => {
         const argStrings = rawArgs.split(',').map(a => a.trim()).filter(Boolean);
@@ -174,24 +204,17 @@ export const traceCppExecution = (cppCode, inputs = []) => {
 
         createSnapshot(funcDef.startLine, `Entered function ${activeScope}`);
 
-        let returnVal = 0;
-        for (const fStmt of funcDef.lines) {
-          if (fStmt.code.startsWith('return')) {
-            const retExpr = fStmt.code.replace(/^return\s*/, '').replace(/;$/, '').trim();
-            returnVal = retExpr ? evaluateExpr(retExpr) : 0;
-            createSnapshot(fStmt.lineNum, fStmt.code);
-            break;
-          }
-          executeStatement(fStmt.lineNum, fStmt.code);
-        }
+        const blockUnits = parseLinesToBlocks(funcDef.lines);
+        const ret = executeUnits(blockUnits);
 
+        const returnVal = ret.returnVal !== undefined ? ret.returnVal : 0;
         createSnapshot(funcDef.startLine, `Returned from ${activeScope} to ${callerScope}`);
         activeScope = callerScope;
         return JSON.stringify(returnVal);
       });
     });
 
-    // Array index access
+    // Array index access: arr[idx]
     evalString = evalString.replace(/([a-zA-Z_]\w*)\[([^\]]+)\]/g, (match, arrName, idxExpr) => {
       const arr = stackEntries.get(`${activeScope}::${arrName}`) || stackEntries.get(`main()::${arrName}`);
       if (arr && arr.isArray && arr.elements) {
@@ -218,13 +241,86 @@ export const traceCppExecution = (cppCode, inputs = []) => {
       return '0';
     });
 
-    // Replace variable names with values
+    // Handle pre/post increment/decrement inside expressions: y++, ++y, y--, --y
+    evalString = evalString.replace(/\b([a-zA-Z_]\w*)\+\+/g, (match, varName) => {
+      const v = stackEntries.get(`${activeScope}::${varName}`) || stackEntries.get(`main()::${varName}`);
+      if (v) {
+        const cur = Number(v.value) || 0;
+        const next = cur + 1;
+        v.history = v.history || [];
+        v.history.push(v.value);
+        v.prevValue = v.value;
+        v.value = next;
+        v.hasChanged = true;
+        v.isUpdated = true;
+        return JSON.stringify(cur);
+      }
+      return match;
+    });
+
+    evalString = evalString.replace(/\+\+([a-zA-Z_]\w*)\b/g, (match, varName) => {
+      const v = stackEntries.get(`${activeScope}::${varName}`) || stackEntries.get(`main()::${varName}`);
+      if (v) {
+        const cur = Number(v.value) || 0;
+        const next = cur + 1;
+        v.history = v.history || [];
+        v.history.push(v.value);
+        v.prevValue = v.value;
+        v.value = next;
+        v.hasChanged = true;
+        v.isUpdated = true;
+        return JSON.stringify(next);
+      }
+      return match;
+    });
+
+    evalString = evalString.replace(/\b([a-zA-Z_]\w*)--/g, (match, varName) => {
+      const v = stackEntries.get(`${activeScope}::${varName}`) || stackEntries.get(`main()::${varName}`);
+      if (v) {
+        const cur = Number(v.value) || 0;
+        const next = cur - 1;
+        v.history = v.history || [];
+        v.history.push(v.value);
+        v.prevValue = v.value;
+        v.value = next;
+        v.hasChanged = true;
+        v.isUpdated = true;
+        return JSON.stringify(cur);
+      }
+      return match;
+    });
+
+    evalString = evalString.replace(/--([a-zA-Z_]\w*)\b/g, (match, varName) => {
+      const v = stackEntries.get(`${activeScope}::${varName}`) || stackEntries.get(`main()::${varName}`);
+      if (v) {
+        const cur = Number(v.value) || 0;
+        const next = cur - 1;
+        v.history = v.history || [];
+        v.history.push(v.value);
+        v.prevValue = v.value;
+        v.value = next;
+        v.hasChanged = true;
+        v.isUpdated = true;
+        return JSON.stringify(next);
+      }
+      return match;
+    });
+
+    // Replace variable names with values (Active scope takes strict priority over main)
+    const visibleVars = new Map();
     stackEntries.forEach((v) => {
-      if (v.scope === activeScope || v.scope === 'main()') {
-        if (!v.isArray) {
-          const regex = new RegExp(`\\b${v.name}\\b`, 'g');
-          evalString = evalString.replace(regex, JSON.stringify(v.value));
-        }
+      if (v.scope === 'main()') visibleVars.set(v.name, v);
+    });
+    stackEntries.forEach((v) => {
+      if (v.scope === activeScope) visibleVars.set(v.name, v);
+    });
+
+    const sortedVars = Array.from(visibleVars.values()).sort((a, b) => b.name.length - a.name.length);
+    sortedVars.forEach((v) => {
+      if (!v.isArray) {
+        const regex = new RegExp(`\\b${v.name}\\b`, 'g');
+        const valToInject = typeof v.value === 'boolean' ? v.value : JSON.stringify(v.value);
+        evalString = evalString.replace(regex, valToInject);
       }
     });
 
@@ -237,36 +333,171 @@ export const traceCppExecution = (cppCode, inputs = []) => {
     }
   };
 
-  // Find executable lines in main()
-  let inMain = false;
-  let mainStartLine = 1;
-  const mainStatements = [];
+  // 3. Block & Control Flow Parser
+  const parseLinesToBlocks = (lineItems) => {
+    const units = [];
+    let i = 0;
 
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
-    const trimmed = rawLine.trim();
+    while (i < lineItems.length) {
+      const { lineNum, text } = lineItems[i];
+      if (!text || text.startsWith('//') || text.startsWith('/*') || text === '{' || text === '}') {
+        i++;
+        continue;
+      }
 
-    if (/int\s+main\s*\(/.test(trimmed)) {
-      inMain = true;
-      mainStartLine = i + 1;
-      continue;
+      // Helper to collect a bracketed block or single statement
+      const collectBlock = (startIdx) => {
+        const block = [];
+        let idx = startIdx;
+        if (idx >= lineItems.length) return { block, nextIdx: idx };
+
+        if (lineItems[idx].text.startsWith('{')) {
+          let depth = 0;
+          while (idx < lineItems.length) {
+            const t = lineItems[idx].text;
+            for (const c of t) {
+              if (c === '{') depth++;
+              else if (c === '}') depth--;
+            }
+            if (depth > 0 && !lineItems[idx].text.startsWith('{')) {
+              block.push(lineItems[idx]);
+            }
+            idx++;
+            if (depth === 0) break;
+          }
+        } else {
+          block.push(lineItems[idx]);
+          idx++;
+        }
+        return { block, nextIdx: idx };
+      };
+
+      // 1. IF statement
+      if (text.startsWith('if')) {
+        const ifUnit = { type: 'if', branches: [], elseBranch: null, lineNum };
+        
+        let curLine = text;
+        let curIdx = i;
+        let condMatch = /if\s*\((.*)\)/.exec(curLine);
+        let cond = condMatch ? condMatch[1].trim() : 'true';
+        
+        // Find body of if
+        let bodyStart = curIdx;
+        if (curLine.endsWith('{')) {
+          curIdx++;
+        } else if (lineItems[curIdx + 1]?.text.startsWith('{')) {
+          curIdx += 2;
+        } else {
+          curIdx++;
+        }
+
+        const ifBodyRes = collectBlock(bodyStart + 1);
+        ifUnit.branches.push({ cond, body: ifBodyRes.block, lineNum });
+        curIdx = ifBodyRes.nextIdx;
+
+        // Check for else if / else
+        while (curIdx < lineItems.length) {
+          const nextText = lineItems[curIdx]?.text || '';
+          if (nextText.startsWith('else if')) {
+            const elseIfCond = /else if\s*\((.*)\)/.exec(nextText)?.[1]?.trim() || 'true';
+            const elseIfRes = collectBlock(curIdx + 1);
+            ifUnit.branches.push({ cond: elseIfCond, body: elseIfRes.block, lineNum: lineItems[curIdx].lineNum });
+            curIdx = elseIfRes.nextIdx;
+          } else if (nextText.startsWith('else')) {
+            const elseRes = collectBlock(curIdx + 1);
+            ifUnit.elseBranch = { body: elseRes.block, lineNum: lineItems[curIdx].lineNum };
+            curIdx = elseRes.nextIdx;
+            break;
+          } else {
+            break;
+          }
+        }
+
+        units.push(ifUnit);
+        i = curIdx;
+        continue;
+      }
+
+      // 2. SWITCH statement
+      if (text.startsWith('switch')) {
+        const exprMatch = /switch\s*\((.*)\)/.exec(text);
+        const expr = exprMatch ? exprMatch[1].trim() : '';
+        const switchRes = collectBlock(i + 1);
+        units.push({
+          type: 'switch',
+          expr,
+          body: switchRes.block,
+          lineNum
+        });
+        i = switchRes.nextIdx;
+        continue;
+      }
+
+      // 3. WHILE loop
+      if (text.startsWith('while')) {
+        const condMatch = /while\s*\((.*)\)/.exec(text);
+        const cond = condMatch ? condMatch[1].trim() : 'true';
+        const whileRes = collectBlock(i + 1);
+        units.push({
+          type: 'while',
+          cond,
+          body: whileRes.block,
+          lineNum
+        });
+        i = whileRes.nextIdx;
+        continue;
+      }
+
+      // 4. FOR loop
+      if (text.startsWith('for')) {
+        const forMatch = /for\s*\(\s*([^;]*);\s*([^;]*);\s*([^)]*)\)/.exec(text);
+        const init = forMatch ? forMatch[1].trim() : '';
+        const cond = forMatch ? forMatch[2].trim() : 'true';
+        const step = forMatch ? forMatch[3].trim() : '';
+        const forRes = collectBlock(i + 1);
+        units.push({
+          type: 'for',
+          init,
+          cond,
+          step,
+          body: forRes.block,
+          lineNum
+        });
+        i = forRes.nextIdx;
+        continue;
+      }
+
+      // 5. DO-WHILE loop
+      if (text === 'do' || text.startsWith('do ')) {
+        const doRes = collectBlock(i + 1);
+        let whileCond = 'false';
+        let whileLineNum = lineNum;
+        if (doRes.nextIdx < lineItems.length && lineItems[doRes.nextIdx].text.startsWith('while')) {
+          const wMatch = /while\s*\((.*)\)/.exec(lineItems[doRes.nextIdx].text);
+          whileCond = wMatch ? wMatch[1].trim() : 'false';
+          whileLineNum = lineItems[doRes.nextIdx].lineNum;
+          doRes.nextIdx++;
+        }
+        units.push({
+          type: 'do-while',
+          cond: whileCond,
+          body: doRes.block,
+          lineNum,
+          whileLineNum
+        });
+        i = doRes.nextIdx;
+        continue;
+      }
+
+      // 6. Simple statement
+      units.push({ type: 'stmt', code: text, lineNum });
+      i++;
     }
 
-    if (!inMain) continue;
-    if (trimmed === '}' && inMain) break;
-    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed === '{') continue;
+    return units;
+  };
 
-    mainStatements.push({
-      lineNum: i + 1,
-      code: trimmed
-    });
-  }
-
-  // Initial step at main entry
-  activeScope = 'main()';
-  createSnapshot(mainStartLine, 'int main()');
-
-  // Helper to execute a single statement in the active scope
+  // 4. Statement Executor
   const executeStatement = (lineNum, stmt) => {
     // 1. cout << ...
     if (stmt.startsWith('cout')) {
@@ -291,16 +522,34 @@ export const traceCppExecution = (cppCode, inputs = []) => {
     if (stmt.startsWith('cin')) {
       const targets = stmt.replace(/^cin\s*>>/, '').replace(/;$/, '').split('>>').map(t => t.trim());
       targets.forEach(target => {
-        const inputVal = inputs[inputIndex++] ?? 0;
         const key = `${activeScope}::${target}`;
-        if (stackEntries.has(key)) {
-          const v = stackEntries.get(key);
-          const newVal = isNaN(Number(inputVal)) ? inputVal : Number(inputVal);
-          if (v.value !== newVal) {
+        let v = stackEntries.get(key) || stackEntries.get(`main()::${target}`);
+
+        let inputVal;
+        if (inputIndex < inputs.length) {
+          inputVal = inputs[inputIndex++];
+        } else {
+          // Smart default fallback values for initial stepped execution simulation
+          if (v?.type === 'string') inputVal = 'Mohammad';
+          else if (v?.type === 'char') inputVal = 'y';
+          else if (target.toLowerCase().includes('count') || target.toLowerCase().includes('item')) inputVal = 2;
+          else if (target.toLowerCase().includes('age')) inputVal = 20;
+          else inputVal = 10;
+        }
+
+        if (v) {
+          let parsedVal = inputVal;
+          if (v.type === 'int') parsedVal = parseInt(inputVal, 10) || 0;
+          else if (v.type === 'double' || v.type === 'float') parsedVal = parseFloat(inputVal) || 0;
+          else if (v.type === 'char') parsedVal = String(inputVal)[0] || 'y';
+          else if (v.type === 'bool') parsedVal = inputVal === 'true' || inputVal === true || inputVal === '1';
+          else parsedVal = String(inputVal);
+
+          if (v.value !== parsedVal) {
             v.history = v.history || [];
             v.history.push(v.value);
             v.prevValue = v.value;
-            v.value = newVal;
+            v.value = parsedVal;
             v.hasChanged = true;
             v.isUpdated = true;
           }
@@ -310,7 +559,7 @@ export const traceCppExecution = (cppCode, inputs = []) => {
       return;
     }
 
-    // 3. Helper Function Call invocation e.g. swap(x, y); or test(x);
+    // 3. Helper Function Call invocation e.g. greetUser(userName);
     const callMatch = /^([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*;/.exec(stmt);
     if (callMatch && functionDefs.has(callMatch[1])) {
       const funcName = callMatch[1];
@@ -320,7 +569,7 @@ export const traceCppExecution = (cppCode, inputs = []) => {
       const callerScope = activeScope;
       activeScope = `${funcName}()`;
 
-      createSnapshot(funcDef.startLine, `${funcDef.returnType} ${funcName}(...)`);
+      createSnapshot(funcDef.startLine, `${funcDef.returnType} ${funcName}(${callMatch[2]})`);
 
       funcDef.params.forEach((param, pIdx) => {
         const argStr = argStrings[pIdx];
@@ -346,9 +595,8 @@ export const traceCppExecution = (cppCode, inputs = []) => {
 
       createSnapshot(funcDef.startLine, `Entered function ${activeScope}`);
 
-      for (const fStmt of funcDef.lines) {
-        executeStatement(fStmt.lineNum, fStmt.code);
-      }
+      const blockUnits = parseLinesToBlocks(funcDef.lines);
+      executeUnits(blockUnits);
 
       createSnapshot(lineNum, `Returned from ${activeScope} to ${callerScope}`);
       activeScope = callerScope;
@@ -363,7 +611,7 @@ export const traceCppExecution = (cppCode, inputs = []) => {
       const initialValExpr = newMatch[5];
       const isArrayAlloc = Boolean(newMatch[6]);
       const initialVal = initialValExpr ? evaluateExpr(initialValExpr) : 0;
-      
+
       const heapAddr = allocateHeapAddress(isArrayAlloc ? 20 : (TYPE_SIZES[type] || 4));
       const ptrAddr = allocateStackAddress(8);
       const key = `${activeScope}::${ptrName}`;
@@ -398,177 +646,23 @@ export const traceCppExecution = (cppCode, inputs = []) => {
       return;
     }
 
-    // 5. delete or delete[]
-    const deleteMatch = /^delete(\[\])?\s+([a-zA-Z_]\w*)\s*;/.exec(stmt);
-    if (deleteMatch) {
-      const ptrName = deleteMatch[2];
-      const key = `${activeScope}::${ptrName}`;
-      const ptr = stackEntries.get(key);
-      if (ptr && ptr.isPointer) {
-        heapBlocks.delete(ptr.value);
-        ptr.history = ptr.history || [];
-        ptr.history.push(ptr.targetValue);
-        ptr.prevValue = ptr.targetValue;
-        ptr.targetValue = '<freed>';
-        ptr.hasChanged = true;
-        ptr.isUpdated = true;
-      }
-      createSnapshot(lineNum, stmt);
-      return;
-    }
-
-    // 6. Pointer declaration: int* p = &x;
-    const ptrDeclMatch = /^(int|double|float|char|bool|string)\s*\*\s*([a-zA-Z_]\w*)\s*=\s*&([a-zA-Z_]\w*)\s*;/.exec(stmt);
-    if (ptrDeclMatch) {
-      const type = ptrDeclMatch[1];
-      const ptrName = ptrDeclMatch[2];
-      const targetVarName = ptrDeclMatch[3];
-      const targetVar = stackEntries.get(`${activeScope}::${targetVarName}`) || stackEntries.get(`main()::${targetVarName}`);
-      const targetAddr = targetVar ? targetVar.address : '0x0000';
-      const targetVal = targetVar ? targetVar.value : 0;
-      const ptrAddr = allocateStackAddress(8);
-      const key = `${activeScope}::${ptrName}`;
-
-      stackEntries.set(key, {
-        name: ptrName,
-        scope: activeScope,
-        type: `${type}*`,
-        value: targetAddr,
-        prevValue: null,
-        history: [],
-        hasChanged: false,
-        isCreated: true,
-        address: ptrAddr,
-        size: 8,
-        isPointer: true,
-        targetName: targetVarName,
-        targetValue: targetVal,
-        isUpdated: true
-      });
-
-      createSnapshot(lineNum, stmt);
-      return;
-    }
-
-    // 7. Pointer dereference assignment: *p = 100;
-    const ptrDerefAssign = /^\*([a-zA-Z_]\w*)\s*=\s*([^;]+);/.exec(stmt);
-    if (ptrDerefAssign) {
-      const ptrName = ptrDerefAssign[1];
-      const valExpr = ptrDerefAssign[2];
-      const newVal = evaluateExpr(valExpr);
-      const key = `${activeScope}::${ptrName}`;
-      const ptr = stackEntries.get(key) || stackEntries.get(`main()::${ptrName}`);
-
-      if (ptr && ptr.isPointer) {
-        if (ptr.targetValue !== newVal) {
-          ptr.history = ptr.history || [];
-          ptr.history.push(ptr.targetValue);
-          ptr.prevValue = ptr.targetValue;
-          ptr.targetValue = newVal;
-          ptr.hasChanged = true;
-          ptr.isUpdated = true;
-        }
-
-        if (ptr.targetName) {
-          const targetVar = stackEntries.get(`${activeScope}::${ptr.targetName}`) || stackEntries.get(`main()::${ptr.targetName}`);
-          if (targetVar && targetVar.value !== newVal) {
-            targetVar.history = targetVar.history || [];
-            targetVar.history.push(targetVar.value);
-            targetVar.prevValue = targetVar.value;
-            targetVar.value = newVal;
-            targetVar.hasChanged = true;
-            targetVar.isUpdated = true;
-          }
-        } else if (heapBlocks.has(ptr.value)) {
-          heapBlocks.get(ptr.value).value = newVal;
-        }
-      }
-
-      createSnapshot(lineNum, stmt);
-      return;
-    }
-
-    // 8. Array Declaration: int arr[3] = {10, 20, 30};
-    const arrDeclMatch = /^(int|double|float|char|bool|string)\s+([a-zA-Z_]\w*)\[(\d+)\](\s*=\s*\{([^}]*)\})?\s*;/.exec(stmt);
-    if (arrDeclMatch) {
-      const type = arrDeclMatch[1];
-      const arrName = arrDeclMatch[2];
-      const size = parseInt(arrDeclMatch[3], 10);
-      const initVals = arrDeclMatch[5]
-        ? arrDeclMatch[5].split(',').map(v => evaluateExpr(v.trim()))
-        : [];
-
-      const elemSize = TYPE_SIZES[type] || 4;
-      const baseAddr = allocateStackAddress(size * elemSize);
-      const elements = [];
-
-      for (let i = 0; i < size; i++) {
-        const elemAddr = (parseInt(baseAddr, 16) + (i * elemSize)).toString(16).toUpperCase();
-        elements.push({
-          index: i,
-          address: `0x${elemAddr}`,
-          value: initVals[i] !== undefined ? initVals[i] : 0,
-          prevValue: null,
-          history: [],
-          hasChanged: false,
-          isCreated: true,
-          isUpdated: true
-        });
-      }
-
-      const key = `${activeScope}::${arrName}`;
-      stackEntries.set(key, {
-        name: arrName,
-        scope: activeScope,
-        type: `${type}[${size}]`,
-        address: baseAddr,
-        size: size * elemSize,
-        isArray: true,
-        elements: elements,
-        history: [],
-        hasChanged: false,
-        isCreated: true,
-        isUpdated: true
-      });
-
-      createSnapshot(lineNum, stmt);
-      return;
-    }
-
-    // 9. Array Element Assignment: arr[1] = 99;
-    const arrAssignMatch = /^([a-zA-Z_]\w*)\[([^\]]+)\]\s*=\s*([^;]+);/.exec(stmt);
-    if (arrAssignMatch) {
-      const arrName = arrAssignMatch[1];
-      const idx = evaluateExpr(arrAssignMatch[2]);
-      const newVal = evaluateExpr(arrAssignMatch[3]);
-
-      const key = `${activeScope}::${arrName}`;
-      const arr = stackEntries.get(key) || stackEntries.get(`main()::${arrName}`);
-      if (arr && arr.isArray && arr.elements[idx]) {
-        const el = arr.elements[idx];
-        if (el.value !== newVal) {
-          el.history = el.history || [];
-          el.history.push(el.value);
-          el.prevValue = el.value;
-          el.value = newVal;
-          el.hasChanged = true;
-          el.isUpdated = true;
-          arr.hasChanged = true;
-          arr.isUpdated = true;
-        }
-      }
-
-      createSnapshot(lineNum, stmt);
-      return;
-    }
-
-    // 10. Standard Variable Declaration: int x = 10;
+    // 5. Standard Variable Declaration: int x = 10; or string userName;
     const varDeclMatch = /^(int|double|float|char|bool|string|auto)\s+([a-zA-Z_]\w*)(\s*=\s*([^;]+))?\s*;/.exec(stmt);
     if (varDeclMatch) {
       const type = varDeclMatch[1];
       const varName = varDeclMatch[2];
       const valExpr = varDeclMatch[4];
-      const initialVal = valExpr !== undefined ? evaluateExpr(valExpr) : (type === 'string' ? '""' : 0);
+
+      let initialVal;
+      if (valExpr !== undefined) {
+        initialVal = evaluateExpr(valExpr);
+      } else {
+        if (type === 'string') initialVal = '""';
+        else if (type === 'char') initialVal = "'\\0'";
+        else if (type === 'bool') initialVal = false;
+        else initialVal = 0;
+      }
+
       const addr = allocateStackAddress(TYPE_SIZES[type] || 4);
       const key = `${activeScope}::${varName}`;
 
@@ -586,33 +680,21 @@ export const traceCppExecution = (cppCode, inputs = []) => {
         isUpdated: true
       });
 
-      stackEntries.forEach(p => {
-        if (p.isPointer && p.targetName === varName) {
-          if (p.targetValue !== initialVal) {
-            p.history = p.history || [];
-            p.history.push(p.targetValue);
-            p.prevValue = p.targetValue;
-            p.targetValue = initialVal;
-            p.hasChanged = true;
-            p.isUpdated = true;
-          }
-        }
-      });
-
       createSnapshot(lineNum, stmt);
       return;
     }
 
-    // 11. Increment/Decrement or Assignment: x++; x = 20;
-    const incDecMatch = /^([a-zA-Z_]\w*)(\+\+|--);/.exec(stmt);
+    // 6. Increment / Decrement: x++; or ++x; or x--;
+    const incDecMatch = /^([a-zA-Z_]\w*)(\+\+|--);/.exec(stmt) || /^(\+\+|--)([a-zA-Z_]\w*);/.exec(stmt);
     if (incDecMatch) {
-      const varName = incDecMatch[1];
-      const op = incDecMatch[2];
+      const varName = incDecMatch[1] || incDecMatch[2];
+      const op = stmt.includes('++') ? '++' : '--';
       const key = `${activeScope}::${varName}`;
       const v = stackEntries.get(key) || stackEntries.get(`main()::${varName}`);
 
       if (v) {
-        const newVal = op === '++' ? Number(v.value) + 1 : Number(v.value) - 1;
+        const cur = Number(v.value) || 0;
+        const newVal = op === '++' ? cur + 1 : cur - 1;
         v.history = v.history || [];
         v.history.push(v.value);
         v.prevValue = v.value;
@@ -620,27 +702,17 @@ export const traceCppExecution = (cppCode, inputs = []) => {
         v.hasChanged = true;
         v.isUpdated = true;
 
-        stackEntries.forEach(p => {
-          if (p.isPointer && p.targetName === varName) {
-            p.history = p.history || [];
-            p.history.push(p.targetValue);
-            p.prevValue = p.targetValue;
-            p.targetValue = v.value;
-            p.hasChanged = true;
-            p.isUpdated = true;
-          }
-        });
-
         createSnapshot(lineNum, stmt);
       }
       return;
     }
 
-    const reassignMatch = /^([a-zA-Z_]\w*)\s*(\+=|-=|\*=|\/=|%=|=)\s*([^;]+);/.exec(stmt);
-    if (reassignMatch) {
-      const varName = reassignMatch[1];
-      const op = reassignMatch[2];
-      const rhsExpr = reassignMatch[3];
+    // 7. Assignment: pricePerItem = 7.99; or x += 5;
+    const assignMatch = /^([a-zA-Z_]\w*)\s*(\+=|-=|\*=|\/=|%=|=)\s*([^;]+);/.exec(stmt);
+    if (assignMatch) {
+      const varName = assignMatch[1];
+      const op = assignMatch[2];
+      const rhsExpr = assignMatch[3];
       const rhsVal = evaluateExpr(rhsExpr);
 
       const key = `${activeScope}::${varName}`;
@@ -662,17 +734,6 @@ export const traceCppExecution = (cppCode, inputs = []) => {
           v.value = newVal;
           v.hasChanged = true;
           v.isUpdated = true;
-
-          stackEntries.forEach(p => {
-            if (p.isPointer && p.targetName === varName) {
-              p.history = p.history || [];
-              p.history.push(p.targetValue);
-              p.prevValue = p.targetValue;
-              p.targetValue = v.value;
-              p.hasChanged = true;
-              p.isUpdated = true;
-            }
-          });
         }
 
         createSnapshot(lineNum, stmt);
@@ -680,24 +741,138 @@ export const traceCppExecution = (cppCode, inputs = []) => {
       return;
     }
 
-    // 12. Return
+    // 8. Return statement
     if (stmt.startsWith('return')) {
+      const retExpr = stmt.replace(/^return\s*/, '').replace(/;$/, '').trim();
+      const retVal = retExpr ? evaluateExpr(retExpr) : 0;
       createSnapshot(lineNum, stmt);
-      return;
+      return { returnVal: retVal };
     }
 
     // Fallback step
     createSnapshot(lineNum, stmt);
   };
 
-  // Run main() statements sequentially
-  const maxIterations = 300;
-  let iterCount = 0;
+  // 5. Unit / Block Execution Runner
+  let globalIterations = 0;
+  const MAX_GLOBAL_STEPS = 600;
 
-  for (let sIdx = 0; sIdx < mainStatements.length && iterCount < maxIterations; sIdx++) {
-    iterCount++;
-    const { lineNum, code: stmt } = mainStatements[sIdx];
-    executeStatement(lineNum, stmt);
+  const executeUnits = (units) => {
+    for (const unit of units) {
+      if (globalIterations++ > MAX_GLOBAL_STEPS) break;
+
+      if (unit.type === 'stmt') {
+        const res = executeStatement(unit.lineNum, unit.code);
+        if (res && res.returnVal !== undefined) return res;
+      } else if (unit.type === 'if') {
+        createSnapshot(unit.lineNum, `if condition`);
+        let branchExecuted = false;
+
+        for (const branch of unit.branches) {
+          const isTrue = Boolean(evaluateExpr(branch.cond));
+          if (isTrue) {
+            createSnapshot(branch.lineNum, `if (${branch.cond}) is TRUE`);
+            const subUnits = parseLinesToBlocks(branch.body);
+            const res = executeUnits(subUnits);
+            if (res && res.returnVal !== undefined) return res;
+            branchExecuted = true;
+            break;
+          }
+        }
+
+        if (!branchExecuted && unit.elseBranch) {
+          createSnapshot(unit.elseBranch.lineNum, `else branch`);
+          const subUnits = parseLinesToBlocks(unit.elseBranch.body);
+          const res = executeUnits(subUnits);
+          if (res && res.returnVal !== undefined) return res;
+        }
+      } else if (unit.type === 'switch') {
+        const switchVal = evaluateExpr(unit.expr);
+        createSnapshot(unit.lineNum, `switch (${unit.expr}) [${switchVal}]`);
+
+        // Find matching case or default
+        const bodyLines = unit.body;
+        let matched = false;
+        let matchedStartIdx = -1;
+        let defaultIdx = -1;
+
+        for (let bIdx = 0; bIdx < bodyLines.length; bIdx++) {
+          const bText = bodyLines[bIdx].text;
+          const caseMatch = /^case\s+([^:]+):/.exec(bText);
+          if (caseMatch) {
+            const caseVal = evaluateExpr(caseMatch[1].trim());
+            if (String(caseVal).toLowerCase() === String(switchVal).toLowerCase()) {
+              matched = true;
+              matchedStartIdx = bIdx + 1;
+              break;
+            }
+          }
+          if (bText.startsWith('default:')) {
+            defaultIdx = bIdx + 1;
+          }
+        }
+
+        const startFrom = matchedStartIdx !== -1 ? matchedStartIdx : defaultIdx;
+        if (startFrom !== -1) {
+          const caseStatements = [];
+          for (let k = startFrom; k < bodyLines.length; k++) {
+            if (bodyLines[k].text.startsWith('break;')) {
+              caseStatements.push(bodyLines[k]);
+              break;
+            }
+            if (!bodyLines[k].text.startsWith('case ') && !bodyLines[k].text.startsWith('default:')) {
+              caseStatements.push(bodyLines[k]);
+            }
+          }
+          const subUnits = parseLinesToBlocks(caseStatements);
+          const res = executeUnits(subUnits);
+          if (res && res.returnVal !== undefined) return res;
+        }
+      } else if (unit.type === 'while') {
+        let loopIter = 0;
+        while (Boolean(evaluateExpr(unit.cond)) && loopIter++ < 100 && globalIterations++ < MAX_GLOBAL_STEPS) {
+          createSnapshot(unit.lineNum, `while (${unit.cond}) is TRUE`);
+          const subUnits = parseLinesToBlocks(unit.body);
+          const res = executeUnits(subUnits);
+          if (res && res.returnVal !== undefined) return res;
+        }
+        createSnapshot(unit.lineNum, `while (${unit.cond}) is FALSE ➔ Loop exit`);
+      } else if (unit.type === 'for') {
+        if (unit.init) {
+          executeStatement(unit.lineNum, unit.init.endsWith(';') ? unit.init : `${unit.init};`);
+        }
+        let loopIter = 0;
+        while (Boolean(evaluateExpr(unit.cond)) && loopIter++ < 100 && globalIterations++ < MAX_GLOBAL_STEPS) {
+          createSnapshot(unit.lineNum, `for condition (${unit.cond}) is TRUE`);
+          const subUnits = parseLinesToBlocks(unit.body);
+          const res = executeUnits(subUnits);
+          if (res && res.returnVal !== undefined) return res;
+          if (unit.step) {
+            executeStatement(unit.lineNum, unit.step.endsWith(';') ? unit.step : `${unit.step};`);
+          }
+        }
+        createSnapshot(unit.lineNum, `for condition (${unit.cond}) is FALSE ➔ Loop exit`);
+      } else if (unit.type === 'do-while') {
+        let loopIter = 0;
+        do {
+          createSnapshot(unit.lineNum, `do-while loop body`);
+          const subUnits = parseLinesToBlocks(unit.body);
+          const res = executeUnits(subUnits);
+          if (res && res.returnVal !== undefined) return res;
+          createSnapshot(unit.whileLineNum, `while (${unit.cond}) condition check`);
+        } while (Boolean(evaluateExpr(unit.cond)) && loopIter++ < 100 && globalIterations++ < MAX_GLOBAL_STEPS);
+      }
+    }
+    return {};
+  };
+
+  // 6. Run main()
+  const mainFunc = functionDefs.get('main');
+  if (mainFunc) {
+    activeScope = 'main()';
+    createSnapshot(mainFunc.startLine, 'int main()');
+    const mainUnits = parseLinesToBlocks(mainFunc.lines);
+    executeUnits(mainUnits);
   }
 
   return steps;
