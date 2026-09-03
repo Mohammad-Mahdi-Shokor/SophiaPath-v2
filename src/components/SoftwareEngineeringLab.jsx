@@ -2340,337 +2340,562 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       const padding = 30;
       const padRight = tabKey === 'gantt' ? 0 : padding; // Exactly 0 extra right padding for Gantt
       const padBottom = tabKey === 'gantt' ? 80 : padding;
-      
       return {
         x: Math.max(0, minX - padding),
         y: Math.max(0, minY - padding),
-        width: (maxX - minX) + padding + padRight,
-        height: (maxY - minY) + padding + padBottom
+        width: (maxX - minX) + padding * 2,
+        height: (maxY - minY) + padding * 2
       };
     }
 
     return { x: 0, y: 0, width: 1200, height: 800 };
   };
 
-  const handleDownloadPreviewPng = async () => {
-    try {
-      const element = document.getElementById('se-preview-capture-content');
-      if (!element) return;
+  const getExportThemeColors = () => {
+    const computedStyle = getComputedStyle(document.documentElement);
+    const primaryMain = computedStyle.getPropertyValue('--primary-main').trim() || '#3B82F6';
+    const primaryDark = computedStyle.getPropertyValue('--primary-dark').trim() || '#1D4ED8';
+    const textPrimary = computedStyle.getPropertyValue('--text-primary').trim() || (activeTheme === 'dark' ? '#F9FAFB' : '#111827');
+    const textSecondary = computedStyle.getPropertyValue('--text-secondary').trim() || '#6B7280';
+    const bgPaper = computedStyle.getPropertyValue('--background-paper').trim() || (activeTheme === 'dark' ? '#1E1E1E' : '#FFFFFF');
+    const bgDefault = activeTheme === 'dark' ? '#121212' : '#ffffff';
+    const divider = computedStyle.getPropertyValue('--divider').trim() || '#E5E7EB';
+    return { primaryMain, primaryDark, textPrimary, textSecondary, bgPaper, bgDefault, divider };
+  };
 
-      if (document.fonts && document.fonts.ready) {
-        await document.fonts.ready;
-      }
+  const generatePureDiagramSvg = (tabKey, diagramCode, bounds, themeColors, activePositions = {}) => {
+    const padding = 40;
+    const x = Math.max(0, bounds.x - padding);
+    const y = Math.max(0, bounds.y - padding);
+    const width = bounds.width + padding * 2;
+    const height = bounds.height + padding * 2;
 
-      // Temporarily reset scroll position of the preview canvas container to avoid html2canvas cutoff bugs
-      const scrollLeft = previewCanvasContainerRef.current ? previewCanvasContainerRef.current.scrollLeft : 0;
-      const scrollTop = previewCanvasContainerRef.current ? previewCanvasContainerRef.current.scrollTop : 0;
-      if (previewCanvasContainerRef.current) {
-        previewCanvasContainerRef.current.scrollLeft = 0;
-        previewCanvasContainerRef.current.scrollTop = 0;
-      }
+    const { primaryMain, primaryDark, textPrimary, textSecondary, bgPaper, bgDefault, divider } = themeColors;
 
-      await new Promise(r => setTimeout(r, 60));
+    const escapeXml = (str) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
 
-      const bounds = getDiagramBounds(activeTabKey, code);
+    const renderCenteredTextLines = (text, cx, cy, nodeW, options = {}) => {
+      const fontSize = options.fontSize || 13;
+      const fontWeight = options.fontWeight || 700;
+      const fill = options.fill || textPrimary;
+      const lineHeight = options.lineHeight || Math.round(fontSize * 1.3);
+      const maxChars = options.maxChars || Math.max(10, Math.floor((nodeW - 20) / (fontSize * 0.58)));
 
-      const fullCanvas = await html2canvas(element, {
-        backgroundColor: activeTheme === 'dark' ? '#121212' : '#ffffff',
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDoc) => {
-          const fontLink = clonedDoc.createElement('link');
-          fontLink.rel = 'stylesheet';
-          fontLink.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap';
-          clonedDoc.head.appendChild(fontLink);
+      const words = (text || '').split(/\s+/).filter(Boolean);
+      const lines = [];
+      let currentLine = '';
 
-          const wrapper = clonedDoc.getElementById('se-preview-capture-content');
-          const inner = clonedDoc.getElementById('se-preview-canvas-inner');
-          if (wrapper && inner) {
-            inner.style.transform = 'none';
-            inner.style.backgroundImage = 'none';
-            inner.style.backgroundColor = activeTheme === 'dark' ? '#121212' : '#ffffff';
-            const reqW = (bounds.width + bounds.x + 100) + 'px';
-            const reqH = (bounds.height + bounds.y + 100) + 'px';
-            wrapper.style.width = reqW;
-            wrapper.style.height = reqH;
-            inner.style.width = reqW;
-            inner.style.height = reqH;
-
-            let parent = wrapper.parentElement;
-            while (parent && parent.tagName !== 'BODY') {
-              parent.style.overflow = 'visible';
-              parent.style.maxHeight = 'none';
-              parent.style.maxWidth = 'none';
-              parent.style.height = 'auto';
-              parent.style.width = 'auto';
-              parent = parent.parentElement;
-            }
-          }
+      words.forEach(word => {
+        if ((currentLine + ' ' + word).trim().length <= maxChars) {
+          currentLine = (currentLine + ' ' + word).trim();
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
         }
       });
+      if (currentLine) lines.push(currentLine);
+      if (lines.length === 0) lines.push(text || '');
 
-      // Restore scroll positions
-      if (previewCanvasContainerRef.current) {
-        previewCanvasContainerRef.current.scrollLeft = scrollLeft;
-        previewCanvasContainerRef.current.scrollTop = scrollTop;
+      const totalHeight = lines.length * lineHeight;
+      const startY = cy - totalHeight / 2 + lineHeight / 2;
+
+      return lines.map((line, idx) => {
+        const lineY = startY + idx * lineHeight;
+        return `<text x="${cx}" y="${lineY}" text-anchor="middle" dominant-baseline="central" fill="${fill}" font-size="${fontSize}" font-weight="${fontWeight}" font-family="'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${escapeXml(line)}</text>`;
+      }).join('\n');
+    };
+
+    let innerSvgContent = '';
+
+    if (tabKey === 'activity') {
+      const { nodes, transitions, partitions } = parseActivity(diagramCode);
+      const hasPartitions = partitions && partitions.length > 0;
+      const autoPos = computeActivityAutoLayout(nodes, transitions, partitions);
+
+      const nodeDim = (type) => {
+        if (type === 'start' || type === 'end') return { w: 36, h: 36 };
+        if (type === 'decision') return { w: 140, h: 70 };
+        if (type === 'fork' || type === 'join') return { w: 160, h: 12 };
+        return { w: 196, h: 54 };
+      };
+
+      let maxY = 700;
+      nodes.forEach(n => {
+        const p = activePositions[n.id] || autoPos[n.id] || { x: 400, y: 100 };
+        const dim = nodeDim(n.type);
+        if (p && p.y + dim.h + 80 > maxY) maxY = p.y + dim.h + 80;
+      });
+
+      const partBounds = [];
+      if (hasPartitions) {
+        let currentX = 80;
+        partitions.forEach((partName) => {
+          const partNodes = nodes.filter(n => (n.partition || partitions[0]) === partName);
+          let maxNodeRight = currentX + 380;
+          partNodes.forEach(n => {
+            const p = activePositions[n.id] || autoPos[n.id];
+            const dim = nodeDim(n.type);
+            if (p && p.x + dim.w + 50 > maxNodeRight) {
+              maxNodeRight = p.x + dim.w + 50;
+            }
+          });
+          const partW = Math.max(380, maxNodeRight - currentX);
+          const xLeft = currentX;
+          const xRight = currentX + partW;
+          partBounds.push({ xLeft, xRight, width: partW, xCenter: xLeft + partW / 2, partName });
+          currentX = xRight;
+        });
       }
 
-      // Perform dynamic in-memory canvas cropping to avoid DOM offset bugs
-      const cropCanvas = document.createElement('canvas');
-      cropCanvas.width = bounds.width * 2;
-      cropCanvas.height = bounds.height * 2;
-      const ctx = cropCanvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(
-          fullCanvas,
-          bounds.x * 2,
-          bounds.y * 2,
-          bounds.width * 2,
-          bounds.height * 2,
-          0,
-          0,
-          bounds.width * 2,
-          bounds.height * 2
-        );
+      // 1. Swimlane headers and dividers
+      let swimlanesSvg = '';
+      if (hasPartitions) {
+        swimlanesSvg = `<g id="export-activity-swimlanes">` + partBounds.map((pb, pIdx) => `
+          <rect x="${pb.xLeft + 10}" y="16" width="${pb.width - 20}" height="42" rx="10" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="2" />
+          <text x="${pb.xCenter}" y="37" text-anchor="middle" dominant-baseline="central" fill="${primaryMain}" font-size="16" font-weight="900" font-family="'Outfit', sans-serif" letter-spacing="0.08em">${escapeXml(pb.partName.toUpperCase())}</text>
+          <line x1="${pb.xLeft}" y1="16" x2="${pb.xLeft}" y2="${maxY}" stroke="${primaryMain}" stroke-opacity="0.4" stroke-width="2.5" stroke-dasharray="${pIdx === 0 ? 'none' : '5,5'}" />
+          ${pIdx === partBounds.length - 1 ? `<line x1="${pb.xRight}" y1="16" x2="${pb.xRight}" y2="${maxY}" stroke="${primaryMain}" stroke-opacity="0.4" stroke-width="2.5" />` : ''}
+        `).join('') + `</g>`;
+      }
 
-        // Draw watermark directly onto the cropped canvas in the bottom-right corner
-        const W = cropCanvas.width;
-        const H = cropCanvas.height;
-        const pad = 20 * 2; // 20px logical, x2 for scale
-        const logoSize = 32 * 2;
-        const fontSize = 22 * 2;
-        const gap = 10 * 2;
-        const sophiaText = 'Sophia';
-        const pathText = 'Path';
+      // 2. Transitions
+      const transitionsSvg = `<g id="export-activity-transitions">` + (transitions || []).map((t, idx) => {
+        const srcNode = nodes.find(n => n.id === t.source);
+        const tgtNode = nodes.find(n => n.id === t.target);
+        if (!srcNode || !tgtNode) return '';
 
-        // Resolve the exact live theme colors from CSS variables — matches navbar exactly
-        const rootStyle = getComputedStyle(document.documentElement);
-        const colorMain = rootStyle.getPropertyValue('--primary-main').trim();
-        const colorDark = rootStyle.getPropertyValue('--primary-dark').trim();
+        const rawP1 = activePositions[t.source] || autoPos[t.source];
+        const rawP2 = activePositions[t.target] || autoPos[t.target];
+        const p1 = { x: rawP1 && Number.isFinite(rawP1.x) ? rawP1.x : 400, y: rawP1 && Number.isFinite(rawP1.y) ? rawP1.y : 100 };
+        const p2 = { x: rawP2 && Number.isFinite(rawP2.x) ? rawP2.x : 400, y: rawP2 && Number.isFinite(rawP2.y) ? rawP2.y : 220 };
 
-        // Load logo first so we can read its true natural dimensions
-        const logoImage = new Image();
-        logoImage.src = logoImg;
-        await new Promise((resolve) => {
-          logoImage.onload = resolve;
-          logoImage.onerror = resolve;
-        });
+        const dim1 = nodeDim(srcNode.type);
+        const dim2 = nodeDim(tgtNode.type);
 
-        // Compute logo width that preserves aspect ratio at the target height
-        const logoH = logoSize;
-        const logoW = logoImage.naturalWidth > 0
-          ? Math.round(logoSize * (logoImage.naturalWidth / logoImage.naturalHeight))
-          : logoSize;
+        const srcCenter = { x: p1.x + dim1.w / 2, y: p1.y + dim1.h / 2 };
+        const tgtCenter = { x: p2.x + dim2.w / 2, y: p2.y + dim2.h / 2 };
+        const dx = tgtCenter.x - srcCenter.x;
+        const dy = tgtCenter.y - srcCenter.y;
+        const isLoopBack = (p2.y + dim2.h) < p1.y;
 
-        ctx.save();
-        ctx.font = `900 ${fontSize}px "Outfit", sans-serif`;
-        const sophiaWidth = ctx.measureText(sophiaText).width;
-        const pathWidth = ctx.measureText(pathText).width;
-        const totalWidth = logoW + gap + sophiaWidth + pathWidth;
-        const startX = W - pad - totalWidth;
-        const logoY = H - pad - logoH;
-        const textBaselineY = H - pad - logoH * 0.15;
+        let pathD = '';
+        let midX = (srcCenter.x + tgtCenter.x) / 2;
+        let midY = (srcCenter.y + tgtCenter.y) / 2;
 
-        // Replicate the exact navbar split-color logo using an offscreen canvas:
-        if (logoImage.complete && logoImage.naturalWidth > 0) {
-          const offscreen = document.createElement('canvas');
-          offscreen.width = logoW;
-          offscreen.height = logoH;
-          const offCtx = offscreen.getContext('2d');
+        if (isLoopBack) {
+          const startX = p1.x + dim1.w;
+          const startY = srcCenter.y;
+          const endX = p2.x + dim2.w;
+          const endY = tgtCenter.y;
+          const loopX = Math.max(p1.x + dim1.w, p2.x + dim2.w) + 60;
+          const r = 12;
+          pathD = `M ${startX} ${startY} H ${loopX - r} Q ${loopX} ${startY} ${loopX} ${startY - r} V ${endY + r} Q ${loopX} ${endY} ${loopX - r} ${endY} H ${endX}`;
+          midX = loopX;
+          midY = (startY + endY) / 2;
+        } else if (Math.abs(dy) < 35 && Math.abs(dx) > 40) {
+          if (dx > 0) {
+            const startX = p1.x + dim1.w;
+            const startY = srcCenter.y;
+            const endX = p2.x;
+            const endY = tgtCenter.y;
+            pathD = `M ${startX} ${startY} L ${endX} ${endY}`;
+            midX = (startX + endX) / 2;
+            midY = startY;
+          } else {
+            const startX = p1.x;
+            const startY = srcCenter.y;
+            const endX = p2.x + dim2.w;
+            const endY = tgtCenter.y;
+            pathD = `M ${startX} ${startY} L ${endX} ${endY}`;
+            midX = (startX + endX) / 2;
+            midY = startY;
+          }
+        } else if (srcNode.type === 'decision' && Math.abs(dx) > 60) {
+          const startX = dx > 0 ? p1.x + dim1.w : p1.x;
+          const startY = srcCenter.y;
+          const endX = tgtCenter.x;
+          const endY = p2.y;
+          const r = 12;
+          const cornerX = endX;
+          if (cornerX > startX) {
+            pathD = `M ${startX} ${startY} H ${cornerX - r} Q ${cornerX} ${startY} ${cornerX} ${startY + r} V ${endY}`;
+          } else {
+            pathD = `M ${startX} ${startY} H ${cornerX + r} Q ${cornerX} ${startY} ${cornerX} ${startY + r} V ${endY}`;
+          }
+          midX = (startX + endX) / 2;
+          midY = startY;
+        } else {
+          const startX = srcCenter.x;
+          const startY = p1.y + dim1.h;
+          const endX = tgtCenter.x;
+          const endY = p2.y;
 
-          offCtx.fillStyle = colorMain;
-          offCtx.fillRect(0, 0, logoW / 2, logoH);
-
-          offCtx.fillStyle = colorDark;
-          offCtx.fillRect(logoW / 2, 0, logoW / 2, logoH);
-
-          offCtx.globalCompositeOperation = 'destination-in';
-          offCtx.drawImage(logoImage, 0, 0, logoW, logoH);
-
-          ctx.globalAlpha = 0.5;
-          ctx.drawImage(offscreen, startX, logoY, logoW, logoH);
+          if (Math.abs(startX - endX) < 8) {
+            pathD = `M ${startX} ${startY} L ${endX} ${endY}`;
+            midX = startX;
+            midY = (startY + endY) / 2;
+          } else {
+            const r = 12;
+            const stepY = startY + Math.min(28, Math.max(16, (endY - startY) * 0.45));
+            if (endX > startX) {
+              pathD = `M ${startX} ${startY} V ${stepY - r} Q ${startX} ${stepY} ${startX + r} ${stepY} H ${endX - r} Q ${endX} ${stepY} ${endX} ${stepY + r} V ${endY}`;
+            } else {
+              pathD = `M ${startX} ${startY} V ${stepY - r} Q ${startX} ${stepY} ${startX - r} ${stepY} H ${endX + r} Q ${endX} ${stepY} ${endX} ${stepY + r} V ${endY}`;
+            }
+            midX = (startX + endX) / 2;
+            midY = stepY;
+          }
         }
 
-        ctx.globalAlpha = 0.5;
-        ctx.font = `900 ${fontSize}px "Outfit", sans-serif`;
-        ctx.fillStyle = colorMain;
-        ctx.fillText(sophiaText, startX + logoW + gap, textBaselineY);
+        return `
+          <g id="trans-${idx}">
+            <path d="${pathD}" fill="none" stroke="${primaryMain}" stroke-width="2" marker-end="url(#activity-arrow)" />
+            ${t.guard ? `
+              <g transform="translate(${midX}, ${midY})">
+                <rect x="${-((t.guard.length * 7 + 16) / 2)}" y="-10" width="${t.guard.length * 7 + 16}" height="20" rx="10" fill="${bgPaper}" stroke="${divider}" stroke-width="1" />
+                <text x="0" y="0" text-anchor="middle" dominant-baseline="central" fill="${textSecondary}" font-size="10" font-weight="700" font-family="'Outfit', sans-serif">[${escapeXml(t.guard)}]</text>
+              </g>
+            ` : ''}
+          </g>
+        `;
+      }).join('') + `</g>`;
 
-        ctx.fillStyle = colorDark;
-        ctx.fillText(pathText, startX + logoW + gap + sophiaWidth, textBaselineY);
+      // 3. Nodes
+      const nodesSvg = `<g id="export-activity-nodes">` + nodes.map((node, idx) => {
+        const p = activePositions[node.id] || autoPos[node.id] || { x: 400, y: idx * 110 + 80 };
 
-        ctx.restore();
+        if (node.type === 'start') {
+          const cx = p.x + 18;
+          const cy = p.y + 18;
+          return `
+            <circle cx="${cx}" cy="${cy}" r="14" fill="#10B981" />
+            <circle cx="${cx}" cy="${cy}" r="6" fill="${bgDefault}" />
+          `;
+        }
+        if (node.type === 'end') {
+          const cx = p.x + 18;
+          const cy = p.y + 18;
+          return `
+            <circle cx="${cx}" cy="${cy}" r="15" fill="${bgPaper}" stroke="#EF4444" stroke-width="2" />
+            <circle cx="${cx}" cy="${cy}" r="9" fill="#EF4444" />
+          `;
+        }
+        if (node.type === 'fork' || node.type === 'join') {
+          return `<rect x="${p.x}" y="${p.y}" width="160" height="12" rx="6" fill="${primaryMain}" />`;
+        }
+        if (node.type === 'decision') {
+          const cx = p.x + 70;
+          const cy = p.y + 35;
+          const textSvg = renderCenteredTextLines(node.label, cx, cy, 110, { fontSize: 11, lineHeight: 14, fontWeight: 800 });
+          return `
+            <g id="decision-${node.id}">
+              <polygon points="${cx},${p.y} ${p.x + 140},${cy} ${cx},${p.y + 70} ${p.x},${cy}" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
+              ${textSvg}
+            </g>
+          `;
+        }
+        // Action card
+        const cx = p.x + 98;
+        const cy = p.y + 27;
+        const textSvg = renderCenteredTextLines(node.label, cx, cy, 175, { fontSize: 13, lineHeight: 16, fontWeight: 700 });
+        return `
+          <g id="action-${node.id}">
+            <rect x="${p.x}" y="${p.y}" width="196" height="54" rx="12" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
+            ${textSvg}
+          </g>
+        `;
+      }).join('') + `</g>`;
+
+      innerSvgContent = swimlanesSvg + transitionsSvg + nodesSvg;
+    } else if (tabKey === 'usecase') {
+      const { actors, usecases, links } = parseUseCase(diagramCode);
+      const autoPos = computeUseCaseAutoLayout(actors, usecases, links, useCaseActorPlacement);
+
+      const rightActors = actors.filter(a => (activePositions[a.id]?.x || autoPos[a.id]?.x || 0) >= 600);
+      const isDualColumn = rightActors.length > 0;
+      const boxLeft = 240;
+      const boxWidth = isDualColumn ? 680 : 480;
+      const boxTop = 60;
+      const boxHeight = Math.max(500, usecases.length * 110 + 120);
+
+      const systemBoundarySvg = `
+        <rect x="${boxLeft}" y="${boxTop}" width="${boxWidth}" height="${boxHeight}" rx="16" fill="${bgDefault}" stroke="${primaryMain}" stroke-width="1.5" stroke-dasharray="6,6" />
+        <text x="${boxLeft + boxWidth / 2}" y="${boxTop + 24}" text-anchor="middle" dominant-baseline="central" fill="${primaryMain}" font-size="14" font-weight="900" font-family="'Outfit', sans-serif" letter-spacing="0.05em">SYSTEM BOUNDARY</text>
+      `;
+
+      const linksSvg = `<g id="export-usecase-links">` + (links || []).map(link => {
+        const act = actors.find(a => a.id === link.source || a.name === link.source);
+        const uc = usecases.find(u => u.id === link.target || u.name === link.target);
+        if (!act || !uc) return '';
+        const pAct = activePositions[act.id] || autoPos[act.id] || { x: 100, y: 150 };
+        const pUc = activePositions[uc.id] || autoPos[uc.id] || { x: 420, y: 100 };
+
+        const isActLeft = pAct.x < pUc.x;
+        const startX = isActLeft ? pAct.x + 76 : pAct.x;
+        const startY = pAct.y + 40;
+        const endX = isActLeft ? pUc.x : pUc.x + 200;
+        const endY = pUc.y + 25;
+
+        return `<path d="M ${startX} ${startY} L ${endX} ${endY}" fill="none" stroke="${primaryMain}" stroke-width="1.5" marker-end="url(#usecase-arrow)" />`;
+      }).join('') + `</g>`;
+
+      const usecasesSvg = `<g id="export-usecases">` + usecases.map((uc, idx) => {
+        const p = activePositions[uc.id] || autoPos[uc.id] || { x: 420, y: idx * 110 + 100 };
+        const cx = p.x + 100;
+        const cy = p.y + 25;
+        const textSvg = renderCenteredTextLines(uc.label || uc.name, cx, cy, 180, { fontSize: 12, lineHeight: 15, fontWeight: 700 });
+        return `
+          <g id="uc-${uc.id}">
+            <ellipse cx="${cx}" cy="${cy}" rx="100" ry="25" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
+            ${textSvg}
+          </g>
+        `;
+      }).join('') + `</g>`;
+
+      const actorsSvg = `<g id="export-actors">` + actors.map((act, idx) => {
+        const p = activePositions[act.id] || autoPos[act.id] || { x: 100, y: idx * 180 + 150 };
+        const cx = p.x + 38;
+        return `
+          <g id="act-${act.id}">
+            <circle cx="${cx}" cy="${p.y + 24}" r="12" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="3" />
+            <line x1="${cx}" y1="${p.y + 36}" x2="${cx}" y2="${p.y + 68}" stroke="${primaryMain}" stroke-width="3" />
+            <line x1="${cx - 20}" y1="${p.y + 46}" x2="${cx + 20}" y2="${p.y + 46}" stroke="${primaryMain}" stroke-width="3" />
+            <line x1="${cx}" y1="${p.y + 68}" x2="${cx - 15}" y2="${p.y + 92}" stroke="${primaryMain}" stroke-width="3" />
+            <line x1="${cx}" y1="${p.y + 68}" x2="${cx + 15}" y2="${p.y + 92}" stroke="${primaryMain}" stroke-width="3" />
+            <text x="${cx}" y="${p.y + 106}" text-anchor="middle" dominant-baseline="central" fill="${textPrimary}" font-size="12" font-weight="800" font-family="'Outfit', sans-serif">${escapeXml(act.label || act.name)}</text>
+          </g>
+        `;
+      }).join('') + `</g>`;
+
+      innerSvgContent = systemBoundarySvg + linksSvg + usecasesSvg + actorsSvg;
+    } else if (tabKey === 'er') {
+      const { entities, relationships } = parseER(diagramCode);
+      const autoPos = computeERAutoLayout(entities, relationships);
+
+      const entitiesSvg = `<g id="export-er-entities">` + entities.map((entity, idx) => {
+        const p = activePositions[entity.name] || autoPos[entity.name] || { x: (idx % 3) * 320 + 120, y: Math.floor(idx / 3) * 220 + 100 };
+        const entW = getEntityWidth(entity.name);
+        const cx = p.x + entW / 2;
+        const cy = p.y + 25;
+        return `
+          <g id="ent-${entity.name}">
+            <rect x="${p.x}" y="${p.y}" width="${entW}" height="50" rx="12" fill="${primaryMain}" />
+            <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-size="14" font-weight="800" font-family="'Outfit', sans-serif" letter-spacing="0.5px">${escapeXml(entity.name)}</text>
+          </g>
+        `;
+      }).join('') + `</g>`;
+
+      let attributesSvg = `<g id="export-er-attributes">`;
+      entities.forEach(entity => {
+        const fields = entity.fields || [];
+        fields.forEach(f => {
+          const attrKey = `${entity.name}::attr::${f.name}`;
+          const attrPos = activePositions[attrKey] || autoPos[attrKey];
+          if (attrPos) {
+            const isPk = f.isPk;
+            const isFk = f.isFk;
+            attributesSvg += `
+              <ellipse cx="${attrPos.x}" cy="${attrPos.y}" rx="42" ry="18" fill="${bgPaper}" stroke="${isPk ? primaryMain : divider}" stroke-width="${isPk ? 2 : 1.5}" ${isFk ? 'stroke-dasharray="3,3"' : ''} />
+              <text x="${attrPos.x}" y="${attrPos.y}" text-anchor="middle" dominant-baseline="central" fill="${textPrimary}" font-size="11" font-weight="${isPk ? 800 : 500}" font-family="'Outfit', sans-serif" ${isPk ? 'text-decoration="underline"' : ''}>${escapeXml(f.name)}</text>
+            `;
+          }
+        });
+      });
+      attributesSvg += `</g>`;
+
+      const relsSvg = `<g id="export-er-relationships">` + relationships.map(rel => {
+        const relKey = `${rel.source}::rel::${rel.target}`;
+        const relPos = activePositions[relKey] || autoPos[relKey];
+        if (!relPos) return '';
+        return `
+          <g id="rel-${rel.source}-${rel.target}">
+            <polygon points="${relPos.x},${relPos.y - 22} ${relPos.x + 40},${relPos.y} ${relPos.x},${relPos.y + 22} ${relPos.x - 40},${relPos.y}" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
+            <text x="${relPos.x}" y="${relPos.y}" text-anchor="middle" dominant-baseline="central" fill="${textPrimary}" font-size="11" font-weight="800" font-family="'Outfit', sans-serif">${escapeXml(rel.label || 'Rel')}</text>
+          </g>
+        `;
+      }).join('') + `</g>`;
+
+      innerSvgContent = entitiesSvg + attributesSvg + relsSvg;
+    } else {
+      // Sequence & Gantt fallback
+      const inner = document.getElementById(activePositions._isPreview ? 'se-preview-canvas-inner' : 'se-main-canvas-inner');
+      if (inner) {
+        const clone = inner.cloneNode(true);
+        let cloneHtml = clone.innerHTML
+          .replaceAll('var(--primary-main)', primaryMain)
+          .replaceAll('var(--primary-dark)', primaryDark)
+          .replaceAll('var(--text-primary)', textPrimary)
+          .replaceAll('var(--text-secondary)', textSecondary)
+          .replaceAll('var(--background-paper)', bgPaper)
+          .replaceAll('var(--background-default)', bgDefault)
+          .replaceAll('var(--divider)', divider);
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}" style="background-color: ${bgDefault}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <style type="text/css">
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&amp;display=swap');
+    </style>
+  </defs>
+  <foreignObject x="0" y="0" width="4000" height="4000">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width: 4000px; height: 4000px; position: relative; background-color: ${bgDefault}; color: ${textPrimary}; font-family: 'Outfit', sans-serif;">
+      ${cloneHtml}
+    </div>
+  </foreignObject>
+</svg>`;
       }
+    }
 
-      const link = document.createElement('a');
-      link.download = `${activeTabKey}_diagram.png`;
-      link.href = cropCanvas.toDataURL('image/png');
-      link.click();
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}" style="background-color: ${bgDefault}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <style type="text/css">
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&amp;display=swap');
+    </style>
+    <marker id="crow-foot-many" viewBox="0 0 20 20" refX="20" refY="10" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 4 L 20 10 L 0 16 M 10 0 L 10 20" fill="none" stroke="${primaryMain}" stroke-width="2" />
+    </marker>
+    <marker id="crow-foot-one" viewBox="0 0 20 20" refX="20" refY="10" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <line x1="8" y1="2" x2="8" y2="18" stroke="${primaryMain}" stroke-width="2" />
+      <line x1="14" y1="2" x2="14" y2="18" stroke="${primaryMain}" stroke-width="2" />
+    </marker>
+    <marker id="usecase-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9" fill="none" stroke="${primaryMain}" stroke-width="1.5" />
+    </marker>
+    <marker id="usecase-generalization-arrow" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 2 L 12 6 L 0 10 Z" fill="${bgDefault}" stroke="${primaryMain}" stroke-width="1.5" />
+    </marker>
+    <marker id="activity-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1.5 L 9 5 L 0 8.5 Z" fill="${primaryMain}" stroke="${primaryMain}" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+  </defs>
+  ${innerSvgContent}
+</svg>`;
+  };
+
+  const renderSvgToPngBlob = (svgString, width, height, themeColors) => {
+    return new Promise((resolve, reject) => {
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = async () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = width * 2;
+          canvas.height = height * 2;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = themeColors.bgDefault;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(url);
+
+          const W = canvas.width;
+          const H = canvas.height;
+          const pad = 20 * 2;
+          const logoSize = 32 * 2;
+          const fontSize = 22 * 2;
+          const gap = 10 * 2;
+          const sophiaText = 'Sophia';
+          const pathText = 'Path';
+
+          const logoImage = new Image();
+          logoImage.src = logoImg;
+          await new Promise((res) => {
+            logoImage.onload = res;
+            logoImage.onerror = res;
+          });
+
+          const logoH = logoSize;
+          const logoW = logoImage.naturalWidth > 0
+            ? Math.round(logoSize * (logoImage.naturalWidth / logoImage.naturalHeight))
+            : logoSize;
+
+          ctx.save();
+          ctx.font = `900 ${fontSize}px "Outfit", sans-serif`;
+          const sophiaWidth = ctx.measureText(sophiaText).width;
+          const pathWidth = ctx.measureText(pathText).width;
+          const totalWidth = logoW + gap + sophiaWidth + pathWidth;
+          const startX = W - pad - totalWidth;
+          const logoY = H - pad - logoH;
+          const textBaselineY = H - pad - logoH * 0.15;
+
+          if (logoImage.complete && logoImage.naturalWidth > 0) {
+            const offscreen = document.createElement('canvas');
+            offscreen.width = logoW;
+            offscreen.height = logoH;
+            const offCtx = offscreen.getContext('2d');
+            offCtx.fillStyle = themeColors.primaryMain;
+            offCtx.fillRect(0, 0, logoW / 2, logoH);
+            offCtx.fillStyle = themeColors.primaryDark;
+            offCtx.fillRect(logoW / 2, 0, logoW / 2, logoH);
+            offCtx.globalCompositeOperation = 'destination-in';
+            offCtx.drawImage(logoImage, 0, 0, logoW, logoH);
+
+            ctx.globalAlpha = 0.5;
+            ctx.drawImage(offscreen, startX, logoY, logoW, logoH);
+          }
+
+          ctx.globalAlpha = 0.5;
+          ctx.font = `900 ${fontSize}px "Outfit", sans-serif`;
+          ctx.fillStyle = themeColors.primaryMain;
+          ctx.fillText(sophiaText, startX + logoW + gap, textBaselineY);
+          ctx.fillStyle = themeColors.primaryDark;
+          ctx.fillText(pathText, startX + logoW + gap + sophiaWidth, textBaselineY);
+          ctx.restore();
+
+          canvas.toBlob((pngBlob) => {
+            resolve(pngBlob);
+          }, 'image/png');
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = (err) => {
+        URL.revokeObjectURL(url);
+        reject(err);
+      };
+      img.src = url;
+    });
+  };
+
+  const handleDownloadPreviewPng = async () => {
+    try {
+      const bounds = getDiagramBounds(activeTabKey, code);
+      const themeColors = getExportThemeColors();
+      const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, { ...nodePositions, _isPreview: true });
+      const pngBlob = await renderSvgToPngBlob(svgDoc, bounds.width + 80, bounds.height + 80, themeColors);
+      if (pngBlob) {
+        const link = document.createElement('a');
+        link.download = `${activeTabKey}_diagram.png`;
+        link.href = URL.createObjectURL(pngBlob);
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
     } catch (err) {
-      console.error('Failed to capture PNG:', err);
+      console.error('Failed to capture preview PNG:', err);
     }
   };
 
   const handleDownloadPng = async () => {
     try {
-      const element = document.getElementById('se-main-capture-content');
-      if (!element) return;
-
-      if (document.fonts && document.fonts.ready) {
-        await document.fonts.ready;
-      }
-
-      // Temporarily reset scroll position of the canvas container to avoid html2canvas cutoff bugs
-      const scrollLeft = canvasContainerRef.current ? canvasContainerRef.current.scrollLeft : 0;
-      const scrollTop = canvasContainerRef.current ? canvasContainerRef.current.scrollTop : 0;
-      if (canvasContainerRef.current) {
-        canvasContainerRef.current.scrollLeft = 0;
-        canvasContainerRef.current.scrollTop = 0;
-      }
-
-      await new Promise(r => setTimeout(r, 60));
-
       const bounds = getDiagramBounds(activeTabKey, code);
-
-      const fullCanvas = await html2canvas(element, {
-        backgroundColor: activeTheme === 'dark' ? '#121212' : '#ffffff',
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDoc) => {
-          const fontLink = clonedDoc.createElement('link');
-          fontLink.rel = 'stylesheet';
-          fontLink.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap';
-          clonedDoc.head.appendChild(fontLink);
-
-          const wrapper = clonedDoc.getElementById('se-main-capture-content');
-          const inner = clonedDoc.getElementById('se-main-canvas-inner');
-          if (wrapper && inner) {
-            inner.style.transform = 'none';
-            inner.style.backgroundImage = 'none';
-            inner.style.backgroundColor = activeTheme === 'dark' ? '#121212' : '#ffffff';
-            const reqW = (bounds.width + bounds.x + 100) + 'px';
-            const reqH = (bounds.height + bounds.y + 100) + 'px';
-            wrapper.style.width = reqW;
-            wrapper.style.height = reqH;
-            inner.style.width = reqW;
-            inner.style.height = reqH;
-
-            let parent = wrapper.parentElement;
-            while (parent && parent.tagName !== 'BODY') {
-              parent.style.overflow = 'visible';
-              parent.style.maxHeight = 'none';
-              parent.style.maxWidth = 'none';
-              parent.style.height = 'auto';
-              parent.style.width = 'auto';
-              parent = parent.parentElement;
-            }
-          }
-        }
-      });
-
-      // Restore scroll positions
-      if (canvasContainerRef.current) {
-        canvasContainerRef.current.scrollLeft = scrollLeft;
-        canvasContainerRef.current.scrollTop = scrollTop;
+      const themeColors = getExportThemeColors();
+      const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, nodePositions);
+      const pngBlob = await renderSvgToPngBlob(svgDoc, bounds.width + 80, bounds.height + 80, themeColors);
+      if (pngBlob) {
+        const link = document.createElement('a');
+        link.download = `${activeTabKey}_diagram.png`;
+        link.href = URL.createObjectURL(pngBlob);
+        link.click();
+        URL.revokeObjectURL(link.href);
       }
-
-      // Perform dynamic in-memory canvas cropping to avoid DOM offset bugs
-      const cropCanvas = document.createElement('canvas');
-      cropCanvas.width = bounds.width * 2;
-      cropCanvas.height = bounds.height * 2;
-      const ctx = cropCanvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(
-          fullCanvas,
-          bounds.x * 2,
-          bounds.y * 2,
-          bounds.width * 2,
-          bounds.height * 2,
-          0,
-          0,
-          bounds.width * 2,
-          bounds.height * 2
-        );
-
-        // Draw watermark directly onto the cropped canvas in the bottom-right corner
-        const W = cropCanvas.width;
-        const H = cropCanvas.height;
-        const pad = 20 * 2; // 20px logical, x2 for scale
-        const logoSize = 32 * 2;
-        const fontSize = 22 * 2;
-        const gap = 10 * 2;
-        const sophiaText = 'Sophia';
-        const pathText = 'Path';
-
-        // Resolve the exact live theme colors from CSS variables — matches navbar exactly
-        const rootStyle = getComputedStyle(document.documentElement);
-        const colorMain = rootStyle.getPropertyValue('--primary-main').trim();
-        const colorDark = rootStyle.getPropertyValue('--primary-dark').trim();
-
-        // Load logo first so we can read its true natural dimensions
-        const logoImage = new Image();
-        logoImage.src = logoImg;
-        await new Promise((resolve) => {
-          logoImage.onload = resolve;
-          logoImage.onerror = resolve;
-        });
-
-        // Compute logo width that preserves aspect ratio at the target height
-        const logoH = logoSize;
-        const logoW = logoImage.naturalWidth > 0
-          ? Math.round(logoSize * (logoImage.naturalWidth / logoImage.naturalHeight))
-          : logoSize;
-
-        ctx.save();
-        ctx.font = `900 ${fontSize}px "Outfit", sans-serif`;
-        const sophiaWidth = ctx.measureText(sophiaText).width;
-        const pathWidth = ctx.measureText(pathText).width;
-        const totalWidth = logoW + gap + sophiaWidth + pathWidth;
-        const startX = W - pad - totalWidth;
-        const logoY = H - pad - logoH;
-        const textBaselineY = H - pad - logoH * 0.15;
-
-        // Replicate the exact navbar split-color logo using an offscreen canvas:
-        if (logoImage.complete && logoImage.naturalWidth > 0) {
-          const offscreen = document.createElement('canvas');
-          offscreen.width = logoW;
-          offscreen.height = logoH;
-          const offCtx = offscreen.getContext('2d');
-
-          offCtx.fillStyle = colorMain;
-          offCtx.fillRect(0, 0, logoW / 2, logoH);
-
-          offCtx.fillStyle = colorDark;
-          offCtx.fillRect(logoW / 2, 0, logoW / 2, logoH);
-
-          offCtx.globalCompositeOperation = 'destination-in';
-          offCtx.drawImage(logoImage, 0, 0, logoW, logoH);
-
-          ctx.globalAlpha = 0.5;
-          ctx.drawImage(offscreen, startX, logoY, logoW, logoH);
-        }
-
-        ctx.globalAlpha = 0.5;
-        ctx.font = `900 ${fontSize}px "Outfit", sans-serif`;
-        ctx.fillStyle = colorMain;
-        ctx.fillText(sophiaText, startX + logoW + gap, textBaselineY);
-
-        ctx.fillStyle = colorDark;
-        ctx.fillText(pathText, startX + logoW + gap + sophiaWidth, textBaselineY);
-
-        ctx.restore();
-      }
-
-      const link = document.createElement('a');
-      link.download = `${activeTabKey}_diagram.png`;
-      link.href = cropCanvas.toDataURL('image/png');
-      link.click();
     } catch (err) {
       console.error('Failed to capture PNG:', err);
     }
@@ -2678,54 +2903,9 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
   const handleDownloadSvg = async () => {
     try {
-      const inner = document.getElementById('se-main-canvas-inner');
-      if (!inner) return;
-
       const bounds = getDiagramBounds(activeTabKey, code);
-      const padding = 40;
-      const x = Math.max(0, bounds.x - padding);
-      const y = Math.max(0, bounds.y - padding);
-      const width = bounds.width + padding * 2;
-      const height = bounds.height + padding * 2;
-
-      const computedStyle = getComputedStyle(document.documentElement);
-      const primaryMain = computedStyle.getPropertyValue('--primary-main').trim() || '#3B82F6';
-      const primaryDark = computedStyle.getPropertyValue('--primary-dark').trim() || '#1D4ED8';
-      const textPrimary = computedStyle.getPropertyValue('--text-primary').trim() || (activeTheme === 'dark' ? '#F9FAFB' : '#111827');
-      const textSecondary = computedStyle.getPropertyValue('--text-secondary').trim() || '#6B7280';
-      const bgPaper = computedStyle.getPropertyValue('--background-paper').trim() || (activeTheme === 'dark' ? '#1E1E1E' : '#FFFFFF');
-      const bgDefault = activeTheme === 'dark' ? '#121212' : '#ffffff';
-      const divider = computedStyle.getPropertyValue('--divider').trim() || '#E5E7EB';
-
-      const clone = inner.cloneNode(true);
-      clone.style.transform = 'none';
-      clone.style.backgroundImage = 'none';
-      clone.style.backgroundColor = bgDefault;
-
-      const svgDoc = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}" style="background-color: ${bgDefault}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <defs>
-    <style type="text/css">
-      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&amp;display=swap');
-      :root {
-        --primary-main: ${primaryMain};
-        --primary-dark: ${primaryDark};
-        --text-primary: ${textPrimary};
-        --text-secondary: ${textSecondary};
-        --background-paper: ${bgPaper};
-        --background-default: ${bgDefault};
-        --divider: ${divider};
-      }
-      * { box-sizing: border-box; }
-    </style>
-  </defs>
-  <foreignObject x="0" y="0" width="4000" height="4000">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="width: 4000px; height: 4000px; position: relative; background-color: ${bgDefault}; color: ${textPrimary}; font-family: 'Outfit', sans-serif;">
-      ${clone.innerHTML}
-    </div>
-  </foreignObject>
-</svg>`;
-
+      const themeColors = getExportThemeColors();
+      const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, nodePositions);
       const blob = new Blob([svgDoc], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -2742,54 +2922,9 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
   const handleDownloadPreviewSvg = async () => {
     try {
-      const inner = document.getElementById('se-preview-canvas-inner');
-      if (!inner) return;
-
       const bounds = getDiagramBounds(activeTabKey, code);
-      const padding = 40;
-      const x = Math.max(0, bounds.x - padding);
-      const y = Math.max(0, bounds.y - padding);
-      const width = bounds.width + padding * 2;
-      const height = bounds.height + padding * 2;
-
-      const computedStyle = getComputedStyle(document.documentElement);
-      const primaryMain = computedStyle.getPropertyValue('--primary-main').trim() || '#3B82F6';
-      const primaryDark = computedStyle.getPropertyValue('--primary-dark').trim() || '#1D4ED8';
-      const textPrimary = computedStyle.getPropertyValue('--text-primary').trim() || (activeTheme === 'dark' ? '#F9FAFB' : '#111827');
-      const textSecondary = computedStyle.getPropertyValue('--text-secondary').trim() || '#6B7280';
-      const bgPaper = computedStyle.getPropertyValue('--background-paper').trim() || (activeTheme === 'dark' ? '#1E1E1E' : '#FFFFFF');
-      const bgDefault = activeTheme === 'dark' ? '#121212' : '#ffffff';
-      const divider = computedStyle.getPropertyValue('--divider').trim() || '#E5E7EB';
-
-      const clone = inner.cloneNode(true);
-      clone.style.transform = 'none';
-      clone.style.backgroundImage = 'none';
-      clone.style.backgroundColor = bgDefault;
-
-      const svgDoc = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}" style="background-color: ${bgDefault}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <defs>
-    <style type="text/css">
-      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&amp;display=swap');
-      :root {
-        --primary-main: ${primaryMain};
-        --primary-dark: ${primaryDark};
-        --text-primary: ${textPrimary};
-        --text-secondary: ${textSecondary};
-        --background-paper: ${bgPaper};
-        --background-default: ${bgDefault};
-        --divider: ${divider};
-      }
-      * { box-sizing: border-box; }
-    </style>
-  </defs>
-  <foreignObject x="0" y="0" width="4000" height="4000">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="width: 4000px; height: 4000px; position: relative; background-color: ${bgDefault}; color: ${textPrimary}; font-family: 'Outfit', sans-serif;">
-      ${clone.innerHTML}
-    </div>
-  </foreignObject>
-</svg>`;
-
+      const themeColors = getExportThemeColors();
+      const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, { ...nodePositions, _isPreview: true });
       const blob = new Blob([svgDoc], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -5679,9 +5814,10 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                     y1={16}
                     x2={pb.xLeft}
                     y2={maxY}
-                    stroke="var(--divider)"
-                    strokeWidth={2}
-                    strokeDasharray={pIdx === 0 ? 'none' : '4,4'}
+                    stroke="var(--primary-main)"
+                    strokeOpacity={0.4}
+                    strokeWidth={2.5}
+                    strokeDasharray={pIdx === 0 ? 'none' : '5,5'}
                   />
                   {pIdx === partBounds.length - 1 && (
                     <line
@@ -5689,8 +5825,9 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                       y1={16}
                       x2={pb.xRight}
                       y2={maxY}
-                      stroke="var(--divider)"
-                      strokeWidth={2}
+                      stroke="var(--primary-main)"
+                      strokeOpacity={0.4}
+                      strokeWidth={2.5}
                     />
                   )}
                 </g>
@@ -5798,7 +5935,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
           const isEdgeTraversed = simVisitedEdges.includes(t.id);
           const strokeColor = isEdgeTraversed ? '#00FFCC' : 'var(--primary-main)';
-          const strokeWidth = isEdgeTraversed ? 2.5 : 1.75;
+          const strokeWidth = isEdgeTraversed ? 2.5 : 2;
 
           return (
             <g key={`act-trans-${idx}`} className="activity-transition-group">
@@ -5808,7 +5945,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                 stroke={strokeColor}
                 strokeWidth={strokeWidth}
                 markerEnd="url(#activity-arrow)"
-                opacity={isSimulating && !isEdgeTraversed ? 0.8 : 1}
+                opacity={isSimulating && !isEdgeTraversed ? 0.9 : 1}
                 style={{ transition: 'stroke 0.3s ease, opacity 0.3s ease' }}
               />
               {t.guard && (
@@ -6735,7 +6872,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                           <path d="M 0 2 L 12 6 L 0 10 Z" fill="var(--background-default)" stroke="var(--primary-main)" strokeWidth="1.5" />
                         </marker>
                         <marker id="activity-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                          <path d="M 0 1.5 L 9 5 L 0 8.5" fill="none" stroke="var(--primary-main)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M 0 1.5 L 9 5 L 0 8.5 Z" fill="var(--primary-main)" stroke="var(--primary-main)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                         </marker>
                       </defs>
 
@@ -7682,7 +7819,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                           <path d="M 0 2 L 12 6 L 0 10 Z" fill="var(--background-default)" stroke="var(--primary-main)" strokeWidth="1.5" />
                         </marker>
                         <marker id="activity-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                          <path d="M 0 1.5 L 9 5 L 0 8.5" fill="none" stroke="var(--primary-main)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M 0 1.5 L 9 5 L 0 8.5 Z" fill="var(--primary-main)" stroke="var(--primary-main)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                         </marker>
                       </defs>
 
