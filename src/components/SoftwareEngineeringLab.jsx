@@ -3444,7 +3444,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       return actors.indexOf(a) - actors.indexOf(b);
     });
 
-    // Group/traverse actors hierarchically per side
+    // Group/traverse actors hierarchically per side (parents on top, children below)
     const visited = new Set();
     const sortedLeftActors = [];
     const sortedRightActors = [];
@@ -3691,7 +3691,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     const prevBottomPerLevelLeft = {};
     const prevBottomPerLevelRight = {};
 
-    // Position Left Actors
+    // Position Left Actors (Parent on top/outer-left, children below/inner-right)
     sortedLeftActors.forEach((actor) => {
       const level = actorLevels[actor.id] || 0;
       const prevBottom = prevBottomPerLevelLeft[level] !== undefined ? prevBottomPerLevelLeft[level] : (MARGIN_TOP - ACTOR_PADDING);
@@ -3727,7 +3727,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       prevBottomPerLevelLeft[level] = actorTop + AC_H;
     });
 
-    // Position Right Actors (Parents on the right, children on the left closer to system block)
+    // Position Right Actors (Mirrors Left: Parent on top/outer-right, children below/inner-left)
     const maxRightLevel = sortedRightActors.length > 0 ? Math.max(...sortedRightActors.map(a => actorLevels[a.id] || 0)) : 0;
 
     sortedRightActors.forEach((actor) => {
@@ -4006,25 +4006,36 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     const nodeMap = {};
     nodes.forEach(n => { nodeMap[n.id] = n; });
 
-    // 1. Build adjacency list and in-degrees
+    const getNodeDim = (type) => {
+      if (type === 'start' || type === 'end') return { w: 36, h: 36 };
+      if (type === 'decision') return { w: 140, h: 70 };
+      if (type === 'fork' || type === 'join') return { w: 160, h: 12 };
+      return { w: 196, h: 54 };
+    };
+
+    // 1. Build adjacency list, parents list, and degrees
     const adj = {};
+    const parents = {};
     const inDeg = {};
+    const outDeg = {};
     nodes.forEach(n => {
       adj[n.id] = [];
+      parents[n.id] = [];
       inDeg[n.id] = 0;
+      outDeg[n.id] = 0;
     });
 
     (transitions || []).forEach(t => {
       if (adj[t.source] && nodeMap[t.target]) {
         adj[t.source].push(t.target);
+        parents[t.target].push(t.source);
         inDeg[t.target] = (inDeg[t.target] || 0) + 1;
+        outDeg[t.source] = (outDeg[t.source] || 0) + 1;
       }
     });
 
     // 2. Layer assignment using Longest Path on DAG (breaking back-edges)
     const layers = {};
-
-    // Find roots: start nodes first, then any 0 in-degree nodes
     let roots = nodes.filter(n => n.type === 'start').map(n => n.id);
     if (roots.length === 0) {
       roots = nodes.filter(n => inDeg[n.id] === 0).map(n => n.id);
@@ -4033,7 +4044,6 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       roots = [nodes[0].id];
     }
 
-    // BFS / DFS layer calculation with cycle avoidance
     const queue = [];
     const visitCounts = {};
     roots.forEach(r => {
@@ -4042,7 +4052,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       visitCounts[r] = 1;
     });
 
-    const maxQueueSteps = Math.max(50, nodes.length * 4);
+    const maxQueueSteps = Math.max(80, nodes.length * 5);
     let stepCount = 0;
 
     while (queue.length > 0 && stepCount < maxQueueSteps) {
@@ -4056,8 +4066,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         const currentNxtLayer = layers[nxt];
         const visits = (visitCounts[nxt] || 0);
 
-        if (visits < 3 && (currentNxtLayer === undefined || currentNxtLayer < nextTargetLayer)) {
-          if (currentNxtLayer === undefined || (nextTargetLayer - currentNxtLayer <= 4)) {
+        if (visits < 4 && (currentNxtLayer === undefined || currentNxtLayer < nextTargetLayer)) {
+          if (currentNxtLayer === undefined || (nextTargetLayer - currentNxtLayer <= 6)) {
             layers[nxt] = nextTargetLayer;
             visitCounts[nxt] = visits + 1;
             queue.push(nxt);
@@ -4065,6 +4075,14 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         }
       });
     }
+
+    // Ensure join nodes are placed below all their predecessors
+    nodes.filter(n => n.type === 'join').forEach(joinNode => {
+      const predLayers = parents[joinNode.id].map(p => layers[p] ?? 0);
+      if (predLayers.length > 0) {
+        layers[joinNode.id] = Math.max(layers[joinNode.id] ?? 0, Math.max(...predLayers) + 1);
+      }
+    });
 
     // Assign any unvisited nodes to appropriate layers
     nodes.forEach((n, idx) => {
@@ -4074,56 +4092,126 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     });
 
     const hasPartitions = partitions && partitions.length > 0;
+    const LAYER_GAP_Y = 160;
+    const START_Y = 130;
+    const NODE_SPACING_X = 240;
 
     if (hasPartitions) {
-      const PART_WIDTH = 420;
-      const START_X = 80;
-      const START_Y = 120;
-      const LAYER_GAP_Y = 125;
+      let currentPartX = 80;
 
-      const partCenters = {};
-      partitions.forEach((p, pIdx) => {
-        partCenters[p] = START_X + pIdx * PART_WIDTH + PART_WIDTH / 2;
-      });
+      partitions.forEach(partName => {
+        const partNodes = nodes.filter(n => (n.partition || partitions[0]) === partName);
+        if (partNodes.length === 0) {
+          currentPartX += 420;
+          return;
+        }
 
-      const layerGroups = {};
-      nodes.forEach(n => {
-        const l = layers[n.id] ?? 0;
-        if (!layerGroups[l]) layerGroups[l] = {};
-        const pKey = n.partition || partitions[0];
-        if (!layerGroups[l][pKey]) layerGroups[l][pKey] = [];
-        layerGroups[l][pKey].push(n);
-      });
+        // Group partition nodes by layer
+        const partLayerGroups = {};
+        partNodes.forEach(n => {
+          const l = layers[n.id] ?? 0;
+          if (!partLayerGroups[l]) partLayerGroups[l] = [];
+          partLayerGroups[l].push(n);
+        });
 
-      const sortedLayerKeys = Object.keys(layerGroups).map(Number).sort((a, b) => a - b);
+        const sortedLayerKeys = Object.keys(partLayerGroups).map(Number).sort((a, b) => a - b);
+        const minPartX = currentPartX + 40;
 
-      sortedLayerKeys.forEach(layerIdx => {
-        const pGroups = layerGroups[layerIdx];
-        const y = START_Y + layerIdx * LAYER_GAP_Y;
+        // Top-down pass: align each node to its parent or parent branch slot
+        sortedLayerKeys.forEach(l => {
+          const layerNodes = partLayerGroups[l];
 
-        Object.entries(pGroups).forEach(([pName, pNodes]) => {
-          const centerX = partCenters[pName] || (START_X + PART_WIDTH / 2);
-          const count = pNodes.length;
-          const spacing = 220;
-          const totalWidth = (count - 1) * spacing;
-          const startX = centerX - totalWidth / 2;
+          // Sort layer nodes by the horizontal center of their parents
+          layerNodes.sort((a, b) => {
+            const aParents = parents[a.id].filter(pid => positions[pid] !== undefined);
+            const bParents = parents[b.id].filter(pid => positions[pid] !== undefined);
+            const aMeanX = aParents.length > 0 ? aParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / aParents.length : 0;
+            const bMeanX = bParents.length > 0 ? bParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / bParents.length : 0;
+            if (aMeanX !== bMeanX) return aMeanX - bMeanX;
+            return nodes.indexOf(a) - nodes.indexOf(b);
+          });
 
-          pNodes.forEach((node, idx) => {
-            let nodeW = 196;
-            if (node.type === 'start' || node.type === 'end') nodeW = 36;
-            else if (node.type === 'decision') nodeW = 140;
-            else if (node.type === 'fork' || node.type === 'join') nodeW = 160;
+          const y = START_Y + l * LAYER_GAP_Y;
 
-            const x = startX + idx * spacing - nodeW / 2;
+          layerNodes.forEach((node) => {
+            const dim = getNodeDim(node.type);
+            const nodeParents = parents[node.id].filter(pid => positions[pid] !== undefined);
+
+            let desiredCenterX;
+            if (nodeParents.length > 0) {
+              const parentObj = nodeMap[nodeParents[0]];
+              const parentChildren = (adj[parentObj.id] || []).filter(cid => partNodes.some(pn => pn.id === cid));
+
+              if (parentChildren.length > 1) {
+                const childIdx = parentChildren.indexOf(node.id);
+                const parentCenter = positions[parentObj.id].x + getNodeDim(parentObj.type).w / 2;
+                const totalSpan = (parentChildren.length - 1) * NODE_SPACING_X;
+                desiredCenterX = parentCenter - totalSpan / 2 + childIdx * NODE_SPACING_X;
+              } else {
+                desiredCenterX = nodeParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / nodeParents.length;
+              }
+            } else {
+              desiredCenterX = minPartX + 180;
+            }
+
             positions[node.id] = {
-              x: Number.isFinite(x) ? x : 400,
-              y: Number.isFinite(y) ? y : 120
+              x: desiredCenterX - dim.w / 2,
+              y
             };
           });
+
+          // Resolve horizontal overlaps within this layer
+          for (let i = 0; i < layerNodes.length - 1; i++) {
+            const currNode = layerNodes[i];
+            const nextNode = layerNodes[i + 1];
+            const currDim = getNodeDim(currNode.type);
+            const minNextX = positions[currNode.id].x + currDim.w + 40;
+            if (positions[nextNode.id].x < minNextX) {
+              const shift = minNextX - positions[nextNode.id].x;
+              for (let j = i + 1; j < layerNodes.length; j++) {
+                positions[layerNodes[j].id].x += shift;
+              }
+            }
+          }
         });
+
+        // Bottom-up pass: center Fork and Join bars over their children / predecessors
+        sortedLayerKeys.slice().reverse().forEach(l => {
+          const layerNodes = partLayerGroups[l];
+          layerNodes.forEach(node => {
+            const children = (adj[node.id] || []).filter(cid => positions[cid] !== undefined && partNodes.some(pn => pn.id === cid));
+            if (children.length > 1) {
+              const childrenCenters = children.map(cid => positions[cid].x + getNodeDim(nodeMap[cid].type).w / 2);
+              const meanChildCenter = childrenCenters.reduce((a, b) => a + b, 0) / childrenCenters.length;
+              positions[node.id].x = meanChildCenter - getNodeDim(node.type).w / 2;
+            }
+          });
+        });
+
+        // Ensure all partition nodes stay within positive coordinates >= minPartX
+        let partMinX = Infinity;
+        let partMaxX = -Infinity;
+        partNodes.forEach(n => {
+          const p = positions[n.id];
+          const dim = getNodeDim(n.type);
+          if (p) {
+            if (p.x < partMinX) partMinX = p.x;
+            if (p.x + dim.w > partMaxX) partMaxX = p.x + dim.w;
+          }
+        });
+
+        if (partMinX < minPartX) {
+          const offset = minPartX - partMinX;
+          partNodes.forEach(n => {
+            if (positions[n.id]) positions[n.id].x += offset;
+          });
+          partMaxX += offset;
+        }
+
+        currentPartX = Math.max(currentPartX + 420, partMaxX + 80);
       });
     } else {
-      // Group nodes by layer
+      // Global layout without partitions
       const layerGroups = {};
       nodes.forEach(n => {
         const l = layers[n.id] ?? 0;
@@ -4132,35 +4220,73 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       });
 
       const sortedLayerKeys = Object.keys(layerGroups).map(Number).sort((a, b) => a - b);
+      const BASE_CENTER_X = 540;
 
-      // 3. Compute Coordinates
-      const CENTER_X = 500;
-      const START_Y = 100;
-      const LAYER_GAP_Y = 140;
-      const NODE_GAP_X = 260;
+      sortedLayerKeys.forEach(l => {
+        const layerNodes = layerGroups[l];
+        const y = START_Y + l * LAYER_GAP_Y;
 
-      sortedLayerKeys.forEach(layerIdx => {
-        const group = layerGroups[layerIdx];
-        const count = group.length;
-        const totalWidth = (count - 1) * NODE_GAP_X;
-        const startX = CENTER_X - totalWidth / 2;
-        const y = START_Y + layerIdx * LAYER_GAP_Y;
+        layerNodes.sort((a, b) => {
+          const aParents = parents[a.id].filter(pid => positions[pid] !== undefined);
+          const bParents = parents[b.id].filter(pid => positions[pid] !== undefined);
+          const aMeanX = aParents.length > 0 ? aParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / aParents.length : 0;
+          const bMeanX = bParents.length > 0 ? bParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / bParents.length : 0;
+          if (aMeanX !== bMeanX) return aMeanX - bMeanX;
+          return nodes.indexOf(a) - nodes.indexOf(b);
+        });
 
-        group.forEach((node, idx) => {
-          let nodeW = 196;
-          if (node.type === 'start' || node.type === 'end') {
-            nodeW = 36;
-          } else if (node.type === 'decision') {
-            nodeW = 140;
-          } else if (node.type === 'fork' || node.type === 'join') {
-            nodeW = 160;
+        layerNodes.forEach((node) => {
+          const dim = getNodeDim(node.type);
+          const nodeParents = parents[node.id].filter(pid => positions[pid] !== undefined);
+
+          let desiredCenterX;
+          if (nodeParents.length > 0) {
+            const parentObj = nodeMap[nodeParents[0]];
+            const parentChildren = (adj[parentObj.id] || []).filter(cid => nodes.some(pn => pn.id === cid));
+
+            if (parentChildren.length > 1) {
+              const childIdx = parentChildren.indexOf(node.id);
+              const parentCenter = positions[parentObj.id].x + getNodeDim(parentObj.type).w / 2;
+              const totalSpan = (parentChildren.length - 1) * NODE_SPACING_X;
+              desiredCenterX = parentCenter - totalSpan / 2 + childIdx * NODE_SPACING_X;
+            } else {
+              desiredCenterX = nodeParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / nodeParents.length;
+            }
+          } else {
+            desiredCenterX = BASE_CENTER_X;
           }
 
-          const x = startX + idx * NODE_GAP_X - nodeW / 2;
           positions[node.id] = {
-            x: Number.isFinite(x) ? x : 400,
-            y: Number.isFinite(y) ? y : 120
+            x: desiredCenterX - dim.w / 2,
+            y
           };
+        });
+
+        // Resolve overlaps
+        for (let i = 0; i < layerNodes.length - 1; i++) {
+          const currNode = layerNodes[i];
+          const nextNode = layerNodes[i + 1];
+          const currDim = getNodeDim(currNode.type);
+          const minNextX = positions[currNode.id].x + currDim.w + 40;
+          if (positions[nextNode.id].x < minNextX) {
+            const shift = minNextX - positions[nextNode.id].x;
+            for (let j = i + 1; j < layerNodes.length; j++) {
+              positions[layerNodes[j].id].x += shift;
+            }
+          }
+        }
+      });
+
+      // Bottom-up pass for Fork and Join centering
+      sortedLayerKeys.slice().reverse().forEach(l => {
+        const layerNodes = layerGroups[l];
+        layerNodes.forEach(node => {
+          const children = (adj[node.id] || []).filter(cid => positions[cid] !== undefined);
+          if (children.length > 1) {
+            const childrenCenters = children.map(cid => positions[cid].x + getNodeDim(nodeMap[cid].type).w / 2);
+            const meanChildCenter = childrenCenters.reduce((a, b) => a + b, 0) / childrenCenters.length;
+            positions[node.id].x = meanChildCenter - getNodeDim(node.type).w / 2;
+          }
         });
       });
     }
@@ -4786,7 +4912,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           if (Math.abs(a.centerX - b.centerX) > 5) {
             return a.centerX - b.centerX;
           }
-          return b.centerY - a.centerY;
+          const isRightSide = a.centerX < p2.x;
+          return isRightSide ? (a.centerY - b.centerY) : (b.centerY - a.centerY);
         });
       } else {
         sameSideConnections.sort((a, b) => a.centerY - b.centerY);
@@ -5681,7 +5808,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                 stroke={strokeColor}
                 strokeWidth={strokeWidth}
                 markerEnd="url(#activity-arrow)"
-                opacity={isSimulating && !isEdgeTraversed ? 0.35 : 0.9}
+                opacity={isSimulating && !isEdgeTraversed ? 0.8 : 1}
                 style={{ transition: 'stroke 0.3s ease, opacity 0.3s ease' }}
               />
               {t.guard && (
@@ -6546,10 +6673,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               data-theme={activeTheme}
               style={{
                 flexGrow: 1,
-                background: (activeTabKey === 'sequence' || activeTabKey === 'gantt')
-                  ? 'var(--background-default)'
-                  : 'var(--background-default) linear-gradient(var(--divider) 1px, transparent 1px), linear-gradient(90deg, var(--divider) 1px, transparent 1px)',
-                backgroundSize: '24px 24px',
+                background: 'var(--background-default)',
                 borderRadius: '12px',
                 border: '1.5px solid var(--divider)',
                 position: 'relative',
@@ -6580,10 +6704,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                     left: 0,
                     transform: `scale(${zoomScale})`,
                     transformOrigin: 'top left',
-                    backgroundImage: (activeTabKey === 'sequence' || activeTabKey === 'gantt')
-                      ? 'none'
-                      : 'linear-gradient(var(--divider) 1px, transparent 1px), linear-gradient(90deg, var(--divider) 1px, transparent 1px)',
-                    backgroundSize: '24px 24px',
+                    backgroundImage: 'none',
                     backgroundColor: 'var(--background-default)',
                     pointerEvents: 'auto'
                   }}
@@ -6902,12 +7023,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               userSelect: 'none',
                               transition: 'background 0.3s ease, box-shadow 0.3s ease'
                             }}
-                            title={`${isFork ? 'Fork (Split)' : 'Join (Merge)'}: ${node.label}`}
-                          >
-                            <Typography variant="caption" style={{ position: 'absolute', top: '-18px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
-                              {node.label}
-                            </Typography>
-                          </div>
+                            title={`${isFork ? 'Fork (Split)' : 'Join (Merge)'}: ${node.label || node.id}`}
+                          />
                         );
                       }
 
@@ -7006,22 +7123,25 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               {activeTabKey === 'activity' && isSimulating && (
                 <Box
                   style={{
-                    position: 'absolute',
-                    bottom: '16px',
-                    left: '50%',
+                    position: 'fixed',
+                    bottom: '24px',
+                    left: isFullscreen ? '50%' : `${splitPercent + (100 - splitPercent) / 2}%`,
                     transform: 'translateX(-50%)',
-                    backgroundColor: isDarkMode ? 'rgba(20, 20, 40, 0.95)' : 'var(--background-paper)',
+                    backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
                     border: '1.5px solid var(--primary-main)',
-                    boxShadow: isDarkMode ? '0 0 25px rgba(0, 255, 204, 0.25)' : '0 8px 30px rgba(0, 0, 0, 0.12)',
-                    borderRadius: '16px',
-                    padding: '10px 18px',
+                    boxShadow: isDarkMode ? '0 12px 40px -10px rgba(0, 255, 204, 0.35), 0 0 25px rgba(0, 0, 0, 0.6)' : '0 12px 40px -10px rgba(0, 0, 0, 0.22), 0 0 15px rgba(0, 0, 0, 0.08)',
+                    borderRadius: '20px',
+                    padding: '10px 22px',
                     color: 'var(--text-primary)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '12px',
-                    zIndex: 100,
-                    backdropFilter: 'blur(10px)',
-                    maxWidth: '90%'
+                    gap: '14px',
+                    zIndex: 9999,
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    maxWidth: isFullscreen ? '90vw' : `calc(${100 - splitPercent}vw - 60px)`,
+                    pointerEvents: 'auto',
+                    transition: 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1), maxWidth 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
                 >
                   <Box style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -7224,14 +7344,14 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               open={isAddActivityNodeOpen}
               onClose={() => setIsAddActivityNodeOpen(false)}
               onSubmit={handleCreateActivityNode}
-              existingNodeIds={parseActivity(code).nodes.map(n => n.id)}
+              existingNodeIds={parsedActivity.nodes.map(n => n.id)}
             />
 
             <AddActivityTransitionDialog
               open={isAddActivityTransitionOpen}
               onClose={() => setIsAddActivityTransitionOpen(false)}
               onSubmit={handleCreateActivityTransition}
-              nodes={parseActivity(code).nodes}
+              nodes={parsedActivity.nodes}
             />
 
             <CreateRelationDialog
@@ -7532,10 +7652,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                     left: 0,
                     transform: `scale(${previewZoomScale})`,
                     transformOrigin: 'top left',
-                    backgroundImage: (activeTabKey === 'sequence' || activeTabKey === 'gantt')
-                      ? 'none'
-                      : 'linear-gradient(var(--divider) 1px, transparent 1px), linear-gradient(90deg, var(--divider) 1px, transparent 1px)',
-                    backgroundSize: '24px 24px',
+                    backgroundImage: 'none',
                     backgroundColor: 'var(--background-default)'
                   }}
                 >
@@ -7782,11 +7899,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               zIndex: 3,
                               userSelect: 'none'
                             }}
-                          >
-                            <Typography variant="caption" style={{ position: 'absolute', top: '-18px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
-                              {node.label}
-                            </Typography>
-                          </div>
+                            title={`${isFork ? 'Fork (Split)' : 'Join (Merge)'}: ${node.label || node.id}`}
+                          />
                         );
                       }
 
