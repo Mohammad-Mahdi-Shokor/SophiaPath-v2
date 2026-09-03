@@ -252,7 +252,7 @@ export const SocraticDialogueWidget = () => {
           </Box>
 
           {/* Chat log */}
-          <Box style={{ minHeight: '280px', maxHeight: '520px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px', background: 'rgba(0,0,0,0.15)', borderRadius: '12px', marginBottom: '14px' }}>
+          <Box style={{ minHeight: '280px', maxHeight: '520px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px', background: 'var(--background-default)', border: '1px solid var(--divider)', borderRadius: '12px', marginBottom: '14px' }}>
             {messages.length === 0 ? (
               <Box style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '120px', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.88rem' }}>
                 The Socratic dialogue is quiet. Propose a definition to begin...
@@ -268,11 +268,11 @@ export const SocraticDialogueWidget = () => {
                       borderRadius: '12px',
                       fontSize: '0.84rem',
                       lineHeight: 1.4,
-                      backgroundColor: isSystemError ? 'rgba(244, 67, 54, 0.08)' : (msg.sender === 'user' ? 'rgba(28, 176, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'),
-                      border: isSystemError ? '1px solid rgba(244, 67, 54, 0.3)' : (msg.sender === 'user' ? '1px solid rgba(28, 176, 246, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)'),
+                      backgroundColor: isSystemError ? 'rgba(244, 67, 54, 0.08)' : (msg.sender === 'user' ? 'rgba(var(--primary-main-rgb), 0.12)' : 'var(--background-paper)'),
+                      border: isSystemError ? '1px solid rgba(244, 67, 54, 0.3)' : (msg.sender === 'user' ? '1px solid var(--primary-main)' : '1px solid var(--divider)'),
                       color: isSystemError ? '#f44336' : 'var(--text-primary)'
                     }}>
-                      <Typography variant="caption" style={{ display: 'block', fontWeight: 800, color: isSystemError ? '#f44336' : (msg.sender === 'user' ? '#1CB0F6' : 'var(--primary-main)'), marginBottom: '2px', textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.05em' }}>
+                      <Typography variant="caption" style={{ display: 'block', fontWeight: 800, color: isSystemError ? '#f44336' : (msg.sender === 'user' ? 'var(--primary-main)' : 'var(--primary-main)'), marginBottom: '2px', textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.05em' }}>
                         {isSystemError ? 'System Notice' : (msg.sender === 'user' ? 'You' : 'Socrates')}
                       </Typography>
                       {msg.text}
@@ -283,7 +283,7 @@ export const SocraticDialogueWidget = () => {
             )}
             {aiLoading && (
               <Box style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <Box style={{ padding: '10px 14px', borderRadius: '12px', fontSize: '0.84rem', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                <Box style={{ padding: '10px 14px', borderRadius: '12px', fontSize: '0.84rem', backgroundColor: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
                   Socrates is contemplating...
                 </Box>
               </Box>
@@ -305,9 +305,9 @@ export const SocraticDialogueWidget = () => {
                 '& .MuiOutlinedInput-root': {
                   color: 'var(--text-primary)',
                   borderRadius: '10px',
-                  backgroundColor: 'rgba(255,255,255,0.01)',
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.12)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.25)' },
+                  backgroundColor: 'var(--background-default)',
+                  '& fieldset': { borderColor: 'var(--divider)' },
+                  '&:hover fieldset': { borderColor: 'var(--primary-main)' },
                   '&.Mui-focused fieldset': { borderColor: 'var(--primary-main)' }}
               }}
             />
@@ -4010,14 +4010,14 @@ export const PoliticalCompassWidget = () => {
               <line x1="10" y1="175" x2="230" y2="175" stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="2,2" />
 
               {/* Major axes */}
-              <line x1="120" y1="10" x2="120" y2="230" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-              <line x1="10" y1="120" x2="230" y2="120" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+              <line x1="120" y1="10" x2="120" y2="230" stroke="var(--divider)" strokeWidth="2" />
+              <line x1="10" y1="120" x2="230" y2="120" stroke="var(--divider)" strokeWidth="2" />
 
               {/* Crosshair projections */}
               {(finished || currentIdx > 0) && (
                 <g>
-                  <line x1="120" y1={120 - (y / 10) * 110} x2={120 + (x / 10) * 110} y2={120 - (y / 10) * 110} stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" strokeDasharray="3,3" />
-                  <line x1={120 + (x / 10) * 110} y1="120" x2={120 + (x / 10) * 110} y2={120 - (y / 10) * 110} stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" strokeDasharray="3,3" />
+                  <line x1="120" y1={120 - (y / 10) * 110} x2={120 + (x / 10) * 110} y2={120 - (y / 10) * 110} stroke="var(--text-secondary)" strokeWidth="1.2" strokeDasharray="3,3" />
+                  <line x1={120 + (x / 10) * 110} y1="120" x2={120 + (x / 10) * 110} y2={120 - (y / 10) * 110} stroke="var(--text-secondary)" strokeWidth="1.2" strokeDasharray="3,3" />
                 </g>
               )}
 
@@ -4063,7 +4063,7 @@ export const PoliticalCompassWidget = () => {
         {/* Right Side: The Questions / Results */}
         <Grid item xs={12} sm={7}>
           {!finished ? (
-            <Box style={{ padding: '18px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', minHeight: '340px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <Box style={{ padding: '18px', background: 'var(--background-default)', border: '1px solid var(--divider)', borderRadius: '14px', minHeight: '340px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <Box>
                 <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <Typography variant="caption" style={{ color: 'var(--primary-main)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>

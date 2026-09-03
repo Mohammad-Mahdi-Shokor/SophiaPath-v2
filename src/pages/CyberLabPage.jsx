@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ShieldAlert, ShieldCheck, Terminal, Database,
   Code, Globe, KeyRound, Activity, Lock, UserX, User, FileTerminal,
@@ -19,16 +20,30 @@ import SocialEngineeringLab from './labs/SocialEngineeringLab';
 import InsiderThreatLab from './labs/InsiderThreatLab';
 import BiggerScreenRequired from '../components/BiggerScreenRequired';
 import './CyberLabPage.css';
+import './labs/XssLab.css';
+import './labs/SqliLab.css';
+import './labs/CsrfLab.css';
+import './labs/AccessControlLab.css';
 
 // Explanation box
 function ExplanationBox({ isSecure, children }) {
   return (
-    <div className={`cyber-explanation-box mt-8 border-l-4 p-4 rounded-r-lg ${isSecure ? 'border-emerald-500 bg-emerald-950/20' : 'border-red-500 bg-red-950/20'}`} style={{ borderLeft: '4px solid', padding: '16px', borderRadius: '0 12px 12px 0', marginTop: '24px', textAlign: 'left' }}>
-      <h4 className="font-bold flex items-center gap-2 mb-2" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, marginBottom: '8px', color: isSecure ? '#3DDC97' : '#FF647C' }}>
+    <div
+      className="cyber-explanation-box mt-8 rounded-r-lg"
+      style={{
+        borderLeft: `4px solid ${isSecure ? 'var(--success-main, #3DDC97)' : 'var(--danger-main, #FF647C)'}`,
+        background: isSecure ? 'rgba(61, 220, 151, 0.1)' : 'rgba(255, 100, 124, 0.1)',
+        padding: '16px',
+        borderRadius: '0 12px 12px 0',
+        marginTop: '24px',
+        textAlign: 'left'
+      }}
+    >
+      <h4 className="font-bold flex items-center gap-2 mb-2" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, marginBottom: '8px', color: isSecure ? 'var(--success-main, #3DDC97)' : 'var(--danger-main, #FF647C)' }}>
         {isSecure ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
         {isSecure ? "How the Fix Works" : "Understanding the Vulnerability"}
       </h4>
-      <div className="text-sm text-slate-300 leading-relaxed" style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+      <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
         {children}
       </div>
     </div>
@@ -39,13 +54,13 @@ function ExplanationBox({ isSecure, children }) {
 function LabLayout({ title, isSecure, children }) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ textAlign: 'left' }}>
-      <div className="mb-6 border-b border-slate-700 pb-4" style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px', marginBottom: '24px' }}>
-        <h1 className="text-3xl font-black mb-2" style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 8px 0' }}>{title}</h1>
-        <p className="text-slate-400" style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>
+      <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px', marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 8px 0' }}>{title}</h1>
+        <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>
           State: {isSecure ? (
-            <span className="text-emerald-400 font-bold bg-emerald-900/30 px-2 py-0.5 rounded" style={{ color: '#3DDC97', background: 'rgba(61, 220, 151, 0.15)', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>Secure & Patched</span>
+            <span style={{ color: '#3DDC97', background: 'rgba(61, 220, 151, 0.15)', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>Secure & Patched</span>
           ) : (
-            <span className="text-red-400 font-bold bg-red-900/30 px-2 py-0.5 rounded" style={{ color: '#FF647C', background: 'rgba(255, 100, 124, 0.15)', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>Vulnerable to Attack</span>
+            <span style={{ color: '#FF647C', background: 'rgba(255, 100, 124, 0.15)', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>Vulnerable to Attack</span>
           )}
         </p>
       </div>
@@ -58,8 +73,6 @@ function LabLayout({ title, isSecure, children }) {
 }
 
 // 1. Cross-Site Scripting (XSS) Lab
-import './labs/XssLab.css';
-
 function XSSLab({ isSecure, showAlert }) {
   const [xssType, setXssType] = useState('stored');
   const [simulatedAlert, setSimulatedAlert] = useState(null);
@@ -261,7 +274,6 @@ function XSSLab({ isSecure, showAlert }) {
 }
 
 // 2. SQL Injection (SQLi) Lab
-import './labs/SqliLab.css';
 
 const USERS_DB = [
   { id: 1, username: 'admin', password: 'supersecretpassword123', role: 'admin', balance: 50000 },
@@ -552,7 +564,6 @@ if (filter_var($ip, FILTER_VALIDATE_IP)) {
 }
 
 // 4. Cross-Site Request Forgery (CSRF) Lab
-import './labs/CsrfLab.css';
 
 function CSRFLab({ isSecure, showAlert }) {
   const [csrfType, setCsrfType] = useState('post');
@@ -661,7 +672,6 @@ function CSRFLab({ isSecure, showAlert }) {
 }
 
 // 5. Broken Access Control Lab
-import './labs/AccessControlLab.css';
 
 const MOCK_DOCS = [
   { id: 1, title: 'Public Welcome Guide', content: 'Welcome to our platform! Here are the public rules...', isSensitive: false },
@@ -886,8 +896,6 @@ app.get('/api/doc/:id', (req, res) => {
     </LabLayout>
   );
 }
-
-import { useSearchParams } from 'react-router-dom';
 
 // Main App Component
 export default function CyberLabPage() {

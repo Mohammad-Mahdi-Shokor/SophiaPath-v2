@@ -30,7 +30,9 @@ import {
   Check as CheckIcon,
   Terminal as TerminalIcon,
   HelpOutline as HelpOutlineIcon,
-  ZoomIn as ZoomInIcon
+  ZoomIn as ZoomInIcon,
+  Favorite as HeartIcon,
+  HeartBroken as HeartBrokenIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -597,6 +599,39 @@ const QuizPage = () => {
   const userAnswersRef = useRef({});
   const [showResult, setShowResult] = useState(false);
 
+  // 3 Hearts Gamification State
+  const [hearts, setHearts] = useState(3);
+  const [wrongAttempts, setWrongAttempts] = useState({});
+  const [heartLostAnim, setHeartLostAnim] = useState(false);
+  const [showGameOverDialog, setShowGameOverDialog] = useState(false);
+
+  const handlePenaltyCheck = (qIdx) => {
+    const currentAttempts = (wrongAttempts[qIdx] || 0) + 1;
+    setWrongAttempts(prev => ({ ...prev, [qIdx]: currentAttempts }));
+    setHeartLostAnim(true);
+    setTimeout(() => setHeartLostAnim(false), 700);
+    setHearts(prev => {
+      const next = Math.max(0, prev - 1);
+      if (next === 0) {
+        setShowGameOverDialog(true);
+      }
+      return next;
+    });
+  };
+
+  const handleRetryQuiz = () => {
+    setHearts(3);
+    setWrongAttempts({});
+    setShowGameOverDialog(false);
+    setIsAnswered(false);
+    setSelectedAnswerId(null);
+    setBlankValues({});
+    setBlankStatuses({});
+    userAnswersRef.current = {};
+    setScore(0);
+    setCurrentQuestionIndex(0);
+  };
+
   // Coding interactive exercise specific states
   const [blankValues, setBlankValues] = useState({});
   const [focusedBlankIndex, setFocusedBlankIndex] = useState(0);
@@ -921,6 +956,8 @@ const QuizPage = () => {
     userAnswersRef.current[currentQuestionIndex] = isCorrect;
     if (isCorrect) {
       setScore(prev => prev + 1);
+    } else {
+      handlePenaltyCheck(currentQuestionIndex);
     }
   };
 
@@ -948,12 +985,7 @@ const QuizPage = () => {
       : [{ input: '', expectedOutput: '' }];
 
     let executionCheckPassed = false;
-    let hasOutput = false;
-
     try {
-      let allTestsPassed = true;
-      let runAnyTest = false;
-
       testCases.forEach((tc) => {
         const userRes = simulateCppExecution(userCode, tc.input);
         
@@ -1021,6 +1053,8 @@ const QuizPage = () => {
     userAnswersRef.current[currentQuestionIndex] = allCorrect;
     if (allCorrect) {
       setScore(prev => prev + 1);
+    } else {
+      handlePenaltyCheck(currentQuestionIndex);
     }
   };
 
@@ -1094,6 +1128,8 @@ const QuizPage = () => {
     userAnswersRef.current[currentQuestionIndex] = allCasesPassed;
     if (allCasesPassed) {
       setScore(prev => prev + 1);
+    } else {
+      handlePenaltyCheck(currentQuestionIndex);
     }
   };
 
@@ -1103,8 +1139,8 @@ const QuizPage = () => {
       if (isCorrect) calculatedScore++;
     });
 
-    const totalQuestions = quizQuestions.length || 1;
-    const percentage = Math.round((calculatedScore / totalQuestions) * 100);
+    const heartsLost = Math.max(0, 3 - hearts);
+    const percentage = Math.max(0, 100 - (15 * heartsLost));
 
     if (currentQuestionIndex < quizQuestions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
@@ -1171,6 +1207,8 @@ const QuizPage = () => {
     setSelectedAnswerId(null);
     setIsAnswered(false);
     setScore(0);
+    setHearts(3);
+    setWrongAttempts({});
     setShowResult(false);
   };
 
@@ -1188,7 +1226,7 @@ const QuizPage = () => {
     );
   }
 
-  const percentage = Math.round((score / quizQuestions.length) * 100);
+  const percentage = Math.max(0, 100 - (15 * Math.max(0, 3 - hearts)));
 
   // Interactive Code Blanks renderer helper
   const renderInteractiveCodeBlanks = (question) => {
@@ -1332,7 +1370,27 @@ const QuizPage = () => {
             </div>
           </div>
 
-          <div className="quiz-header-right">
+          <div className="quiz-header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Box
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'rgba(0,0,0,0.3)',
+                padding: '4px 10px',
+                borderRadius: '20px',
+                border: hearts === 1 ? '1.5px solid #EF4444' : '1px solid rgba(255,255,255,0.1)',
+                boxShadow: hearts === 1 ? '0 0 14px rgba(239, 68, 68, 0.4)' : 'none',
+                transition: 'all 0.25s ease'
+              }}
+            >
+              <HeartIcon style={{ color: hearts >= 1 ? '#EF4444' : 'rgba(255,255,255,0.2)', fontSize: '20px', transition: 'all 0.2s ease', transform: heartLostAnim ? 'scale(1.25)' : 'scale(1)' }} />
+              <HeartIcon style={{ color: hearts >= 2 ? '#EF4444' : 'rgba(255,255,255,0.2)', fontSize: '20px', transition: 'all 0.2s ease', transform: heartLostAnim ? 'scale(1.25)' : 'scale(1)' }} />
+              <HeartIcon style={{ color: hearts >= 3 ? '#EF4444' : 'rgba(255,255,255,0.2)', fontSize: '20px', transition: 'all 0.2s ease', transform: heartLostAnim ? 'scale(1.25)' : 'scale(1)' }} />
+              <Typography variant="caption" style={{ fontWeight: 800, color: hearts === 1 ? '#EF4444' : 'var(--text-primary)', marginLeft: '2px', fontFamily: '"Roboto Mono", monospace' }}>
+                {hearts}/3
+              </Typography>
+            </Box>
             <div className="quiz-score-badge">
               <TrophyIcon fontSize="small" />
               <Typography variant="body2">{score} / {quizQuestions.length}</Typography>
@@ -2054,6 +2112,71 @@ const QuizPage = () => {
           </Box>
         </Fade>
       </Modal>
+
+      {/* Gamified Game Over Dialog (Out of Hearts) */}
+      <Dialog
+        open={showGameOverDialog}
+        onClose={() => {}}
+        PaperProps={{
+          style: {
+            borderRadius: '24px',
+            background: '#121624',
+            border: '1.5px solid rgba(239, 68, 68, 0.4)',
+            boxShadow: '0 0 40px rgba(239, 68, 68, 0.25)',
+            padding: '24px',
+            maxWidth: '420px',
+            textAlign: 'center'
+          }
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+          <div style={{ fontSize: '52px', lineHeight: 1 }}>
+            💔
+          </div>
+          <Typography variant="h5" style={{ fontWeight: 900, fontFamily: '"Outfit", sans-serif', color: '#EF4444' }}>
+            Out of Hearts!
+          </Typography>
+          <Typography variant="body2" style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            You ran out of hearts in this practice quiz. Practice makes perfect! Try again to master these concepts.
+          </Typography>
+
+          <Box style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '12px' }}>
+            <Button
+              variant="contained"
+              onClick={handleRetryQuiz}
+              startIcon={<RefreshIcon />}
+              style={{
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                color: '#fff',
+                fontWeight: 800,
+                padding: '12px',
+                borderRadius: '14px',
+                textTransform: 'none',
+                fontSize: '0.95rem'
+              }}
+            >
+              Try Again (3 Hearts)
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                const targetCourseId = location.state?.course?.id || course?.id || courseId;
+                navigate(`/learning-path/${targetCourseId}`, { state: location.state });
+              }}
+              style={{
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'var(--text-secondary)',
+                fontWeight: 700,
+                padding: '10px',
+                borderRadius: '14px',
+                textTransform: 'none'
+              }}
+            >
+              Back to Roadmap
+            </Button>
+          </Box>
+        </div>
+      </Dialog>
     </Box>
   );
 };

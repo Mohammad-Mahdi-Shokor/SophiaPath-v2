@@ -240,7 +240,7 @@
 .http-manipulator {
   display: flex;
   align-items: center;
-  background: #0e111d;
+  background: var(--background-default);
   border: 1px solid var(--divider);
   border-radius: 10px;
   padding: 8px 12px;
@@ -252,20 +252,20 @@
 }
 
 .http-method {
-  color: #ff5252;
+  color: var(--danger-main);
   font-weight: 900;
   margin-right: 4px;
 }
 
 .http-path {
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .http-input-id {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid #475569;
+  background: var(--background-paper);
+  border: 1px solid var(--divider);
   border-radius: 6px;
-  color: #00ff66;
+  color: var(--success-main);
   font-family: monospace;
   font-weight: 900;
   width: 40px;

@@ -188,10 +188,10 @@
 }
 
 .sqli-terminal {
-  background-color: #0e111d;
+  background-color: var(--background-paper-alt);
   padding: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #1e293b;
+  border: 1px solid var(--divider);
   font-family: monospace;
   font-size: 0.875rem;
   display: flex;
@@ -199,20 +199,21 @@
 }
 
 .sqli-term-header {
-  color: #94a3b8;
+  color: var(--text-secondary);
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--divider);
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .sqli-query-box {
-  background-color: #000;
+  background-color: var(--background-default);
   padding: 1rem;
   border-radius: 0.25rem;
-  color: #93c5fd;
+  border: 1px solid var(--divider);
+  color: var(--text-primary);
   overflow-x: auto;
   line-height: 1.6;
 }

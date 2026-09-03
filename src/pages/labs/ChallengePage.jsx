@@ -30,17 +30,38 @@ import './ChallengePage.css';
 export default function ChallengePage() {
   const [activeHintIdx, setActiveHintIdx] = useState(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [scriptOutput, setScriptOutput] = useState('');
   
   const starterCode = `// Exploit Script for Google XSS Level 1\nfunction exploit(url) {\n    const payload = "<script>alert(1)</script>";\n    return url + "?query=" + encodeURIComponent(payload);\n}\n\nconsole.log(exploit("https://xss-game.appspot.com/level1/frame"));`;
   const [codeEditorVal, setCodeEditorVal] = useState(starterCode);
 
-  const handleAlert = (btnName) => {
-    alert(`u pushed this button: ${btnName}`);
+  const handleDownload = () => {
+    const blob = new Blob([codeEditorVal], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'xss_exploit.js';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleHintClick = (hintIndex, hintName) => {
+  const handleRunScript = () => {
+    try {
+      const logs = [];
+      const customConsole = {
+        log: (...args) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
+        error: (...args) => logs.push('ERROR: ' + args.join(' '))
+      };
+      const runFn = new Function('console', codeEditorVal);
+      runFn(customConsole);
+      setScriptOutput(logs.join('\n') || 'Script executed successfully with no output.');
+    } catch (err) {
+      setScriptOutput('Runtime Error: ' + err.message);
+    }
+  };
+
+  const handleHintClick = (hintIndex) => {
     setActiveHintIdx(activeHintIdx === hintIndex ? null : hintIndex);
-    handleAlert(hintName);
   };
 
   const hintsList = [
@@ -94,8 +115,9 @@ export default function ChallengePage() {
               <Typography
                 variant="body1"
                 component="a"
-                href="#"
-                onClick={(e) => { e.preventDefault(); handleAlert('Link click: xss-game.appspot.com/level1'); }}
+                href="https://xss-game.appspot.com/level1"
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{ color: 'var(--primary-main)', fontWeight: 800, textDecoration: 'none', fontSize: '0.92rem' }}
               >
                 xss-game.appspot.com/level1
@@ -144,13 +166,18 @@ export default function ChallengePage() {
                   }}
                 />
                 <Box style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '8px', background: 'rgba(0,0,0,0.1)' }}>
-                  <Button size="small" variant="outlined" onClick={() => { setCodeEditorVal(starterCode); handleAlert('Reset Editor'); }} style={{ textTransform: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800 }}>
+                  <Button size="small" variant="outlined" onClick={() => { setCodeEditorVal(starterCode); setScriptOutput(''); }} style={{ textTransform: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800 }}>
                     Reset
                   </Button>
-                  <Button size="small" variant="contained" startIcon={<PlayIcon />} onClick={() => handleAlert('Run Script')} style={{ textTransform: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, background: 'var(--primary-main)' }}>
+                  <Button size="small" variant="contained" startIcon={<PlayIcon />} onClick={handleRunScript} style={{ textTransform: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, background: 'var(--primary-main)' }}>
                     Run Script
                   </Button>
                 </Box>
+                {scriptOutput && (
+                  <Box style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.3)', borderTop: '1px solid var(--divider)', fontFamily: 'monospace', fontSize: '0.8rem', color: '#00FFCC', whiteSpace: 'pre-wrap' }}>
+                    {scriptOutput}
+                  </Box>
+                )}
               </Paper>
             </Box>
           </Box>
@@ -161,7 +188,7 @@ export default function ChallengePage() {
             {/* Download Icon + Launch IDE button aligned horizontally on a single row */}
             <Box style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '12px', width: '100%', maxWidth: '380px' }}>
               <IconButton 
-                onClick={() => handleAlert('Download resources / task files')} 
+                onClick={handleDownload} 
                 style={{ 
                   border: '1.5px solid var(--divider)', 
                   borderRadius: '12px', 
@@ -180,10 +207,10 @@ export default function ChallengePage() {
                 className="dashed-btn"
                 fullWidth
                 startIcon={<LaunchIcon />}
-                onClick={() => handleAlert('Launch Instant / online ide')}
+                onClick={() => window.open('https://xss-game.appspot.com/level1', '_blank')}
                 style={{ height: '48px' }}
               >
-                Launch Instant / online ide
+                Launch Sandbox / Game
               </Button>
             </Box>
 
@@ -206,13 +233,13 @@ export default function ChallengePage() {
                 Hints
               </Typography>
               <Box className="hints-container" style={{ justifyContent: 'center' }}>
-                <Button variant="contained" className="hint-button" onClick={() => handleHintClick(0, 'Hint 1')}>
+                <Button variant="contained" className="hint-button" onClick={() => handleHintClick(0)}>
                   Hint 1
                 </Button>
-                <Button variant="contained" className="hint-button" onClick={() => handleHintClick(1, 'Hint 2')}>
+                <Button variant="contained" className="hint-button" onClick={() => handleHintClick(1)}>
                   Hint 2
                 </Button>
-                <Button variant="contained" className="hint-button" onClick={() => handleHintClick(2, 'Hint 3')}>
+                <Button variant="contained" className="hint-button" onClick={() => handleHintClick(2)}>
                   Hint 3
                 </Button>
               </Box>
@@ -250,7 +277,7 @@ export default function ChallengePage() {
               <Box className="solution-container" style={{ justifyContent: 'center', gap: '1.5rem', padding: '8px' }}>
                 <IconButton
                   className="solution-icon-btn"
-                  onClick={() => handleAlert('Walkthrough Video Solution')}
+                  onClick={() => window.open('https://www.youtube.com/results?search_query=google+xss+game+level+1+walkthrough', '_blank')}
                   title="Watch Video Walkthrough"
                   style={{ width: '60px', height: '60px' }}
                 >
@@ -258,7 +285,7 @@ export default function ChallengePage() {
                 </IconButton>
                 <IconButton
                   className="solution-icon-btn"
-                  onClick={() => { setIsReportOpen(true); handleAlert('View Walkthrough Report document'); }}
+                  onClick={() => setIsReportOpen(true)}
                   title="Read Vulnerability Disclosure Report"
                   style={{ width: '60px', height: '60px' }}
                 >

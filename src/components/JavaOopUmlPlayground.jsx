@@ -5913,12 +5913,12 @@ export const JavaOopUmlPlayground = ({ open, onClose }) => {
                       style={{
                         flexGrow: 1,
                         padding: '16px',
-                        backgroundColor: '#0c0d12',
+                        backgroundColor: isDarkMode ? '#0c0d12' : 'var(--background-default)',
                         borderRadius: '16px',
-                        border: '1px solid rgba(255,255,255,0.08)',
+                        border: '1px solid var(--divider)',
                         fontFamily: '"Roboto Mono", monospace',
                         fontSize: '0.8rem',
-                        color: '#3DDC97',
+                        color: isDarkMode ? '#3DDC97' : '#047857',
                         whiteSpace: 'pre-wrap',
                         overflowY: 'auto',
                         minHeight: '350px',
@@ -5931,7 +5931,7 @@ export const JavaOopUmlPlayground = ({ open, onClose }) => {
                       <div style={{ flexGrow: 1, overflowY: 'auto' }}>
                         {terminalOutput}
                         {isWaitingForInput && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', background: 'rgba(245, 158, 11, 0.08)', padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
                             <span style={{ color: '#FF9F43', fontWeight: 800 }}>{`> `}</span>
                             <input
                               type="text"
@@ -5943,11 +5943,11 @@ export const JavaOopUmlPlayground = ({ open, onClose }) => {
                                 background: 'transparent',
                                 border: 'none',
                                 outline: 'none',
-                                color: '#3DDC97',
+                                color: isDarkMode ? '#3DDC97' : '#047857',
                                 fontFamily: '"Roboto Mono", monospace',
                                 fontSize: '0.82rem',
                                 flexGrow: 1,
-                                caretColor: '#3DDC97'
+                                caretColor: isDarkMode ? '#3DDC97' : '#047857'
                               }}
                             />
                           </div>

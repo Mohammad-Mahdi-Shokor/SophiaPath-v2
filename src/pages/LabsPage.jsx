@@ -29,7 +29,10 @@ import {
   Brain,
   HelpCircle,
   Ship,
-  Compass
+  Compass,
+  GitBranch,
+  Calendar,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './LearningPage.css'; // Reuse the excellent glassmorphic dashboard styles
@@ -42,31 +45,66 @@ import { SoftwareEngineeringLab } from '../components/SoftwareEngineeringLab';
 const labsData = [
   {
     title: "Computer Science",
-    description: "Dive into low-level runtime execution systems, standard terminal compilation, and object-oriented class diagrams.",
+    description: "Dive into runtime compiler execution systems, object-oriented UML class diagrams, and software engineering modeling architectures.",
     category: "Computer Science",
     iconKey: "cs",
-    labsCount: 3,
+    labsCount: 7,
     labs: [
       {
         id: 'cpp',
         title: 'C++ Playground',
-        description: 'Write, compile, and run C++ code with simulated standard terminal outputs and OOP templates.',
+        description: 'Write, compile, and run C++ code with simulated standard terminal outputs, memory inspection, and runtime tracing.',
         path: 'dialog:cpp',
-        iconName: 'terminal'
+        iconName: 'terminal',
+        course: 'C++ Basics'
       },
       {
         id: 'java-uml',
-        title: 'Java-UML Playground',
-        description: 'Write Java classes and see them rendered into inheritance and relationship structures in real time.',
+        title: 'Java OOP & UML Diagram Lab',
+        description: 'Write Java classes and see them rendered into inheritance, method signatures, and class relationship structures in real time.',
         path: 'dialog:java-uml',
-        iconName: 'activity'
+        iconName: 'layers',
+        course: 'OOP'
       },
       {
-        id: 'swe-diagrams',
-        title: 'Software Engineering Lab',
-        description: 'Design ER Diagrams, Use Cases, Sequence Diagrams, and Gantt charts with a live visualizer.',
-        path: 'dialog:swe-diagrams',
-        iconName: 'wrench'
+        id: 'swe-er',
+        title: 'ER Diagram Modeler',
+        description: 'Design entity-relationship schemas, primary/foreign keys, and cardinalities with automated layout algorithms.',
+        path: 'dialog:swe:er',
+        iconName: 'database',
+        course: 'Software Engineering'
+      },
+      {
+        id: 'swe-usecase',
+        title: 'Use Case Diagram Lab',
+        description: 'Model system boundaries, actors, use cases, include/extend relationships, and user interactions.',
+        path: 'dialog:swe:usecase',
+        iconName: 'user',
+        course: 'Software Engineering'
+      },
+      {
+        id: 'swe-activity',
+        title: 'Activity Diagram & Flow Lab',
+        description: 'Construct control flow graphs, swimlanes, decision diamonds, fork/join branches, and step through workflow simulations.',
+        path: 'dialog:swe:activity',
+        iconName: 'branch',
+        course: 'Software Engineering'
+      },
+      {
+        id: 'swe-sequence',
+        title: 'Sequence Diagram Modeler',
+        description: 'Trace object lifelines, asynchronous/synchronous messages, activation boxes, and system interaction sequences.',
+        path: 'dialog:swe:sequence',
+        iconName: 'code',
+        course: 'Software Engineering'
+      },
+      {
+        id: 'swe-gantt',
+        title: 'Gantt Chart & Scrum Scheduler',
+        description: 'Schedule project milestones, sprint tasks, critical paths, and duration timelines with interactive visual controls.',
+        path: 'dialog:swe:gantt',
+        iconName: 'calendar',
+        course: 'Software Engineering'
       }
     ]
   },
@@ -75,7 +113,7 @@ const labsData = [
     description: "Launch direct penetration testing suites, exploit simulation tools, and defensive network monitors.",
     category: "Security",
     iconKey: "security",
-    labsCount: 11,
+    labsCount: 22,
     labs: []
   }
 ];
@@ -85,27 +123,70 @@ const SEARCHABLE_LABS = [
   {
     id: 'cpp',
     title: 'C++ Playground',
-    description: 'Write, compile, and run C++ code with simulated standard terminal outputs and OOP templates.',
+    description: 'Write, compile, and run C++ code with simulated standard terminal outputs, memory inspection, and runtime tracing.',
     path: 'dialog:cpp',
     iconName: 'terminal',
+    course: 'C++ Basics',
     labCategoryTitle: 'Computer Science',
     category: 'Computer Science'
   },
   {
     id: 'java-uml',
-    title: 'Java-UML Playground',
-    description: 'Write Java classes and see them rendered into inheritance and relationship structures in real time.',
+    title: 'Java OOP & UML Diagram Lab',
+    description: 'Write Java classes and see them rendered into inheritance, method signatures, and class relationship structures in real time.',
     path: 'dialog:java-uml',
-    iconName: 'activity',
+    iconName: 'layers',
+    course: 'OOP',
     labCategoryTitle: 'Computer Science',
     category: 'Computer Science'
   },
   {
-    id: 'swe-diagrams',
-    title: 'Software Engineering Lab',
-    description: 'Design ER Diagrams, Use Cases, Sequence Diagrams, and Gantt charts with a live visualizer.',
-    path: 'dialog:swe-diagrams',
-    iconName: 'wrench',
+    id: 'swe-er',
+    title: 'ER Diagram Modeler',
+    description: 'Design entity-relationship schemas, primary/foreign keys, and cardinalities with automated layout algorithms.',
+    path: 'dialog:swe:er',
+    iconName: 'database',
+    course: 'Software Engineering',
+    labCategoryTitle: 'Computer Science',
+    category: 'Computer Science'
+  },
+  {
+    id: 'swe-usecase',
+    title: 'Use Case Diagram Lab',
+    description: 'Model system boundaries, actors, use cases, include/extend relationships, and user interactions.',
+    path: 'dialog:swe:usecase',
+    iconName: 'user',
+    course: 'Software Engineering',
+    labCategoryTitle: 'Computer Science',
+    category: 'Computer Science'
+  },
+  {
+    id: 'swe-activity',
+    title: 'Activity Diagram & Flow Lab',
+    description: 'Construct control flow graphs, swimlanes, decision diamonds, fork/join branches, and step through workflow simulations.',
+    path: 'dialog:swe:activity',
+    iconName: 'branch',
+    course: 'Software Engineering',
+    labCategoryTitle: 'Computer Science',
+    category: 'Computer Science'
+  },
+  {
+    id: 'swe-sequence',
+    title: 'Sequence Diagram Modeler',
+    description: 'Trace object lifelines, asynchronous/synchronous messages, activation boxes, and system interaction sequences.',
+    path: 'dialog:swe:sequence',
+    iconName: 'code',
+    course: 'Software Engineering',
+    labCategoryTitle: 'Computer Science',
+    category: 'Computer Science'
+  },
+  {
+    id: 'swe-gantt',
+    title: 'Gantt Chart & Scrum Scheduler',
+    description: 'Schedule project milestones, sprint tasks, critical paths, and duration timelines with interactive visual controls.',
+    path: 'dialog:swe:gantt',
+    iconName: 'calendar',
+    course: 'Software Engineering',
     labCategoryTitle: 'Computer Science',
     category: 'Computer Science'
   },
@@ -201,11 +282,110 @@ const SEARCHABLE_LABS = [
     category: 'Security'
   },
   {
+    id: 'caesar',
+    title: 'Caesar Cipher Explorer',
+    description: 'Interactive visualization of rotational Caesar cipher shifts, encryption tables, and frequency analysis.',
+    path: '/cyber-lab?tab=caesar',
+    iconName: 'lock',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'vigenere',
+    title: 'Vigenère Cipher Explorer',
+    description: 'Polyalphabetic substitution cipher matrix visualizer with dynamic keyword repeating shifts.',
+    path: '/cyber-lab?tab=vigenere',
+    iconName: 'lock',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'enigma',
+    title: 'Enigma Machine Simulator',
+    description: 'Full simulation of WWII military Enigma rotors, reflector stepping mechanics, and plugboard cross-wiring.',
+    path: '/cyber-lab?tab=enigma',
+    iconName: 'lock',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'rsa',
+    title: 'RSA Asymmetric Key Visualizer',
+    description: 'Prime factorization, modular exponentiation, public/private keypair computation, and payload encryption.',
+    path: '/cyber-lab?tab=rsa',
+    iconName: 'lock',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'base64',
+    title: 'Base64 Encoding Visualizer',
+    description: 'Step-by-step binary bit-grouping (6-bit chunking) and ASCII-to-Base64 radix table translation.',
+    path: '/cyber-lab?tab=base64',
+    iconName: 'activity',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'xor',
+    title: 'Bitwise XOR Cipher Visualizer',
+    description: 'Inspect bitwise truth tables, byte-level XOR keystream operations, and reversible cipher logic.',
+    path: '/cyber-lab?tab=xor',
+    iconName: 'activity',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
     id: 'cyberchef',
     title: 'GCHQ CyberChef Tool Suite',
     description: 'Directly invoke GCHQ\'s CyberChef utility kitchen to perform data carving and hex decoding recipes.',
     path: '/cyber-lab?tab=cyberchef',
     iconName: 'wrench',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'gtfobins',
+    title: 'GTFOBins Privilege Escalation',
+    description: 'Curated list of Unix binaries used to bypass local security restrictions in misconfigured systems.',
+    path: '/cyber-lab?tab=gtfobins',
+    iconName: 'terminal',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'revshells',
+    title: 'Reverse Shell Generator',
+    description: 'Interactive one-liner generator for bash, python, nc, powershell, and socat reverse connections.',
+    path: '/cyber-lab?tab=revshells',
+    iconName: 'terminal',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'jwt',
+    title: 'JWT Token Decoder & Debugger',
+    description: 'Decode, verify, and inspect JSON Web Tokens headers, payloads, and digital signatures in real time.',
+    path: '/cyber-lab?tab=jwt',
+    iconName: 'key',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'explainshell',
+    title: 'ExplainShell Command Breakdown',
+    description: 'Interactive manual page analyzer that explains complex command-line syntax and flags argument-by-argument.',
+    path: '/cyber-lab?tab=explainshell',
+    iconName: 'terminal',
+    labCategoryTitle: 'Cybersecurity',
+    category: 'Security'
+  },
+  {
+    id: 'challenge',
+    title: 'Google XSS Game Sandbox',
+    description: 'Interactive six-level real-world web exploitation challenge targeting reflected and stored XSS vectors.',
+    path: '/cyber-lab?tab=challenge',
+    iconName: 'activity',
     labCategoryTitle: 'Cybersecurity',
     category: 'Security'
   },
@@ -250,6 +430,12 @@ const getLabIcon = (iconName) => {
       return <Ship size={24} />;
     case 'compass':
       return <Compass size={24} />;
+    case 'branch':
+      return <GitBranch size={24} />;
+    case 'calendar':
+      return <Calendar size={24} />;
+    case 'layers':
+      return <Layers size={24} />;
     default:
       return <Code size={24} />;
   }
@@ -275,6 +461,7 @@ const LabsPage = () => {
   const [isCppOpen, setIsCppOpen] = useState(false);
   const [isJavaUmlOpen, setIsJavaUmlOpen] = useState(false);
   const [isSweOpen, setIsSweOpen] = useState(false);
+  const [sweInitialTab, setSweInitialTab] = useState('er');
 
   // Read URL query parameter for active lab to ensure persistence on refresh
   const [selectedLabGroup, setSelectedLabGroup] = useState(() => {
@@ -331,7 +518,12 @@ const LabsPage = () => {
       setIsCppOpen(true);
     } else if (path === 'dialog:java-uml') {
       setIsJavaUmlOpen(true);
+    } else if (path.startsWith('dialog:swe:')) {
+      const tab = path.replace('dialog:swe:', '');
+      setSweInitialTab(tab);
+      setIsSweOpen(true);
     } else if (path === 'dialog:swe-diagrams') {
+      setSweInitialTab('er');
       setIsSweOpen(true);
     } else {
       navigate(path);
@@ -428,7 +620,7 @@ const LabsPage = () => {
                       color: 'var(--primary-main)',
                       border: '1px solid color-mix(in srgb, var(--primary-main) 22%, transparent)'
                     }}>
-                      {activeLabGroupObj.category}
+                      {lab.course || activeLabGroupObj.category}
                     </div>
                   </Paper>
                 ))}
@@ -483,7 +675,7 @@ const LabsPage = () => {
                         color: 'var(--primary-main)',
                         border: '1px solid color-mix(in srgb, var(--primary-main) 22%, transparent)'
                       }}>
-                        {lab.labCategoryTitle}
+                        {lab.course || lab.labCategoryTitle}
                       </div>
                     </Paper>
                   ))}
@@ -535,7 +727,7 @@ const LabsPage = () => {
                       color: 'var(--primary-main)',
                       border: '1px solid color-mix(in srgb, var(--primary-main) 22%, transparent)'
                     }}>
-                      {col.labsCount} {col.title === 'Computer Science' ? 'Playgrounds' : 'Labs'}
+                      {col.labsCount} {col.title === 'Computer Science' ? 'Labs & Playgrounds' : 'Labs'}
                     </div>
                   </Paper>
                 ))}
@@ -546,22 +738,30 @@ const LabsPage = () => {
       </AnimatePresence>
 
       {/* RENDER THE HIGH-FIDELITY BUILT-IN PLAYGROUND DIALOGS */}
-      <CppPlaygroundDialog
-        open={isCppOpen}
-        onClose={() => setIsCppOpen(false)}
-        initialCode={`#include <iostream>\n\nint main() {\n    std::cout << "Hello SophiaPath C++!" << std::endl;\n    return 0;\n}`}
-      />
+      {isCppOpen && (
+        <CppPlaygroundDialog
+          open={isCppOpen}
+          onClose={() => setIsCppOpen(false)}
+          initialCode={`#include <iostream>\n\nint main() {\n    std::cout << "Hello SophiaPath C++!" << std::endl;\n    return 0;\n}`}
+        />
+      )}
 
-      <JavaOopUmlPlayground
-        open={isJavaUmlOpen}
-        onClose={() => setIsJavaUmlOpen(false)}
-        initialCode={`public class Person {\n    private String name;\n    private int age;\n    \n    public void speak() {\n        System.out.println("Hello!");\n    }\n}\n\npublic class Student extends Person {\n    private String studentId;\n    private double gpa;\n}`}
-      />
+      {isJavaUmlOpen && (
+        <JavaOopUmlPlayground
+          open={isJavaUmlOpen}
+          onClose={() => setIsJavaUmlOpen(false)}
+          initialCode={`public class Person {\n    private String name;\n    private int age;\n    \n    public void speak() {\n        System.out.println("Hello!");\n    }\n}\n\npublic class Student extends Person {\n    private String studentId;\n    private double gpa;\n}`}
+        />
+      )}
 
-      <SoftwareEngineeringLab
-        open={isSweOpen}
-        onClose={() => setIsSweOpen(false)}
-      />
+      {isSweOpen && (
+        <SoftwareEngineeringLab
+          open={isSweOpen}
+          initialTab={sweInitialTab}
+          hideDiagramSelector={true}
+          onClose={() => setIsSweOpen(false)}
+        />
+      )}
     </Box>
   );
 };

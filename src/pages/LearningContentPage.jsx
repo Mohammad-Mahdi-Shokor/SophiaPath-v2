@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
@@ -42,7 +42,11 @@ import {
   Cancel as CancelIcon,
   CheckCircle as CheckCircleIcon,
   EmojiEvents as TrophyIcon,
-  Download as DownloadIcon
+  Download as DownloadIcon,
+  Favorite as HeartIcon,
+  HeartBroken as HeartBrokenIcon,
+  Refresh as RefreshIcon,
+  SportsEsports as GameIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import html2canvas from 'html2canvas';
@@ -633,10 +637,12 @@ const InlineMcqWidget = ({
   }, [initiallyAnswered, initialSelectedIndex]);
 
   const handleSelect = (idx) => {
-    if (answered) return;
+    if (answered && selectedIndex === correctAnswerIndex) return;
     setSelectedIndex(idx);
-    setAnswered(true);
     const isCorrect = idx === correctAnswerIndex;
+    if (isCorrect) {
+      setAnswered(true);
+    }
     onAnswered(idx, isCorrect);
   };
 
@@ -1685,7 +1691,6 @@ const LearningContentPage = () => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [exportProgressText, setExportProgressText] = useState('');
-  const [portalElement, setPortalElement] = useState(null);
 
   // Preload jsPDF in background for instant PDF downloads
   useEffect(() => {
@@ -1696,11 +1701,6 @@ const LearningContentPage = () => {
       script.async = true;
       document.head.appendChild(script);
     }
-  }, []);
-
-  useEffect(() => {
-    const target = document.querySelector('.nav-content');
-    if (target) setPortalElement(target);
   }, []);
 
   // Reset scroll position to top when switching slides
@@ -1725,6 +1725,17 @@ const LearningContentPage = () => {
   const [isCompilerOpen, setIsCompilerOpen] = useState(false);
   const [compilerInitialCode, setCompilerInitialCode] = useState('');
 
+  // 3 Hearts Gamification State
+  const [hearts, setHearts] = useState(3);
+  const [wrongAttempts, setWrongAttempts] = useState({});
+  const [heartLostAnim, setHeartLostAnim] = useState(false);
+  const [showGameOverDialog, setShowGameOverDialog] = useState(false);
+
+  // Linked Exercise Seamless Transition State
+  const linkedExerciseId = location.state?.linkedExerciseId || null;
+  const [isExercisePhase, setIsExercisePhase] = useState(false);
+  const [exerciseLessonData, setExerciseLessonData] = useState(location.state?.linkedExercise || null);
+
   const [exerciseAnswers, setExerciseAnswers] = useState({});
   const [blockSelectedIndex, setBlockSelectedIndex] = useState({});
   const [blankValues, setBlankValues] = useState({});
@@ -1732,6 +1743,39 @@ const LearningContentPage = () => {
   const [isChallengeOpen, setIsChallengeOpen] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [selectedChallengeBlockIdx, setSelectedChallengeBlockIdx] = useState(null);
+
+  // Handle wrong attempt penalty: losing 1 heart every time they answer wrongly
+  const handleExerciseAttempt = (blockKey, isCorrect) => {
+    if (isCorrect) {
+      setExerciseAnswers(prev => ({ ...prev, [blockKey]: true }));
+    } else {
+      setExerciseAnswers(prev => ({ ...prev, [blockKey]: false }));
+      const currentAttempts = (wrongAttempts[blockKey] || 0) + 1;
+      setWrongAttempts(prev => ({ ...prev, [blockKey]: currentAttempts }));
+
+      setHeartLostAnim(true);
+      setTimeout(() => setHeartLostAnim(false), 700);
+
+      setHearts(prevHearts => {
+        const next = Math.max(0, prevHearts - 1);
+        if (next === 0) {
+          setShowGameOverDialog(true);
+        }
+        return next;
+      });
+    }
+  };
+
+  const handleRetryExercise = () => {
+    setHearts(3);
+    setWrongAttempts({});
+    setShowGameOverDialog(false);
+    setExerciseAnswers({});
+    setBlockSelectedIndex({});
+    setBlankValues({});
+    setBlankStatuses({});
+    setCurrentPageIndex(0);
+  };
 
   const isPageCompleted = (pageIdx) => {
     const page = pages[pageIdx];
@@ -1859,8 +1903,65 @@ const LearningContentPage = () => {
     loadLessonContent();
   }, [courseId, sectionId, lessonId, location.state]);
 
-  const hasPages = lesson && lesson.pages && lesson.pages.length > 0;
-  const pages = lesson?.pages || [];
+  // Pre-fetch linked exercise if one exists
+  useEffect(() => {
+    if (!linkedExerciseId) return;
+    const fetchLinkedExercise = async () => {
+      try {
+        let dbId = courseId;
+        let targetSectionId = sectionId;
+        const exportRes = await fetch('/courses');
+        if (exportRes.ok) {
+          const allCourses = await exportRes.json();
+          for (const c of allCourses) {
+            for (const s of (c.sections || [])) {
+              if (s.lessons && s.lessons.some(l => String(l.id) === String(linkedExerciseId))) {
+                dbId = c.id;
+                targetSectionId = s.id;
+                break;
+              }
+            }
+          }
+        }
+        const res = await fetch(`/courses/${dbId}/sections/${targetSectionId}/lessons/${linkedExerciseId}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setExerciseLessonData(data);
+        }
+      } catch (err) {
+        console.warn('Could not fetch linked exercise:', err);
+      }
+    };
+    fetchLinkedExercise();
+  }, [linkedExerciseId, courseId, sectionId]);
+
+  // Compute active pages depending on whether we are in reading mode or exercise phase
+  const pages = useMemo(() => {
+    if (isExercisePhase && exerciseLessonData) {
+      if (exerciseLessonData.pages && exerciseLessonData.pages.length > 0) {
+        return exerciseLessonData.pages;
+      }
+      if (exerciseLessonData.questions && exerciseLessonData.questions.length > 0) {
+        return exerciseLessonData.questions.map((q, qIdx) => ({
+          pageTitle: `Practice Question ${qIdx + 1}`,
+          blocks: [
+            {
+              type: 'mcq',
+              question: q.question || q.text || '',
+              answers: q.answers || q.options?.map((opt, oIdx) => ({ id: oIdx, text: opt, isCorrect: oIdx === (q.correctAnswer !== undefined ? q.correctAnswer : q.correctAnswerIndex) })) || [],
+              correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : (q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : 0),
+              codeSnippet: q.codeSnippet || null
+            }
+          ]
+        }));
+      }
+    }
+    return lesson?.pages || [];
+  }, [isExercisePhase, exerciseLessonData, lesson]);
+
+  const hasPages = pages && pages.length > 0;
 
   const handleDownloadCheatsheet = () => {
     if (!lesson || !hasPages) return;
@@ -2008,6 +2109,13 @@ const LearningContentPage = () => {
   const handleNext = () => {
     if (currentPageIndex < pages.length - 1) {
       setCurrentPageIndex(prev => prev + 1);
+    } else if (linkedExerciseId && !isExercisePhase) {
+      // Transition from reading slides into the linked practice challenge!
+      setIsExercisePhase(true);
+      setCurrentPageIndex(0);
+      setHearts(3);
+      setWrongAttempts({});
+      setExerciseAnswers({});
     } else {
       handleFinish();
     }
@@ -2043,23 +2151,20 @@ const LearningContentPage = () => {
 
   const handleFinish = async () => {
     let grade = 100;
-    let totalCount = 0;
-    let correctCount = 0;
+    let hasExercises = isExercisePhase;
     pages.forEach((page, pageIdx) => {
       if (page.blocks) {
         page.blocks.forEach((block, blockIdx) => {
           if (['mcq', 'fill_code', 'write_line', 'find_error', 'code_challenge', 'vulnerability_challenge'].includes(block.type)) {
-            totalCount++;
-            const key = _blockKey(pageIdx, blockIdx);
-            if (exerciseAnswers[key] === true) {
-              correctCount++;
-            }
+            hasExercises = true;
           }
         });
       }
     });
-    if (totalCount > 0) {
-      grade = Math.round((correctCount / totalCount) * 100);
+
+    if (hasExercises) {
+      const heartsLost = Math.max(0, 3 - hearts);
+      grade = Math.max(0, 100 - (15 * heartsLost));
     }
 
     if (!completionSaved && lesson?.id) {
@@ -2079,6 +2184,9 @@ const LearningContentPage = () => {
 
       const duplicates = allLessons.filter(l => (l.title || '').trim().toLowerCase() === (lesson.title || '').trim().toLowerCase());
       const idsToUpdate = duplicates.length > 0 ? duplicates.map(d => d.id) : [lesson.id];
+      if (linkedExerciseId && !idsToUpdate.includes(linkedExerciseId)) {
+        idsToUpdate.push(linkedExerciseId);
+      }
 
       try {
         // Sync grades and completions for all duplicate entries
@@ -2214,7 +2322,7 @@ const LearningContentPage = () => {
             block={block}
             isDarkMode={isDarkMode}
             onAnswered={(isCorrect) => {
-              setExerciseAnswers(prev => ({ ...prev, [key]: isCorrect }));
+              handleExerciseAttempt(key, isCorrect);
             }}
             initiallyAnswered={exerciseAnswers[key] === true}
           />
@@ -2266,7 +2374,7 @@ const LearningContentPage = () => {
             isDarkMode={isDarkMode}
             onAnswered={(selectedIdx, isCorrect) => {
               setBlockSelectedIndex(prev => ({ ...prev, [key]: selectedIdx }));
-              setExerciseAnswers(prev => ({ ...prev, [key]: isCorrect }));
+              handleExerciseAttempt(key, isCorrect);
             }}
           />
         );
@@ -2293,7 +2401,7 @@ const LearningContentPage = () => {
             initialInputValues={blankValues[key]}
             isDarkMode={isDarkMode}
             onAnswered={(isCorrect) => {
-              setExerciseAnswers(prev => ({ ...prev, [key]: isCorrect }));
+              handleExerciseAttempt(key, isCorrect);
             }}
           />
         );
@@ -3322,14 +3430,36 @@ const LearningContentPage = () => {
             </IconButton>
             <div>
               <Typography variant="h6" className="learning-lesson-title">
-                {lesson.title}
+                {isExercisePhase && exerciseLessonData ? exerciseLessonData.title : lesson.title}
               </Typography>
               <Typography variant="caption" className="learning-progress-text">
-                Slide {currentPageIndex + 1} of {pages.length}
+                {isExercisePhase ? '🎯 Practice Exercise: ' : ''}Slide {currentPageIndex + 1} of {pages.length}
               </Typography>
             </div>
           </div>
-          <div className="learning-header-right">
+          <div className="learning-header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {(isExercisePhase || Boolean(currentPage?.blocks?.some(b => ['mcq', 'fill_code', 'write_line', 'find_error', 'code_challenge', 'vulnerability_challenge'].includes(b.type)))) && (
+              <Box
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'rgba(0,0,0,0.3)',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  border: hearts === 1 ? '1.5px solid #EF4444' : '1px solid rgba(255,255,255,0.1)',
+                  boxShadow: hearts === 1 ? '0 0 14px rgba(239, 68, 68, 0.4)' : 'none',
+                  transition: 'all 0.25s ease'
+                }}
+              >
+                <HeartIcon style={{ color: hearts >= 1 ? '#EF4444' : 'rgba(255,255,255,0.2)', fontSize: '20px', transition: 'all 0.2s ease', transform: heartLostAnim ? 'scale(1.25)' : 'scale(1)' }} />
+                <HeartIcon style={{ color: hearts >= 2 ? '#EF4444' : 'rgba(255,255,255,0.2)', fontSize: '20px', transition: 'all 0.2s ease', transform: heartLostAnim ? 'scale(1.25)' : 'scale(1)' }} />
+                <HeartIcon style={{ color: hearts >= 3 ? '#EF4444' : 'rgba(255,255,255,0.2)', fontSize: '20px', transition: 'all 0.2s ease', transform: heartLostAnim ? 'scale(1.25)' : 'scale(1)' }} />
+                <Typography variant="caption" style={{ fontWeight: 800, color: hearts === 1 ? '#EF4444' : 'var(--text-primary)', marginLeft: '2px', fontFamily: '"Roboto Mono", monospace' }}>
+                  {hearts}/3
+                </Typography>
+              </Box>
+            )}
             {isCheatsheet && (
               <Button
                 variant="contained"
@@ -3363,8 +3493,8 @@ const LearningContentPage = () => {
         maxWidth={false} 
         style={
           isCheatsheet 
-            ? { maxWidth: '1280px' } 
-            : (hasVulnerabilityChallenge ? { maxWidth: '1240px' } : { maxWidth: '900px' })
+            ? { maxWidth: '1360px' } 
+            : (hasVulnerabilityChallenge ? { maxWidth: '1280px' } : { maxWidth: '1060px' })
         } 
         className={`learning-slide-deck ${isCheatsheet ? 'cheatsheet-deck-mode' : ''}`}
       >
@@ -3389,27 +3519,45 @@ const LearningContentPage = () => {
                     <div className="slide-blocks-list">
                       {currentPage.blocks?.map((block, idx) => renderBlock(block, idx))}
                     </div>
-                    {pages.length === 1 && (!currentPage?.blocks?.some(b => b.type === 'vulnerability_challenge') || isPageCompleted(currentPageIndex)) && (
-                      <Box style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
+
+                    {/* Bottom Inline Page Navigation Actions: Appears on scroll at the bottom of the content */}
+                    <Box className="slide-inline-bottom-actions">
+                      {pages.length > 1 ? (
+                        <Button
+                          variant="outlined"
+                          onClick={handlePrevious}
+                          disabled={currentPageIndex === 0}
+                          startIcon={<LeftIcon />}
+                          className="footer-nav-btn prev-btn"
+                        >
+                          Previous
+                        </Button>
+                      ) : <div />}
+
+                      {currentPageIndex === pages.length - 1 ? (
+                        (!currentPage?.blocks?.some(b => b.type === 'vulnerability_challenge') || isPageCompleted(currentPageIndex)) && (
+                          <Button
+                            variant="contained"
+                            onClick={handleNext}
+                            disabled={!isPageCompleted(currentPageIndex)}
+                            endIcon={<RightIcon />}
+                            className="footer-nav-btn next-btn"
+                          >
+                            {linkedExerciseId && !isExercisePhase ? 'Continue to Practice Challenge ➔' : 'Finish Lesson'}
+                          </Button>
+                        )
+                      ) : (
                         <Button
                           variant="contained"
-                          onClick={handleFinish}
+                          onClick={handleNext}
                           disabled={!isPageCompleted(currentPageIndex)}
-                          style={{
-                            background: 'var(--hero-gradient)',
-                            color: '#fff',
-                            fontWeight: 800,
-                            padding: '12px 28px',
-                            borderRadius: '12px',
-                            border: 'none',
-                            textTransform: 'none',
-                            fontSize: '0.95rem'
-                          }}
+                          endIcon={<RightIcon />}
+                          className="footer-nav-btn next-btn"
                         >
-                          Finish Lesson
+                          Next
                         </Button>
-                      </Box>
-                    )}
+                      )}
+                    </Box>
                   </Paper>
                 </motion.div>
               )}
@@ -3457,83 +3605,6 @@ const LearningContentPage = () => {
           )}
         </div>
       </Container>
-
-      {pages.length > 1 && (portalElement ? createPortal(
-        <footer className="learning-content-footer glass-panel">
-          <Container maxWidth="md" className="learning-footer-content">
-            <Button
-              variant="outlined"
-              onClick={handlePrevious}
-              disabled={currentPageIndex === 0}
-              startIcon={<LeftIcon />}
-              className="footer-nav-btn"
-            >
-              Previous
-            </Button>
-            {currentPageIndex === pages.length - 1 ? (
-              (!currentPage?.blocks?.some(b => b.type === 'vulnerability_challenge') || isPageCompleted(currentPageIndex)) && (
-                <Button
-                  variant="outlined"
-                  onClick={handleNext}
-                  disabled={!isPageCompleted(currentPageIndex)}
-                  endIcon={<RightIcon />}
-                  className="footer-nav-btn"
-                >
-                  Finish Lesson
-                </Button>
-              )
-            ) : (
-              <Button
-                variant="outlined"
-                onClick={handleNext}
-                disabled={!isPageCompleted(currentPageIndex)}
-                endIcon={<RightIcon />}
-                className="footer-nav-btn"
-              >
-                Next
-              </Button>
-            )}
-          </Container>
-        </footer>,
-        portalElement
-      ) : (
-        <footer className="learning-content-footer glass-panel">
-          <Container maxWidth="md" className="learning-footer-content">
-            <Button
-              variant="outlined"
-              onClick={handlePrevious}
-              disabled={currentPageIndex === 0}
-              startIcon={<LeftIcon />}
-              className="footer-nav-btn"
-            >
-              Previous
-            </Button>
-            {currentPageIndex === pages.length - 1 ? (
-              (!currentPage?.blocks?.some(b => b.type === 'vulnerability_challenge') || isPageCompleted(currentPageIndex)) && (
-                <Button
-                  variant="outlined"
-                  onClick={handleNext}
-                  disabled={!isPageCompleted(currentPageIndex)}
-                  endIcon={<RightIcon />}
-                  className="footer-nav-btn"
-                >
-                  Finish Lesson
-                </Button>
-              )
-            ) : (
-              <Button
-                variant="outlined"
-                onClick={handleNext}
-                disabled={!isPageCompleted(currentPageIndex)}
-                endIcon={<RightIcon />}
-                className="footer-nav-btn"
-              >
-                Next
-              </Button>
-            )}
-          </Container>
-        </footer>
-      ))}
 
       <CppPlaygroundDialog
         open={isCompilerOpen}
@@ -3621,6 +3692,88 @@ const LearningContentPage = () => {
           </Typography>
           <LinearProgress color="primary" />
         </DialogContent>
+      </Dialog>
+
+      {/* Gamified Game Over Dialog (Out of Hearts) */}
+      <Dialog
+        open={showGameOverDialog}
+        onClose={() => {}}
+        PaperProps={{
+          style: {
+            borderRadius: '24px',
+            background: '#121624',
+            border: '1.5px solid rgba(239, 68, 68, 0.4)',
+            boxShadow: '0 0 40px rgba(239, 68, 68, 0.25)',
+            padding: '24px',
+            maxWidth: '420px',
+            textAlign: 'center'
+          }
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+          <div style={{ fontSize: '52px', lineHeight: 1 }}>
+            💔
+          </div>
+          <Typography variant="h5" style={{ fontWeight: 900, fontFamily: '"Outfit", sans-serif', color: '#EF4444' }}>
+            Out of Hearts!
+          </Typography>
+          <Typography variant="body2" style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            You made too many mistakes in this exercise. Don't worry — practice is how you master the material!
+          </Typography>
+
+          <Box style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '12px' }}>
+            <Button
+              variant="contained"
+              onClick={handleRetryExercise}
+              startIcon={<RefreshIcon />}
+              style={{
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                color: '#fff',
+                fontWeight: 800,
+                padding: '12px',
+                borderRadius: '14px',
+                textTransform: 'none',
+                fontSize: '0.95rem'
+              }}
+            >
+              Try Again (3 Hearts)
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setShowGameOverDialog(false);
+                setIsExercisePhase(false);
+                setCurrentPageIndex(0);
+                setHearts(3);
+                setWrongAttempts({});
+              }}
+              startIcon={<BookIcon />}
+              style={{
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'var(--text-secondary)',
+                fontWeight: 700,
+                padding: '10px',
+                borderRadius: '14px',
+                textTransform: 'none'
+              }}
+            >
+              Review Lesson Slides
+            </Button>
+            <Button
+              onClick={() => {
+                const originalCourseId = location.state?.course?.id || courseId;
+                navigate(`/learning-path/${originalCourseId}`, { state: location.state });
+              }}
+              style={{
+                color: 'var(--text-secondary)',
+                fontWeight: 600,
+                textTransform: 'none'
+              }}
+            >
+              Back to Roadmap
+            </Button>
+          </Box>
+        </div>
       </Dialog>
     </Box>
   );

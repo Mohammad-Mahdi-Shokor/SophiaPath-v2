@@ -206,10 +206,10 @@
 }
 
 .csrf-forum-post {
-  background-color: #1e293b;
+  background-color: var(--background-default);
   padding: 0.5rem;
   border-radius: 0.25rem;
-  border: 1px dashed #475569;
+  border: 1px dashed var(--divider);
   margin-bottom: 1rem;
   width: 100%;
 }
@@ -221,7 +221,7 @@
 }
 
 .csrf-forum-btn {
-  background-color: #334155;
+  background-color: var(--primary-main);
   color: #fff;
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;
@@ -231,14 +231,14 @@
 }
 
 .csrf-forum-btn:hover {
-  background-color: #475569;
+  background-color: var(--primary-dark);
 }
 
 .csrf-logs {
-  background-color: #000;
+  background-color: var(--code-bg, #0a0a14);
   padding: 1rem;
   border-radius: 0.25rem;
-  border: 1px solid #1e293b;
+  border: 1px solid var(--divider);
   font-family: monospace;
   font-size: 0.875rem;
   height: 8rem;
@@ -246,9 +246,9 @@
 }
 
 .csrf-logs-title {
-  color: #94a3b8;
+  color: var(--text-secondary);
   margin-bottom: 0.5rem;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--divider);
   padding-bottom: 0.25rem;
 }
 

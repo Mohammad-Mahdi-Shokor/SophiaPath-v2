@@ -1,12 +1,11 @@
 /**
  * C++ to Standard Pseudocode Transpiler & Flowchart AST Generator
  * Supports:
- * - Conditionals (if, else if, else, switch-case)
- * - Loops (for, while, do-while, break, continue)
- * - Functions (multi-function definitions, parameters, return types, function calls)
- * - I/O (cin, cout, printf, scanf, getline)
- * - Variable declarations, initializations, assignments, compound operators (+=, -=, ++, --)
- * - Arrays and pointer operations
+ * - Combined Consecutive I/O (Grouped Output/Input blocks)
+ * - Conditionals (if, else if, else, multi-way branching, switch-case)
+ * - Loops (for, while, do-while, repeat-until)
+ * - Multi-function definitions & calls
+ * - Declarations, assignments, arrays, pointers
  */
 
 export const convertCppToPseudocode = (cppCode) => {
@@ -89,7 +88,7 @@ export const convertCppToPseudocode = (cppCode) => {
           const top = blockStack.pop();
           indentLevel = Math.max(1, indentLevel - 1);
           const nextLine = rawLines[i + 1] ? rawLines[i + 1].trim().toLowerCase() : '';
-          
+
           if (top.type === 'IF' && !nextLine.startsWith('else')) {
             result.push(`${indent()}END IF`);
           } else if (top.type === 'WHILE') {
@@ -156,7 +155,6 @@ export const convertCppToPseudocode = (cppCode) => {
           else if (step.includes('+=')) stepStr = ` STEP ${step.replace(/.*=\s*/, '')}`;
           else if (step.includes('-=')) stepStr = ` STEP -${step.replace(/.*=\s*/, '')}`;
 
-          // Format clean loop condition: e.g. i < 10 -> TO 9, i <= 10 -> TO 10
           let endVal = cond.replace(new RegExp(`^${varName}\\s*(?:<|<=)\\s*`), '').trim();
           if (cond.includes('<') && !cond.includes('<=')) {
             if (/^\d+$/.test(endVal)) {
@@ -302,7 +300,6 @@ export const convertCppToPseudocode = (cppCode) => {
         declParts.forEach(part => {
           if (part.includes('=')) {
             const [vName, vVal] = part.split('=').map(s => s.trim());
-            // Check if value is a function call: e.g. int mytest = test(x);
             if (/\b([a-zA-Z_]\w*)\s*\(([^)]*)\)/.test(vVal)) {
               result.push(`${indent()}${vName} ← CALL ${vVal}`);
             } else {
@@ -328,7 +325,7 @@ export const convertCppToPseudocode = (cppCode) => {
       const compoundMatch = /^([a-zA-Z_]\w*)\s*(\+=|-=|\*=|\/=|%=)\s*([^;]+);/.exec(line);
       if (compoundMatch) {
         const varName = compoundMatch[1];
-        const op = compoundMatch[2][0]; // + or - or * or / or %
+        const op = compoundMatch[2][0];
         const rhs = compoundMatch[3].trim();
         result.push(`${indent()}${varName} ← ${varName} ${op} (${rhs})`);
         continue;
@@ -347,7 +344,7 @@ export const convertCppToPseudocode = (cppCode) => {
         continue;
       }
 
-      // 18. Standalone Function Call: test(x); or swap(a, b);
+      // 18. Standalone Function Call: test(x); or greetUser(userName);
       const funcCallMatch = /^([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*;/.exec(line);
       if (funcCallMatch) {
         result.push(`${indent()}CALL ${funcCallMatch[1]}(${funcCallMatch[2].trim()})`);
@@ -395,6 +392,10 @@ export const convertCppToPseudocode = (cppCode) => {
 
 /**
  * Parses Pseudocode text into a structured Hierarchical Tree for Flowchart Rendering.
+ * Features:
+ * - Automatic merging of consecutive OUTPUT statements into a single combined I/O block
+ * - Enhanced Conditionals (IF, ELSE IF, ELSE, SWITCH-CASE)
+ * - Loop Constructs (WHILE, FOR, REPEAT-UNTIL)
  */
 export const parsePseudocodeToFlowchartTree = (pseudocodeText) => {
   if (!pseudocodeText || !pseudocodeText.trim()) return [];
@@ -430,7 +431,6 @@ export const parsePseudocodeToFlowchartTree = (pseudocodeText) => {
     if (currentModule) {
       currentModule.lines.push(line);
     } else {
-      // If no module open, create default Main module
       currentModule = {
         name: 'Main',
         header: 'BEGIN Main',
@@ -440,7 +440,7 @@ export const parsePseudocodeToFlowchartTree = (pseudocodeText) => {
     }
   }
 
-  // Parse lines of a module into AST nodes
+  // Helper to parse blocks of lines into flowchart nodes
   const parseBlock = (linesList, startIndex) => {
     const nodes = [];
     let idx = startIndex;
@@ -467,13 +467,14 @@ export const parsePseudocodeToFlowchartTree = (pseudocodeText) => {
         break;
       }
 
-      // 1. IF Branch
+      // 1. IF-ELSE IF-ELSE Branching
       if (upper.startsWith('IF ')) {
         const condition = line.replace(/^IF\s+/i, '').replace(/\s+THEN$/i, '').trim();
         const branchNode = {
           type: 'branch',
           condition,
           trueBranch: [],
+          elseIfs: [],
           falseBranch: [],
           color: '#F59E0B'
         };
@@ -483,14 +484,20 @@ export const parsePseudocodeToFlowchartTree = (pseudocodeText) => {
         branchNode.trueBranch = trueResult.nodes;
         idx = trueResult.nextIndex;
 
-        // Check if there is an ELSE IF or ELSE
-        if (idx < linesList.length && linesList[idx].toUpperCase().startsWith('ELSE IF')) {
-          const elseIfLine = linesList[idx].replace(/^ELSE IF\s+/i, 'IF ');
-          linesList[idx] = elseIfLine;
+        // Collect all ELSE IF branches
+        while (idx < linesList.length && linesList[idx].toUpperCase().startsWith('ELSE IF')) {
+          const elseIfCond = linesList[idx].replace(/^ELSE IF\s+/i, '').replace(/\s+THEN$/i, '').trim();
+          idx++;
           const elseIfResult = parseBlock(linesList, idx);
-          branchNode.falseBranch = elseIfResult.nodes;
+          branchNode.elseIfs.push({
+            condition: elseIfCond,
+            nodes: elseIfResult.nodes
+          });
           idx = elseIfResult.nextIndex;
-        } else if (idx < linesList.length && linesList[idx].toUpperCase() === 'ELSE') {
+        }
+
+        // Collect ELSE branch
+        if (idx < linesList.length && linesList[idx].toUpperCase() === 'ELSE') {
           idx++; // past ELSE
           const falseResult = parseBlock(linesList, idx);
           branchNode.falseBranch = falseResult.nodes;
@@ -505,7 +512,47 @@ export const parsePseudocodeToFlowchartTree = (pseudocodeText) => {
         continue;
       }
 
-      // 2. FOR / WHILE Loops
+      // 2. SWITCH statement
+      if (upper.startsWith('SWITCH')) {
+        const switchExpr = line.replace(/^SWITCH\s+/i, '').trim();
+        const switchNode = {
+          type: 'switch',
+          expression: switchExpr,
+          cases: [],
+          color: '#F59E0B'
+        };
+
+        idx++; // past SWITCH
+        while (idx < linesList.length) {
+          const curUpper = linesList[idx].toUpperCase();
+          if (curUpper === 'END SWITCH') {
+            idx++;
+            break;
+          }
+
+          if (curUpper.startsWith('CASE ') || curUpper === 'DEFAULT:') {
+            const isDefault = curUpper === 'DEFAULT:';
+            const caseLabel = isDefault ? 'DEFAULT' : linesList[idx].replace(/^CASE\s+/i, '').replace(/:$/, '').trim();
+            idx++;
+
+            // Collect case body
+            const caseResult = parseBlock(linesList, idx);
+            switchNode.cases.push({
+              match: caseLabel,
+              nodes: caseResult.nodes,
+              isDefault
+            });
+            idx = caseResult.nextIndex;
+          } else {
+            idx++;
+          }
+        }
+
+        nodes.push(switchNode);
+        continue;
+      }
+
+      // 3. FOR / WHILE Loops
       if (upper.startsWith('WHILE ') || upper.startsWith('FOR ')) {
         const isFor = upper.startsWith('FOR ');
         const condition = line.replace(/^(WHILE|FOR)\s+/i, '').replace(/\s+DO$/i, '').trim();
@@ -530,7 +577,7 @@ export const parsePseudocodeToFlowchartTree = (pseudocodeText) => {
         continue;
       }
 
-      // 3. REPEAT ... UNTIL (Do-While)
+      // 4. REPEAT ... UNTIL (Do-While)
       if (upper === 'REPEAT') {
         const loopNode = {
           type: 'loop',
@@ -554,7 +601,59 @@ export const parsePseudocodeToFlowchartTree = (pseudocodeText) => {
         continue;
       }
 
-      // 4. Standalone Nodes: Terminal, IO, Call, Process
+      // 5. COMBINE Consecutive OUTPUT Statements into ONE block
+      if (upper.startsWith('OUTPUT ') || upper.startsWith('PRINT ')) {
+        const outputItems = [];
+        while (idx < linesList.length) {
+          const curLine = linesList[idx];
+          const curUpper = curLine.toUpperCase();
+          if (curUpper.startsWith('OUTPUT ') || curUpper.startsWith('PRINT ')) {
+            const content = curLine.replace(/^(OUTPUT|PRINT)\s+/i, '').trim();
+            outputItems.push(content);
+            idx++;
+          } else {
+            break;
+          }
+        }
+
+        nodes.push({
+          type: 'io',
+          ioType: 'output',
+          label: outputItems.length === 1 ? `OUTPUT ${outputItems[0]}` : 'OUTPUT',
+          items: outputItems,
+          shape: 'parallelogram',
+          color: '#00D2FF'
+        });
+        continue;
+      }
+
+      // 6. INPUT Statements (Combined if multiple)
+      if (upper.startsWith('INPUT ') || upper.startsWith('READ ')) {
+        const inputItems = [];
+        while (idx < linesList.length) {
+          const curLine = linesList[idx];
+          const curUpper = curLine.toUpperCase();
+          if (curUpper.startsWith('INPUT ') || curUpper.startsWith('READ ')) {
+            const content = curLine.replace(/^(INPUT|READ)\s+/i, '').trim();
+            inputItems.push(content);
+            idx++;
+          } else {
+            break;
+          }
+        }
+
+        nodes.push({
+          type: 'io',
+          ioType: 'input',
+          label: inputItems.length === 1 ? `INPUT ${inputItems[0]}` : 'INPUT',
+          items: inputItems,
+          shape: 'parallelogram',
+          color: '#00D2FF'
+        });
+        continue;
+      }
+
+      // 7. Standalone Nodes: Terminal, Call, Process
       if (upper.startsWith('BEGIN ') || upper.startsWith('START ') || upper.startsWith('FUNCTION ')) {
         nodes.push({
           type: 'terminal',
@@ -568,13 +667,6 @@ export const parsePseudocodeToFlowchartTree = (pseudocodeText) => {
           label: line,
           shape: 'stadium',
           color: '#FF647C'
-        });
-      } else if (upper.startsWith('OUTPUT ') || upper.startsWith('PRINT ') || upper.startsWith('INPUT ') || upper.startsWith('READ ')) {
-        nodes.push({
-          type: 'io',
-          label: line,
-          shape: 'parallelogram',
-          color: '#00D2FF'
         });
       } else if (upper.includes('CALL ')) {
         nodes.push({

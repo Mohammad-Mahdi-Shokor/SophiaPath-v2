@@ -440,12 +440,50 @@ const LearningPathPage = () => {
     const rawList = (activeSection && backendLessons[activeSection.id]) || activeSection?.lessons || [];
     let currentY = 0;
 
-    return lessons.map((lesson, index) => {
-      // Find all database duplicates of this unique lesson title
-      const duplicates = rawList.filter(dl => (dl.title || '').trim().toLowerCase() === (lesson.title || '').trim().toLowerCase());
-      const allMatching = [lesson, ...duplicates];
+    // Grouping: If a reading lesson is followed immediately by a practice exercise in the same chapter, merge them into 1 node!
+    const groupedItems = [];
+    for (let i = 0; i < lessons.length; i++) {
+      const cur = lessons[i];
+      const curTitleLower = (cur.title || '').toLowerCase();
+      const curHasQuestions = (cur.questions && cur.questions.length > 0) || (cur.questionCount && cur.questionCount > 0);
+      const curIsQuiz = curTitleLower.includes('quiz') || curTitleLower.includes('exercise') || curTitleLower.includes('test') || curTitleLower.includes('mcq') || curTitleLower.includes('practice');
+      const curIsLearning = (cur.category === 'learning' || !cur.category) && !curHasQuestions && !curIsQuiz;
 
-      // Consolidate highest score among matching instances
+      const next = lessons[i + 1];
+      if (curIsLearning && next) {
+        const nextTitleLower = (next.title || '').toLowerCase();
+        const nextHasQuestions = (next.questions && next.questions.length > 0) || (next.questionCount && next.questionCount > 0);
+        const nextIsQuiz = nextTitleLower.includes('quiz') || nextTitleLower.includes('exercise') || nextTitleLower.includes('test') || nextTitleLower.includes('mcq') || nextTitleLower.includes('practice') || next.category === 'exercise';
+
+        const curChap = (cur.chapterName || '').trim();
+        const nextChap = (next.chapterName || '').trim();
+        const sameChapter = !curChap || !nextChap || curChap === nextChap;
+
+        if (nextIsQuiz && sameChapter) {
+          groupedItems.push({
+            ...cur,
+            linkedExercise: next,
+            linkedExerciseId: next.id,
+            hasLinkedExercise: true
+          });
+          i++; // skip next lesson as it is merged
+          continue;
+        }
+      }
+
+      groupedItems.push({
+        ...cur,
+        linkedExercise: null,
+        linkedExerciseId: null,
+        hasLinkedExercise: false
+      });
+    }
+
+    return groupedItems.map((item, index) => {
+      // Find all database duplicates of this unique lesson title
+      const duplicates = rawList.filter(dl => (dl.title || '').trim().toLowerCase() === (item.title || '').trim().toLowerCase());
+      const allMatching = [item, ...duplicates];
+
       let score = 0;
       allMatching.forEach(dl => {
         if (scores[dl.id] !== undefined && scores[dl.id] !== null) {
@@ -454,31 +492,57 @@ const LearningPathPage = () => {
         }
       });
 
+      let exerciseScore = 0;
+      if (item.linkedExercise) {
+        const exDuplicates = rawList.filter(dl => (dl.title || '').trim().toLowerCase() === (item.linkedExercise.title || '').trim().toLowerCase());
+        const allEx = [item.linkedExercise, ...exDuplicates];
+        allEx.forEach(dl => {
+          if (scores[dl.id] !== undefined && scores[dl.id] !== null) {
+            const numS = Number(scores[dl.id]);
+            if (numS > exerciseScore) exerciseScore = numS;
+          }
+        });
+      }
+
       // Auto-detect category for exercises & quizzes if not explicitly set
-      const titleLower = (lesson.title || '').toLowerCase();
-      const hasQuestions = (lesson.questions && lesson.questions.length > 0) || (lesson.questionCount && lesson.questionCount > 0);
+      const titleLower = (item.title || '').toLowerCase();
+      const hasQuestions = (item.questions && item.questions.length > 0) || (item.questionCount && item.questionCount > 0);
       const isQuizTitle = titleLower.includes('quiz') || titleLower.includes('exercise') || titleLower.includes('test') || titleLower.includes('mcq') || titleLower.includes('assessment') || titleLower.includes('practice');
 
-      let category = lesson.category || 'learning';
+      let category = item.category || 'learning';
       if (category === 'learning' && (hasQuestions || isQuizTitle)) {
         category = 'exercise';
       }
 
-      // Passing condition: for exercises/quizzes, passing threshold is >= 70% matching mobile app. For reading lessons, score > 0 is passed.
-      const isQuizOrExercise = category !== 'learning' || isQuizTitle || hasQuestions;
-      const isPassed = isQuizOrExercise ? score >= 70 : score > 0;
+      // Passing condition: for merged items, both lesson and exercise passed (or either >= 70)
+      let isPassed = false;
+      if (item.hasLinkedExercise) {
+        isPassed = (score > 0 || exerciseScore >= 70) && (exerciseScore >= 70 || score >= 70);
+      } else {
+        const isQuizOrExercise = category !== 'learning' || isQuizTitle || hasQuestions;
+        isPassed = isQuizOrExercise ? score >= 70 : score > 0;
+      }
 
       let isPreviousPassed = index === 0;
       if (index > 0) {
-        const prevLesson = lessons[index - 1];
-        const prevDuplicates = rawList.filter(dl => (dl.title || '').trim().toLowerCase() === (prevLesson.title || '').trim().toLowerCase());
-        const prevMatching = [prevLesson, ...prevDuplicates];
-        isPreviousPassed = prevMatching.some(dl => {
-          const s = scores[dl.id] || 0;
-          const pTitleLower = (dl.title || '').toLowerCase();
+        const prevItem = groupedItems[index - 1];
+        const prevDuplicates = rawList.filter(dl => (dl.title || '').trim().toLowerCase() === (prevItem.title || '').trim().toLowerCase());
+        const prevMatching = [prevItem, ...prevDuplicates];
+        const prevScore = Math.max(...prevMatching.map(dl => scores[dl.id] || 0), 0);
+
+        let prevExScore = 0;
+        if (prevItem.linkedExercise) {
+          const prevExDups = rawList.filter(dl => (dl.title || '').trim().toLowerCase() === (prevItem.linkedExercise.title || '').trim().toLowerCase());
+          prevExScore = Math.max(...[prevItem.linkedExercise, ...prevExDups].map(dl => scores[dl.id] || 0), 0);
+        }
+
+        if (prevItem.hasLinkedExercise) {
+          isPreviousPassed = prevExScore >= 70 || prevScore >= 70;
+        } else {
+          const pTitleLower = (prevItem.title || '').toLowerCase();
           const pIsQuiz = pTitleLower.includes('quiz') || pTitleLower.includes('exercise') || pTitleLower.includes('test') || pTitleLower.includes('mcq');
-          return pIsQuiz ? s >= 70 : s > 0;
-        });
+          isPreviousPassed = pIsQuiz ? prevScore >= 70 : prevScore > 0;
+        }
       }
 
       let status = 'upcoming';
@@ -486,14 +550,14 @@ const LearningPathPage = () => {
       else if (isPreviousPassed) status = 'active';
 
       // Group and calculate dynamic height gap for new chapters
-      const rawChapter = lesson.chapterName || 'General';
+      const rawChapter = item.chapterName || 'General';
       const chapterName = rawChapter.trim().length > 0 ? rawChapter.trim() : 'General';
 
       let isNewChapter = false;
       if (index === 0) {
         isNewChapter = true;
       } else {
-        const prevRawChapter = lessons[index - 1].chapterName || 'General';
+        const prevRawChapter = groupedItems[index - 1].chapterName || 'General';
         const prevChapterName = prevRawChapter.trim().length > 0 ? prevRawChapter.trim() : 'General';
         if (chapterName !== prevChapterName) {
           isNewChapter = true;
@@ -502,18 +566,18 @@ const LearningPathPage = () => {
 
       currentY += index === 0 ? 220 : (isNewChapter ? 250 : 150);
 
-      const x = index % 2 === 0 ? 45 : 255; // Larger horizontal zigzag within 300px visual container
+      const x = index % 2 === 0 ? 45 : 255;
       const y = currentY;
 
       return {
-        ...lesson,
+        ...item,
         chapterName,
         isNewChapter,
         category,
         status,
-        score,
+        score: Math.max(score, exerciseScore),
         pos: { x, y },
-        icon: category === 'learning' ? <BookIcon /> : <SchoolIcon />
+        icon: item.hasLinkedExercise ? <SchoolIcon /> : (category === 'learning' ? <BookIcon /> : <ExerciseIcon />)
       };
     });
   }, [lessons, scores, activeSection, backendLessons]);
@@ -673,7 +737,14 @@ const LearningPathPage = () => {
 
   const handleStartLesson = () => {
     if (!selectedNode) return;
-    navigate(`/learning/${domainKey}/${activeSection.id}/${selectedNode.id}`, { state: { course } });
+    navigate(`/learning/${domainKey}/${activeSection.id}/${selectedNode.id}`, {
+      state: {
+        course,
+        linkedExerciseId: selectedNode.linkedExerciseId,
+        linkedExercise: selectedNode.linkedExercise,
+        hasLinkedExercise: selectedNode.hasLinkedExercise
+      }
+    });
     handleClosePreview();
   };
 
@@ -681,13 +752,29 @@ const LearningPathPage = () => {
     if (!selectedNode) return null;
     const isCompleted = selectedNode.status === 'completed';
     const accentColor = isCompleted ? '#58CC02' : 'var(--primary-main)';
-    const buttonLabel = isCompleted ? 'RETAKE THE LESSON' : 'START THE LESSON';
-    const categoryLabel = isCompleted ? 'COMPLETED LESSON' : (selectedNode.category === 'exercise' ? 'PRACTICE QUIZ' : 'ROADMAP LESSON');
+    
+    let categoryLabel = 'ROADMAP LESSON';
+    if (isCompleted) {
+      categoryLabel = selectedNode.hasLinkedExercise ? 'COMPLETED LESSON & EXERCISE' : 'COMPLETED LESSON';
+    } else if (selectedNode.hasLinkedExercise) {
+      categoryLabel = 'LESSON & PRACTICE EXERCISE';
+    } else if (selectedNode.category === 'exercise') {
+      categoryLabel = 'PRACTICE QUIZ';
+    }
+
+    const buttonLabel = isCompleted
+      ? (selectedNode.hasLinkedExercise ? 'RETAKE LESSON & EXERCISE' : 'RETAKE LESSON')
+      : (selectedNode.hasLinkedExercise ? 'START LESSON & EXERCISE' : 'START THE LESSON');
 
     // Premium dynamic description based on category/title
-    const description = selectedNode.category === 'exercise'
-      ? `Test your knowledge with a quiz on "${selectedNode.title}". Answer the questions to prove your mastery and earn points!`
-      : `Dive into "${selectedNode.title}" and learn key concepts in a step-by-step interactive slide viewer. Perfect for solidifying your fundamentals.`;
+    let description = '';
+    if (selectedNode.hasLinkedExercise) {
+      description = `Learn key concepts in interactive slides, then test your knowledge in the "${selectedNode.linkedExercise.title}" practice challenge with 3 Hearts ❤️❤️❤️!`;
+    } else if (selectedNode.category === 'exercise') {
+      description = `Test your knowledge with an interactive quiz on "${selectedNode.title}". Answer the questions with 3 Hearts to prove your mastery!`;
+    } else {
+      description = `Dive into "${selectedNode.title}" and learn key concepts in a step-by-step interactive slide viewer. Perfect for solidifying your fundamentals.`;
+    }
 
     return (
       <Box style={{ position: 'relative' }}>

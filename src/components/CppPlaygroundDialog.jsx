@@ -1128,6 +1128,8 @@ int main() {
     return 0;
 }`;
 
+const ENABLE_FLOWCHART_LAB = false;
+
 export const CppPlaygroundDialog = ({ open, onClose, initialCode }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -1509,46 +1511,48 @@ export const CppPlaygroundDialog = ({ open, onClose, initialCode }) => {
           </Typography>
         </Box>
 
-        {/* Switcher tabs */}
-        <Box style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <button
-            onClick={() => setActiveTab('compiler')}
-            style={{
-              padding: 'clamp(6px, 0.9vh, 10px) clamp(12px, 1.2vw, 20px)',
-              borderRadius: '9px',
-              border: 'none',
-              background: activeTab === 'compiler' ? 'var(--primary-main)' : 'transparent',
-              color: activeTab === 'compiler' ? '#fff' : 'var(--text-secondary)',
-              fontSize: 'clamp(0.8rem, 0.85vw, 0.92rem)',
-              fontWeight: 800,
-              cursor: 'pointer',
-              transition: 'all 0.25s ease',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            C++ Compiler
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('flowchart');
-              setPseudocode(convertCppToPseudocode(code));
-            }}
-            style={{
-              padding: 'clamp(6px, 0.9vh, 10px) clamp(12px, 1.2vw, 20px)',
-              borderRadius: '9px',
-              border: 'none',
-              background: activeTab === 'flowchart' ? 'var(--primary-main)' : 'transparent',
-              color: activeTab === 'flowchart' ? '#fff' : 'var(--text-secondary)',
-              fontSize: 'clamp(0.8rem, 0.85vw, 0.92rem)',
-              fontWeight: 800,
-              cursor: 'pointer',
-              transition: 'all 0.25s ease',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Pseudocode & Flowchart Lab
-          </button>
-        </Box>
+        {/* Flowchart tab switch feature flag (kept for future release) */}
+        {ENABLE_FLOWCHART_LAB && (
+          <Box style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <button
+              onClick={() => setActiveTab('compiler')}
+              style={{
+                padding: 'clamp(6px, 0.9vh, 10px) clamp(12px, 1.2vw, 20px)',
+                borderRadius: '9px',
+                border: 'none',
+                background: activeTab === 'compiler' ? 'var(--primary-main)' : 'transparent',
+                color: activeTab === 'compiler' ? '#fff' : 'var(--text-secondary)',
+                fontSize: 'clamp(0.8rem, 0.85vw, 0.92rem)',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.25s ease',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              C++ Compiler
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('flowchart');
+                setPseudocode(convertCppToPseudocode(code));
+              }}
+              style={{
+                padding: 'clamp(6px, 0.9vh, 10px) clamp(12px, 1.2vw, 20px)',
+                borderRadius: '9px',
+                border: 'none',
+                background: activeTab === 'flowchart' ? 'var(--primary-main)' : 'transparent',
+                color: activeTab === 'flowchart' ? '#fff' : 'var(--text-secondary)',
+                fontSize: 'clamp(0.8rem, 0.85vw, 0.92rem)',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.25s ease',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Pseudocode & Flowchart Lab
+            </button>
+          </Box>
+        )}
 
         <IconButton onClick={onClose} style={{ color: 'var(--text-secondary)' }}>
           <CloseIcon />
@@ -1992,7 +1996,7 @@ export const CppPlaygroundDialog = ({ open, onClose, initialCode }) => {
         ) : (
           <Box style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '20px', flexGrow: 1, minHeight: 0, alignItems: 'stretch', height: '100%' }}>
             {/* Pseudocode Editor Panel */}
-            <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', height: '100%' }}>
+            <Box style={{ flex: 0.75, display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minWidth: 0 }}>
               <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '36px' }}>
                 <Typography variant="subtitle2" style={{ fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Pseudocode Editor
@@ -2035,7 +2039,7 @@ export const CppPlaygroundDialog = ({ open, onClose, initialCode }) => {
             </Box>
 
             {/* Visual Flowchart Display Panel */}
-            <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minWidth: 0 }}>
+            <Box style={{ flex: 1.35, display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minWidth: 0 }}>
               <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: '36px', flexWrap: 'wrap', gap: '6px' }}>
                 <Typography variant="subtitle2" style={{ fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>
                   Flowchart Visualizer

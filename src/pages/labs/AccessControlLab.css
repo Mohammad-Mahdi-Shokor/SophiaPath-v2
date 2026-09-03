@@ -86,8 +86,8 @@
 }
 
 .ac-panel-dark {
-  background-color: #0e111d;
-  color: #fff;
+  background-color: var(--background-paper-alt);
+  color: var(--text-primary);
 }
 
 .ac-user-badge {
@@ -100,7 +100,7 @@
 }
 
 .ac-panel-dark .ac-user-badge {
-  border-bottom-color: #334155;
+  border-bottom-color: var(--divider);
 }
 
 .ac-avatar {
@@ -326,13 +326,13 @@
 }
 
 .ac-code-box {
-  background-color: #000;
+  background-color: var(--code-bg, #0a0a14);
   padding: 0.75rem;
   border-radius: 0.25rem;
   font-family: monospace;
   font-size: 0.75rem;
   color: var(--success-main);
   word-break: break-all;
-  border: 1px solid #334155;
+  border: 1px solid var(--divider);
   margin-top: 0.5rem;
 }
