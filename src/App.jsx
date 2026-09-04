@@ -9,6 +9,7 @@ import SqliChallenge from './pages/challenges/SqliChallenge';
 import BacChallenge from './pages/challenges/BacChallenge';
 
 import ScrollToTop from './components/ScrollToTop';
+import ReportIssueButton from './components/ReportIssueButton';
 import logoImg from './assets/sp-logo.png';
 
 function SplashWrapper() {
@@ -188,6 +189,7 @@ function App() {
         <SplashWrapper />
         <Router>
           <ScrollToTop />
+          <ReportIssueButton />
           <Routes>
             {/* Standalone challenge sandbox routes — render outside the Navigation layout */}
             <Route path="/challenges/search" element={<XssChallenge />} />

@@ -1238,33 +1238,54 @@ const NavigationPage = () => {
           onClick={sidebarCollapsed ? () => setSidebarCollapsed(false) : () => navigate('/labs')}
           title={sidebarCollapsed ? "Expand Navigation" : "SophiaPath Home"}
         >
-          <motion.div
-            layout
-            animate={{
-              scale: sidebarCollapsed ? 0.95 : 1
-            }}
-            whileHover={{ scale: 1.12, rotate: [0, -5, 5, 0] }}
-            whileTap={{ scale: 0.92 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className={`nav-brand-logo-container ${logoStyle === 'gradient' ? 'sp-logo-gradient' : ''}`}
-            style={{
-              width: '38px',
-              height: '38px',
-              flexShrink: 0,
-              position: 'relative',
-              WebkitMaskImage: `url(${logoImg})`,
-              maskImage: `url(${logoImg})`,
-              WebkitMaskRepeat: 'no-repeat',
-              maskRepeat: 'no-repeat',
-              WebkitMaskPosition: 'center',
-              maskPosition: 'center',
-              WebkitMaskSize: 'contain',
-              maskSize: 'contain'
-            }}
-          >
-            <div className="nav-logo-left-half" />
-            <div className="nav-logo-right-half" />
-          </motion.div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+            <motion.div
+              layout
+              animate={{
+                scale: sidebarCollapsed ? 0.95 : 1
+              }}
+              whileHover={{ scale: 1.12, rotate: [0, -5, 5, 0] }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              className={`nav-brand-logo-container ${logoStyle === 'gradient' ? 'sp-logo-gradient' : ''}`}
+              style={{
+                width: '38px',
+                height: '38px',
+                flexShrink: 0,
+                position: 'relative',
+                WebkitMaskImage: `url(${logoImg})`,
+                maskImage: `url(${logoImg})`,
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain'
+              }}
+            >
+              <div className="nav-logo-left-half" />
+              <div className="nav-logo-right-half" />
+            </motion.div>
+            <span
+              className="app-beta-badge"
+              style={{
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(234, 88, 12, 0.18))',
+                border: '1px solid rgba(245, 158, 11, 0.55)',
+                color: '#f59e0b',
+                fontSize: '0.55rem',
+                fontWeight: 900,
+                padding: '1px 5px',
+                borderRadius: '4px',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                boxShadow: '0 0 8px rgba(245, 158, 11, 0.2)',
+                lineHeight: 1.1,
+                userSelect: 'none'
+              }}
+            >
+              BETA
+            </span>
+          </div>
           <AnimatePresence>
             {!sidebarCollapsed && (
               <motion.div
@@ -1784,6 +1805,30 @@ const NavigationPage = () => {
             </div>
 
             <div className="nav-topbar-actions">
+              <span
+                className="nav-topbar-beta-badge"
+                title="SophiaPath Platform - Public Beta"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(234, 88, 12, 0.14))',
+                  border: '1px solid rgba(245, 158, 11, 0.45)',
+                  color: '#f59e0b',
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 0 10px rgba(245, 158, 11, 0.15)',
+                  userSelect: 'none',
+                  cursor: 'default',
+                  height: '32px'
+                }}
+              >
+                ⚡ BETA
+              </span>
+
               <Button
                 variant="outlined"
                 startIcon={<Brightness6Icon />}

@@ -400,55 +400,55 @@ const SEARCHABLE_LABS = [
   },
 ];
 
-const getLabIcon = (iconName) => {
+const getLabIcon = (iconName, size = 48) => {
   switch (iconName) {
     case 'code':
-      return <Code size={24} />;
+      return <Code size={size} />;
     case 'database':
-      return <Database size={24} />;
+      return <Database size={size} />;
     case 'terminal':
-      return <Terminal size={24} />;
+      return <Terminal size={size} />;
     case 'globe':
-      return <Globe size={24} />;
+      return <Globe size={size} />;
     case 'key':
-      return <KeyRound size={24} />;
+      return <KeyRound size={size} />;
     case 'lock':
-      return <Lock size={24} />;
+      return <Lock size={size} />;
     case 'user':
-      return <User size={24} />;
+      return <User size={size} />;
     case 'userx':
-      return <UserX size={24} />;
+      return <UserX size={size} />;
     case 'activity':
-      return <Activity size={24} />;
+      return <Activity size={size} />;
     case 'wrench':
-      return <Wrench size={24} />;
+      return <Wrench size={size} />;
     case 'brain':
-      return <Brain size={24} />;
+      return <Brain size={size} />;
     case 'help':
-      return <HelpCircle size={24} />;
+      return <HelpCircle size={size} />;
     case 'ship':
-      return <Ship size={24} />;
+      return <Ship size={size} />;
     case 'compass':
-      return <Compass size={24} />;
+      return <Compass size={size} />;
     case 'branch':
-      return <GitBranch size={24} />;
+      return <GitBranch size={size} />;
     case 'calendar':
-      return <Calendar size={24} />;
+      return <Calendar size={size} />;
     case 'layers':
-      return <Layers size={24} />;
+      return <Layers size={size} />;
     default:
-      return <Code size={24} />;
+      return <Code size={size} />;
   }
 };
 
 const getLabGroupIcon = (iconKey) => {
   switch (iconKey) {
     case 'cs':
-      return <CodeIcon />;
+      return <CodeIcon style={{ fontSize: '2.4rem' }} />;
     case 'security':
-      return <SecurityIcon />;
+      return <SecurityIcon style={{ fontSize: '2.4rem' }} />;
     default:
-      return <CodeIcon />;
+      return <CodeIcon style={{ fontSize: '2.4rem' }} />;
   }
 };
 
@@ -473,7 +473,7 @@ const LabsPage = () => {
     return labParam || 'Computer Science';
   });
 
-  const categories = ['All', 'Software Engineering'];
+  const categories = ['All', 'Software Engineering', 'C++ Basics', 'OOP'];
 
   const handleSelectLabGroup = (name) => {
     setSelectedLabGroup(name);
@@ -492,23 +492,24 @@ const LabsPage = () => {
     return labsData.find(c => c.title.toLowerCase() === (selectedLabGroup || 'computer science').toLowerCase()) || labsData[0];
   }, [selectedLabGroup]);
 
-  // Filter to Software Engineering labs only, excluding sequence diagram for now
-  const isSweLab = (lab) => (lab.course === 'Software Engineering' || lab.id.startsWith('swe-')) && lab.id !== 'swe-sequence';
+  // Hide C++, Java/OOP, and Sequence diagram labs
+  const isVisibleLab = (lab) => lab.id !== 'cpp' && lab.id !== 'java-uml' && lab.id !== 'swe-sequence';
 
-  // Compute all matching labs (for search query or category filter)
-  const filteredLabsAcrossAll = useMemo(() => {
-    return SEARCHABLE_LABS.filter(isSweLab).filter(lab => {
+  // Check if a specific lab is disabled
+  const isLabDisabled = (lab) => lab.id === 'swe-er';
+
+  // Compute all matching labs for active view (filters by search query)
+  const displayedLabs = useMemo(() => {
+    const baseLabs = (activeLabGroupObj?.labs || []).filter(isVisibleLab);
+    return baseLabs.filter(lab => {
       const matchesSearch =
+        !searchQuery.trim() ||
         lab.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lab.description.toLowerCase().includes(searchQuery.toLowerCase());
+        (lab.description && lab.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchesCategory =
-        activeCategory === 'All' ||
-        lab.category === activeCategory;
-
-      return matchesSearch && matchesCategory;
+      return matchesSearch;
     });
-  }, [searchQuery, activeCategory]);
+  }, [activeLabGroupObj, searchQuery]);
 
   const handleLabClick = (path) => {
     if (path === 'dialog:cpp') {
@@ -544,146 +545,60 @@ const LabsPage = () => {
                 startAdornment: <SearchIcon className="learning-search-icon" />}}
             />
           </div>
-
-          <div className="learning-category-row">
-            {categories.map((category) => (
-              <Chip
-                key={category}
-                label={category}
-                onClick={() => {
-                  setActiveCategory(category);
-                  handleSelectLabGroup(null);
-                }}
-                className={`learning-category-chip ${activeCategory === category ? 'is-active' : ''}`}
-              />
-            ))}
-          </div>
         </div>
       </section>
 
       {/* RENDER VIEWS WITH SMOOTH MOTION TRANSITIONS */}
       <AnimatePresence mode="wait">
-        {activeLabGroupObj && !isSearchingOrFiltering ? (
-          /* COMPUTER SCIENCE LAB DETAIL MODE */
+        {activeLabGroupObj ? (
+          /* COMPUTER SCIENCE LAB DETAIL MODE WITH LIVE SEARCH */
           <motion.div
             key="cs-detail-mode"
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {/* Back Button (temporarily hidden per user request; preserved for later) */}
-            {false && (
-              <Box style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
-                <IconButton
-                  onClick={() => handleSelectLabGroup(null)}
-                  style={{
-                    color: 'var(--text-primary)',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    marginRight: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
-                  }}
-                >
-                  <ArrowBackIcon />
-                </IconButton>
-                <Typography variant="body1" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                  Back to Labs
-                </Typography>
-              </Box>
-            )}
-
-            <section className="learning-section">
-              <div className="learning-course-grid">
-                {activeLabGroupObj.labs.filter(isSweLab).map((lab) => (
-                  <Paper
-                    key={lab.id}
-                    className="learning-course-card glass-panel lab-card"
-                    elevation={0}
-                    onClick={() => handleLabClick(lab.path)}
-                  >
-                    <ArrowOutwardIcon className="learning-course-arrow" />
-                    <div className="learning-course-card-top">
-                      <div className="learning-course-icon">
-                        {getLabIcon(lab.iconName)}
-                      </div>
-                    </div>
-
-                    <Typography variant="h5" className="learning-course-title">
-                      {lab.title}
-                    </Typography>
-                    <Typography variant="body2" className="learning-course-description">
-                      {lab.description}
-                    </Typography>
-                    <div className="cyber-badge" style={{
-                      background: 'color-mix(in srgb, var(--primary-main) 12%, transparent)',
-                      color: 'var(--primary-main)',
-                      border: '1px solid color-mix(in srgb, var(--primary-main) 22%, transparent)'
-                    }}>
-                      {lab.course || activeLabGroupObj.category}
-                    </div>
-                  </Paper>
-                ))}
-              </div>
-            </section>
-          </motion.div>
-        ) : isSearchingOrFiltering ? (
-          /* SEARCH & FILTER GLOBAL MODE */
-          <motion.div
-            key="search-filter-mode"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             <section className="learning-section">
-              <div className="learning-section-head" style={{ alignItems: 'flex-start', textAlign: 'left', marginBottom: '24px' }}>
-                <div>
-                  <Typography variant="h4" className="learning-section-title" style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>
-                    Search Results ({filteredLabsAcrossAll.length})
-                  </Typography>
-                  <Typography variant="body1" className="learning-section-copy" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                    Showing matching interactive tools and sandboxes across all domains.
-                  </Typography>
-                </div>
-              </div>
-
-              {filteredLabsAcrossAll.length > 0 ? (
+              {displayedLabs.length > 0 ? (
                 <div className="learning-course-grid">
-                  {filteredLabsAcrossAll.map((lab) => (
-                    <Paper
-                      key={lab.id}
-                      className="learning-course-card glass-panel lab-card"
-                      elevation={0}
-                      onClick={() => handleLabClick(lab.path)}
-                    >
-                      <ArrowOutwardIcon className="learning-course-arrow" />
-                      <div className="learning-course-card-top">
-                        <div className="learning-course-icon">
-                          {getLabIcon(lab.iconName)}
+                  {displayedLabs.map((lab) => {
+                    const disabled = isLabDisabled(lab);
+                    return (
+                      <Paper
+                        key={lab.id}
+                        className={`learning-course-card glass-panel lab-card ${disabled ? 'is-disabled' : ''}`}
+                        elevation={0}
+                        onClick={() => !disabled && handleLabClick(lab.path)}
+                        style={disabled ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
+                      >
+                        {!disabled && <ArrowOutwardIcon className="learning-course-arrow" />}
+                        <div className="learning-course-card-top">
+                          <div className="learning-course-icon" style={disabled ? { filter: 'grayscale(60%)' } : {}}>
+                            {getLabIcon(lab.iconName, 48)}
+                          </div>
                         </div>
-                      </div>
 
-                      <Typography variant="h5" className="learning-course-title">
-                        {lab.title}
-                      </Typography>
-                      <Typography variant="body2" className="learning-course-description" style={{ color: 'var(--text-secondary)' }}>
-                        {lab.description}
-                      </Typography>
-                      <div className="cyber-badge" style={{
-                        background: 'color-mix(in srgb, var(--primary-main) 12%, transparent)',
-                        color: 'var(--primary-main)',
-                        border: '1px solid color-mix(in srgb, var(--primary-main) 22%, transparent)'
-                      }}>
-                        {lab.course || lab.labCategoryTitle}
-                      </div>
-                    </Paper>
-                  ))}
+                        <Typography variant="h5" className="learning-course-title" style={disabled ? { opacity: 0.8 } : {}}>
+                          {lab.title}
+                        </Typography>
+                        <div className="cyber-badge" style={{
+                          background: disabled ? 'rgba(255, 179, 0, 0.12)' : 'color-mix(in srgb, var(--primary-main) 12%, transparent)',
+                          color: disabled ? '#ffb300' : 'var(--primary-main)',
+                          border: `1px solid ${disabled ? 'rgba(255, 179, 0, 0.3)' : 'color-mix(in srgb, var(--primary-main) 22%, transparent)'}`,
+                          letterSpacing: '0.04em'
+                        }}>
+                          {disabled ? 'Coming Soon' : (lab.course || activeLabGroupObj.category)}
+                        </div>
+                      </Paper>
+                    );
+                  })}
                 </div>
               ) : (
                 <Paper className="learning-empty-state glass-panel" elevation={0} style={{ width: '100%', padding: '40px', textAlign: 'center' }}>
                   <Typography variant="h6">No interactive labs found for your search query.</Typography>
                   <Typography variant="body2" style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
-                    Try typing a different keyword or resetting your filter category chips.
+                    Try typing a different keyword in the search bar.
                   </Typography>
                 </Paper>
               )}

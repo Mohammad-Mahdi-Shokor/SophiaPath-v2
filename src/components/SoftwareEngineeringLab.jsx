@@ -192,27 +192,45 @@ RELATIONSHIP Instructor ONE Teaches Course MANY
 RELATIONSHIP Student ONE Submits Enrollment MANY
 RELATIONSHIP Course ONE Receives Enrollment MANY`,
 
-  usecase: `SYSTEM University Application System
+  usecase: `// ========================================================
+// SOPHIAPATH USE CASE DIAGRAM SPECIFICATION (DSL)
+// ========================================================
+// Keywords:
+// - SYSTEM <title> : Declares the system boundary title
+// - ACTOR <name> : Declares an actor (👤)
+// - USE CASE <name> : Declares a use case (⭕)
+// - <Actor> INHERITS <ParentActor> : Actor generalization / inheritance
+// - <Actor> -> <UseCase> : Direct association link
+// - <UseCase1> INCLUDES <UseCase2> : Mandatory sub-flow (<<include>>)
+// - <UseCase1> EXTENDS <UseCase2> : Optional extension (<<extend>>)
+// - <UseCase1> INHERITS <UseCase2> : Use case generalization
+
+SYSTEM University Application System
 
 ACTOR Guest
 ACTOR Student
 ACTOR Instructor
 ACTOR Admin
 
+// ── Actor Inheritance ──
 Student INHERITS Guest
 Instructor INHERITS Guest
 Admin INHERITS Guest
 
+// ── Use Cases ──
 USE CASE Sign Up
 USE CASE Login
 USE CASE Edit Profile
 USE CASE Register Courses
 USE CASE View Grades
 USE CASE Apply for Certificate
+USE CASE Verify Prerequisites
+USE CASE Pay Tuition Fees
 USE CASE Set Student Grades
 USE CASE Review Certificate Applications
 USE CASE Monitor System
 
+// ── Actor to Use Case Associations ──
 Guest -> Sign Up
 Guest -> Login
 
@@ -226,7 +244,11 @@ Instructor -> Set Student Grades
 
 Admin -> Review Certificate Applications
 Admin -> Monitor System
-`,
+
+// ── Use Case to Use Case Relationships ──
+Register Courses INCLUDES Verify Prerequisites
+Register Courses EXTENDS Pay Tuition Fees
+Apply for Certificate INCLUDES Verify Prerequisites`,
 
   sequence: `// ========================================================
 // SOPHIAPATH SEQUENCE DIAGRAM SPECIFICATION (DSL)
@@ -234,10 +256,10 @@ Admin -> Monitor System
 // Keywords:
 // - SEQUENCE <title> : Declares diagram title
 // - PARTICIPANT <name> : Declares participant lifeline
-// - <Src> sends <msg> to <Dest>. : Synchronous message call
-// - <Src> requests <msg> from <Dest>. : Request message call
-// - <Src> returns <msg> to <Dest>. : Return/reply message
-// - <Src> displays <msg> to <Dest>. : UI render/display message
+// - <Src> sends "<msg>" to <Dest>. : Synchronous message call
+// - <Src> requests "<msg>" from <Dest>. : Request message call
+// - <Src> returns "<msg>" to <Dest>. : Return/reply message
+// - <Src> displays "<msg>" to <Dest>. : UI render/display message
 // - IF <condition> THEN ... ELSE ... END : Alternative execution blocks
 
 SEQUENCE Student Course Enrollment & Payment Verification
@@ -280,41 +302,63 @@ ELSE
     Web App displays "Course is Full - Join Waitlist" to Student.
 END`,
 
-  gantt: `text
+  gantt: `// ========================================================
+// SOPHIAPATH GANTT ROADMAP SPECIFICATION (DSL)
+// ========================================================
+// Keywords:
+// - GANTT <title> : Declares diagram title
+// - PROJECT <phase_name> : Defines a project phase / section group
+// - TASK <task_name> : Declares a project task
+// - START <YYYY-MM-DD> : Task start date
+// - END <YYYY-MM-DD> : Task completion date
+// - DEPENDS ON <PredecessorTaskName> : Task dependency constraint
+// - MILESTONE <name> : Declares a key milestone date
+// - DATE <YYYY-MM-DD> : Milestone target date
+
 GANTT Software Development Project
 
-PROJECT Software Development Project
-
+PROJECT Requirements & Design
 TASK Requirements Analysis
 START 2026-09-01
 END 2026-09-28
 
-TASK System Design
+TASK System Architecture Design
 START 2026-09-29
 END 2026-10-26
 DEPENDS ON Requirements Analysis
 
-TASK Database Development
+MILESTONE Design Signoff
+DATE 2026-10-26
+
+PROJECT Core Development
+TASK Database Modeling & Setup
 START 2026-10-27
 END 2026-11-23
-DEPENDS ON System Design
+DEPENDS ON System Architecture Design
 
-TASK Backend Development
+TASK Backend API Development
 START 2026-11-24
 END 2026-12-21
-DEPENDS ON Database Development
+DEPENDS ON Database Modeling & Setup
 
-TASK Frontend Development
+TASK Frontend UI Implementation
 START 2026-12-22
 END 2027-01-25
-DEPENDS ON Backend Development
+DEPENDS ON Backend API Development
 
-TASK Testing and Deployment
+PROJECT QA & Launch
+TASK Integration & Security Testing
 START 2027-01-26
-END 2027-02-22
-DEPENDS ON Frontend Development
+END 2027-02-15
+DEPENDS ON Frontend UI Implementation
 
-`
+TASK Production Deployment
+START 2027-02-16
+END 2027-02-22
+DEPENDS ON Integration & Security Testing
+
+MILESTONE System Go-Live
+DATE 2027-02-22`
 };
 
 const AddEntityDialog = ({ open, onClose, onSubmit, existingEntityNames }) => {
@@ -529,20 +573,20 @@ const CreateRelationDialog = ({ open, onClose, source, target, onSubmit }) => {
           border: '1px solid var(--divider)',
           color: 'var(--text-primary)',
           borderRadius: '16px',
-          padding: '12px',
-          maxWidth: '450px',
+          padding: '16px',
+          maxWidth: '500px',
           width: '100%'}
       }}
     >
-      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '12px', color: 'var(--text-primary)' }}>
+      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
         🔗 Create Relationship
       </DialogTitle>
-      <DialogContent style={{ marginTop: '16px' }}>
+      <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', overflow: 'visible' }}>
         <Typography variant="body2" style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
           Define the cardinality constraint and the relationship label name:
         </Typography>
 
-        <Box style={{ marginBottom: '24px' }}>
+        <Box style={{ marginBottom: '20px' }}>
           <TextField
             fullWidth
             label="Relationship Name (e.g. enrolls, orders, TO)"
@@ -560,7 +604,7 @@ const CreateRelationDialog = ({ open, onClose, source, target, onSubmit }) => {
           />
         </Box>
 
-        <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
+        <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '8px' }}>
           <Box style={{ flex: 1, padding: '16px', background: 'var(--background-default)', border: '1px solid var(--divider)', borderRadius: '12px', textAlign: 'center' }}>
             <Typography variant="subtitle2" style={{ fontWeight: 'bold', color: 'var(--primary-main)', marginBottom: '12px' }}>
               {source}
@@ -610,11 +654,11 @@ const CreateRelationDialog = ({ open, onClose, source, target, onSubmit }) => {
           </Box>
         </Box>
       </DialogContent>
-      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 24px', gap: '8px' }}>
-        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none' }}>
+      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold' }}>
+        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>
           Create Relation
         </Button>
       </DialogActions>
@@ -640,17 +684,17 @@ const AddActorDialog = ({ open, onClose, onSubmit, existingNames }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '12px', maxWidth: '400px', width: '100%' } }}>
-      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '12px', color: 'var(--text-primary)' }}>
+    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '16px', maxWidth: '440px', width: '100%' } }}>
+      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
         👤 Add Actor
       </DialogTitle>
-      <DialogContent style={{ marginTop: '16px' }}>
+      <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', overflow: 'visible' }}>
         {error && <Alert severity="error" style={{ marginBottom: '16px', borderRadius: '8px' }}>{error}</Alert>}
         <TextField fullWidth label="Actor Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. User" variant="outlined" size="small" InputLabelProps={{ style: { color: 'var(--text-secondary)' } }} inputProps={{ style: { color: 'var(--text-primary)' } }} sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--divider)' }, '&:hover fieldset': { borderColor: 'var(--primary-main)' }, '&.Mui-focused fieldset': { borderColor: 'var(--primary-main)' } } }} />
       </DialogContent>
-      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 24px', gap: '8px' }}>
-        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none' }}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold' }}>Create Actor</Button>
+      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>Create Actor</Button>
       </DialogActions>
     </Dialog>
   );
@@ -674,18 +718,866 @@ const AddUseCaseDialog = ({ open, onClose, onSubmit, existingNames }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '12px', maxWidth: '400px', width: '100%' } }}>
-      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '12px', color: 'var(--text-primary)' }}>
+    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '16px', maxWidth: '440px', width: '100%' } }}>
+      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
         🎯 Add Use Case
       </DialogTitle>
-      <DialogContent style={{ marginTop: '16px' }}>
+      <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', overflow: 'visible' }}>
         {error && <Alert severity="error" style={{ marginBottom: '16px', borderRadius: '8px' }}>{error}</Alert>}
         <TextField fullWidth label="Use Case Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Login to System" variant="outlined" size="small" InputLabelProps={{ style: { color: 'var(--text-secondary)' } }} inputProps={{ style: { color: 'var(--text-primary)' } }} sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--divider)' }, '&:hover fieldset': { borderColor: 'var(--primary-main)' }, '&.Mui-focused fieldset': { borderColor: 'var(--primary-main)' } } }} />
       </DialogContent>
-      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 24px', gap: '8px' }}>
-        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none' }}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold' }}>Create Use Case</Button>
+      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>Create Use Case</Button>
       </DialogActions>
+    </Dialog>
+  );
+};
+
+const UseCaseRelationDialog = ({ open, onClose, sourceLabel, targetLabel, onSubmit }) => {
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        style: {
+          background: 'var(--background-paper)',
+          border: '1px solid var(--divider)',
+          color: 'var(--text-primary)',
+          borderRadius: '16px',
+          padding: '16px',
+          maxWidth: '460px',
+          width: '100%'
+        }
+      }}
+    >
+      <DialogTitle style={{ fontWeight: 800, fontSize: '1.2rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
+        🔗 Connect Use Cases
+      </DialogTitle>
+      <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '14px', overflow: 'visible' }}>
+        <Typography variant="body2" style={{ color: 'var(--text-secondary)' }}>
+          Choose the relationship type between <strong style={{ color: 'var(--text-primary)' }}>{sourceLabel}</strong> and <strong style={{ color: 'var(--text-primary)' }}>{targetLabel}</strong>:
+        </Typography>
+
+        <Box style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '6px' }}>
+          <Button
+            variant="outlined"
+            onClick={() => onSubmit('INCLUDE')}
+            style={{
+              borderColor: '#00FFCC',
+              color: '#00FFCC',
+              borderRadius: '10px',
+              padding: '12px 6px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              textTransform: 'none'
+            }}
+          >
+            <span style={{ fontWeight: 900, fontSize: '0.9rem' }}>&lt;&lt;include&gt;&gt;</span>
+            <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>Mandatory sub-flow</span>
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={() => onSubmit('EXTEND')}
+            style={{
+              borderColor: 'var(--primary-main)',
+              color: 'var(--primary-main)',
+              borderRadius: '10px',
+              padding: '12px 6px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              textTransform: 'none'
+            }}
+          >
+            <span style={{ fontWeight: 900, fontSize: '0.9rem' }}>&lt;&lt;extend&gt;&gt;</span>
+            <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>Optional extension</span>
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={() => onSubmit('INHERITS')}
+            style={{
+              borderColor: '#a855f7',
+              color: '#a855f7',
+              borderRadius: '10px',
+              padding: '12px 6px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              textTransform: 'none'
+            }}
+          >
+            <span style={{ fontWeight: 900, fontSize: '0.9rem' }}>INHERITS</span>
+            <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>Generalization</span>
+          </Button>
+        </Box>
+      </DialogContent>
+      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+const ActivityTransitionDialog = ({ open, onClose, sourceLabel, targetLabel, onSubmit }) => {
+  const [guard, setGuard] = useState('');
+
+  useEffect(() => {
+    if (open) setGuard('');
+  }, [open]);
+
+  const handleCreate = (e) => {
+    if (e) e.preventDefault();
+    onSubmit(guard.trim());
+    onClose();
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        style: {
+          background: 'var(--background-paper)',
+          border: '1px solid var(--divider)',
+          color: 'var(--text-primary)',
+          borderRadius: '16px',
+          padding: '16px',
+          maxWidth: '460px',
+          width: '100%'
+        }
+      }}
+    >
+      <form onSubmit={handleCreate}>
+        <DialogTitle style={{ fontWeight: 800, fontSize: '1.2rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
+          ⚡ Connect Activity Flow
+        </DialogTitle>
+        <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '14px', overflow: 'visible' }}>
+          <Typography variant="body2" style={{ color: 'var(--text-secondary)' }}>
+            Creating transition from <strong style={{ color: 'var(--text-primary)' }}>{sourceLabel}</strong> to <strong style={{ color: 'var(--text-primary)' }}>{targetLabel}</strong>:
+          </Typography>
+
+          <Box>
+            <Typography variant="caption" style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+              Condition / Guard (optional, e.g. Yes, No, Approved):
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="e.g. Yes / valid credentials"
+              value={guard}
+              onChange={(e) => setGuard(e.target.value)}
+              autoFocus
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  color: 'var(--text-primary)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '8px',
+                  '& fieldset': { borderColor: 'var(--divider)' },
+                  '&:hover fieldset': { borderColor: 'var(--primary-main)' },
+                  '&.Mui-focused fieldset': { borderColor: 'var(--primary-main)' }
+                }
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+          <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+          <Button type="submit" variant="contained" style={{ background: 'var(--primary-main)', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: '8px', whiteSpace: 'nowrap', padding: '6px 18px' }}>
+            Connect
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+// ========================================================
+// EDIT CONNECTION / ARROW DIALOGS ACROSS ALL DIAGRAMS
+// ========================================================
+const EditERRelationDialog = ({ open, onClose, relation, entities = [], onSubmit, onDelete }) => {
+  const [source, setSource] = useState('');
+  const [sourceCard, setSourceCard] = useState('ONE');
+  const [target, setTarget] = useState('');
+  const [targetCard, setTargetCard] = useState('MANY');
+  const [label, setLabel] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (relation) {
+      setSource(relation.source || '');
+      setSourceCard(relation.sourceCard || 'ONE');
+      setTarget(relation.target || '');
+      setTargetCard(relation.targetCard || 'MANY');
+      setLabel(relation.label || '');
+      setError('');
+    }
+  }, [relation, open]);
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!source || !target) {
+      setError('Please select both entities.');
+      return;
+    }
+    onSubmit(relation, source, sourceCard, target, targetCard, label);
+  };
+
+  const entityList = (entities || []).map(e => (typeof e === 'string' ? e : e?.name)).filter(Boolean);
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        style: {
+          background: 'var(--background-paper)',
+          border: '1px solid var(--divider)',
+          color: 'var(--text-primary)',
+          borderRadius: '16px',
+          padding: '16px',
+          maxWidth: '520px',
+          width: '100%'
+        }
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
+          🔗 Edit ER Relationship
+        </DialogTitle>
+        <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
+          {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
+
+          <Box style={{ display: 'flex', gap: '12px' }}>
+            <FormControl fullWidth size="small">
+              <InputLabel style={{ color: 'var(--text-secondary)' }}>Entity 1</InputLabel>
+              <Select
+                value={source}
+                label="Entity 1"
+                onChange={(e) => setSource(e.target.value)}
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {entityList.map(name => (
+                  <MenuItem key={name} value={name}>{name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" style={{ width: '140px', flexShrink: 0 }}>
+              <InputLabel style={{ color: 'var(--text-secondary)' }}>Card 1</InputLabel>
+              <Select
+                value={sourceCard}
+                label="Card 1"
+                onChange={(e) => setSourceCard(e.target.value)}
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <MenuItem value="ONE">ONE (1)</MenuItem>
+                <MenuItem value="MANY">MANY (N)</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Box style={{ display: 'flex', gap: '12px' }}>
+            <FormControl fullWidth size="small">
+              <InputLabel style={{ color: 'var(--text-secondary)' }}>Entity 2</InputLabel>
+              <Select
+                value={target}
+                label="Entity 2"
+                onChange={(e) => setTarget(e.target.value)}
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {entityList.map(name => (
+                  <MenuItem key={name} value={name}>{name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" style={{ width: '140px', flexShrink: 0 }}>
+              <InputLabel style={{ color: 'var(--text-secondary)' }}>Card 2</InputLabel>
+              <Select
+                value={targetCard}
+                label="Card 2"
+                onChange={(e) => setTargetCard(e.target.value)}
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <MenuItem value="ONE">ONE (1)</MenuItem>
+                <MenuItem value="MANY">MANY (N)</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          <TextField
+            fullWidth
+            size="small"
+            label="Relationship Verb / Label"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. PLACES, HAS, TO"
+            InputLabelProps={{ style: { color: 'var(--text-secondary)' } }}
+            inputProps={{ style: { color: 'var(--text-primary)' } }}
+          />
+        </DialogContent>
+        <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
+          <Button
+            onClick={() => onDelete(relation)}
+            color="error"
+            variant="outlined"
+            style={{ textTransform: 'none', borderRadius: '8px', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}
+          >
+            Delete Relationship
+          </Button>
+          <Box style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
+            <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+            <Button type="submit" variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>
+              Save Changes
+            </Button>
+          </Box>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+const EditUseCaseLinkDialog = ({ open, onClose, link, actors = [], usecases = [], onSubmit, onDelete }) => {
+  const [source, setSource] = useState('');
+  const [target, setTarget] = useState('');
+  const [relType, setRelType] = useState('ASSOCIATION');
+  const [error, setError] = useState('');
+
+  const actorList = (actors || []).map(a => (typeof a === 'string' ? a : a?.id || a?.name)).filter(Boolean);
+  const ucList = (usecases || []).map(u => (typeof u === 'string' ? u : u?.id || u?.name)).filter(Boolean);
+  const allNodes = Array.from(new Set([...actorList, ...ucList]));
+
+  const isActor = (name) => actorList.some(a => a.toLowerCase() === (name || '').toLowerCase());
+  const isUseCase = (name) => ucList.some(u => u.toLowerCase() === (name || '').toLowerCase());
+
+  const isActorToActor = isActor(source) && isActor(target);
+  const isActorToUC = (isActor(source) && isUseCase(target)) || (isUseCase(source) && isActor(target));
+  const isUCToUC = isUseCase(source) && isUseCase(target);
+
+  const getEffectiveRelType = (src, tgt, currentRelType) => {
+    const srcIsAct = isActor(src);
+    const tgtIsAct = isActor(tgt);
+    const srcIsUC = isUseCase(src);
+    const tgtIsUC = isUseCase(tgt);
+
+    if (srcIsAct && tgtIsAct) {
+      return 'INHERITS';
+    }
+    if ((srcIsAct && tgtIsUC) || (srcIsUC && tgtIsAct)) {
+      return 'ASSOCIATION';
+    }
+    if (srcIsUC && tgtIsUC) {
+      if (currentRelType === 'ASSOCIATION') {
+        return 'INCLUDE';
+      }
+      return currentRelType || 'INCLUDE';
+    }
+    return currentRelType || 'ASSOCIATION';
+  };
+
+  useEffect(() => {
+    if (link) {
+      const src = link.source || '';
+      const tgt = link.target || '';
+      const initialType = link.relType || link.type || 'ASSOCIATION';
+      setSource(src);
+      setTarget(tgt);
+      setRelType(getEffectiveRelType(src, tgt, initialType));
+      setError('');
+    }
+  }, [link, open]);
+
+  const handleSourceChange = (newSrc) => {
+    setSource(newSrc);
+    setRelType(prev => getEffectiveRelType(newSrc, target, prev));
+  };
+
+  const handleTargetChange = (newTgt) => {
+    setTarget(newTgt);
+    setRelType(prev => getEffectiveRelType(source, newTgt, prev));
+  };
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!source || !target) {
+      setError('Please select both source and target.');
+      return;
+    }
+    if (source.toLowerCase() === target.toLowerCase()) {
+      setError('Source and target cannot be the same element.');
+      return;
+    }
+    const finalRelType = getEffectiveRelType(source, target, relType);
+    onSubmit(link, source, target, finalRelType);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        style: {
+          background: 'var(--background-paper)',
+          border: '1px solid var(--divider)',
+          color: 'var(--text-primary)',
+          borderRadius: '16px',
+          padding: '16px',
+          maxWidth: '520px',
+          width: '100%'
+        }
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
+          🔗 Edit Use Case Connection
+        </DialogTitle>
+        <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
+          {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>From (Source)</InputLabel>
+            <Select
+              value={source}
+              label="From (Source)"
+              onChange={(e) => handleSourceChange(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {allNodes.map(name => (
+                <MenuItem key={name} value={name}>
+                  {isActor(name) ? `👤 ${name} (Actor)` : `⭕ ${name} (Use Case)`}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>To (Target)</InputLabel>
+            <Select
+              value={target}
+              label="To (Target)"
+              onChange={(e) => handleTargetChange(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {allNodes.map(name => (
+                <MenuItem key={name} value={name}>
+                  {isActor(name) ? `👤 ${name} (Actor)` : `⭕ ${name} (Use Case)`}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small" disabled={!isUCToUC}>
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>Connection Type</InputLabel>
+            <Select
+              value={isActorToActor ? 'INHERITS' : (isActorToUC ? 'ASSOCIATION' : relType)}
+              label="Connection Type"
+              onChange={(e) => setRelType(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {isActorToActor && (
+                <MenuItem value="INHERITS">Generalization / Inheritance ( INHERITS )</MenuItem>
+              )}
+              {isActorToUC && (
+                <MenuItem value="ASSOCIATION">Association ( -{'>'} )</MenuItem>
+              )}
+              {isUCToUC && (
+                <>
+                  <MenuItem value="INCLUDE">&lt;&lt;include&gt;&gt; ( INCLUDES )</MenuItem>
+                  <MenuItem value="EXTEND">&lt;&lt;extend&gt;&gt; ( EXTENDS )</MenuItem>
+                  <MenuItem value="INHERITS">Generalization ( INHERITS )</MenuItem>
+                  <MenuItem value="ASSOCIATION">Association ( -{'>'} )</MenuItem>
+                </>
+              )}
+              {!isActorToActor && !isActorToUC && !isUCToUC && (
+                <>
+                  <MenuItem value="ASSOCIATION">Association ( -{'>'} )</MenuItem>
+                  <MenuItem value="INCLUDE">&lt;&lt;include&gt;&gt; ( INCLUDES )</MenuItem>
+                  <MenuItem value="EXTEND">&lt;&lt;extend&gt;&gt; ( EXTENDS )</MenuItem>
+                  <MenuItem value="INHERITS">Generalization ( INHERITS )</MenuItem>
+                </>
+              )}
+            </Select>
+            {isActorToActor && (
+              <Typography variant="caption" style={{ color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+                🔒 Fixed: Actor-to-Actor connections can only be Generalization (INHERITS).
+              </Typography>
+            )}
+            {isActorToUC && (
+              <Typography variant="caption" style={{ color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+                🔒 Fixed: Actor-to-UseCase connections are always direct Associations ( -{'>'} ).
+              </Typography>
+            )}
+            {isUCToUC && (
+              <Typography variant="caption" style={{ color: 'var(--primary-main)', marginTop: '4px', display: 'block' }}>
+                ✨ Choose relationship type between Use Cases (&lt;&lt;include&gt;&gt;, &lt;&lt;extend&gt;&gt;, or Generalization).
+              </Typography>
+            )}
+          </FormControl>
+        </DialogContent>
+        <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
+          <Button
+            onClick={() => onDelete(link)}
+            color="error"
+            variant="outlined"
+            style={{ textTransform: 'none', borderRadius: '8px', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}
+          >
+            Delete Connection
+          </Button>
+          <Box style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
+            <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+            <Button type="submit" variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>
+              Save Changes
+            </Button>
+          </Box>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+const EditActivityTransitionDialog = ({ open, onClose, transition, nodes = [], onSubmit, onDelete }) => {
+  const [source, setSource] = useState('');
+  const [target, setTarget] = useState('');
+  const [guard, setGuard] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (transition) {
+      setSource(transition.source || '');
+      setTarget(transition.target || '');
+      setGuard(transition.guard || transition.label || '');
+      setError('');
+    }
+  }, [transition, open]);
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!source || !target) {
+      setError('Please select both source and target nodes.');
+      return;
+    }
+    onSubmit(transition, source, target, guard);
+  };
+
+  const nodeList = (nodes || []).map(n => ({
+    id: typeof n === 'string' ? n : n?.id,
+    label: typeof n === 'string' ? n : n?.label || n?.id
+  })).filter(n => Boolean(n.id));
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        style: {
+          background: 'var(--background-paper)',
+          border: '1px solid var(--divider)',
+          color: 'var(--text-primary)',
+          borderRadius: '16px',
+          padding: '16px',
+          maxWidth: '520px',
+          width: '100%'
+        }
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
+          ➡️ Edit Activity Transition
+        </DialogTitle>
+        <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
+          {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>From (Source Node)</InputLabel>
+            <Select
+              value={source}
+              label="From (Source Node)"
+              onChange={(e) => setSource(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {nodeList.map(n => (
+                <MenuItem key={n.id} value={n.id}>{n.label || n.id}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>To (Target Node)</InputLabel>
+            <Select
+              value={target}
+              label="To (Target Node)"
+              onChange={(e) => setTarget(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {nodeList.map(n => (
+                <MenuItem key={n.id} value={n.id}>{n.label || n.id}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            size="small"
+            label="Condition / Guard (Optional)"
+            value={guard}
+            onChange={(e) => setGuard(e.target.value)}
+            placeholder="e.g. Yes / Validated / Error"
+            InputLabelProps={{ style: { color: 'var(--text-secondary)' } }}
+            inputProps={{ style: { color: 'var(--text-primary)' } }}
+          />
+        </DialogContent>
+        <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
+          <Button
+            onClick={() => onDelete(transition)}
+            color="error"
+            variant="outlined"
+            style={{ textTransform: 'none', borderRadius: '8px', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}
+          >
+            Delete Transition
+          </Button>
+          <Box style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
+            <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+            <Button type="submit" variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>
+              Save Changes
+            </Button>
+          </Box>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+const EditSequenceMessageDialog = ({ open, onClose, messageData, participants = [], onSubmit, onDelete }) => {
+  const [source, setSource] = useState('');
+  const [target, setTarget] = useState('');
+  const [message, setMessage] = useState('');
+  const [actionType, setActionType] = useState('sends');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (messageData) {
+      setSource(messageData.from || messageData.source || '');
+      setTarget(messageData.to || messageData.target || '');
+      setMessage(messageData.message || messageData.label || '');
+      setActionType(messageData.actionType || 'sends');
+      setError('');
+    }
+  }, [messageData, open]);
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!source || !target) {
+      setError('Please select both source and target participants.');
+      return;
+    }
+    if (!message.trim()) {
+      setError('Message cannot be empty.');
+      return;
+    }
+    onSubmit(messageData.messageIndex, source, target, actionType, message.trim());
+  };
+
+  const pList = (participants || []).map(p => (typeof p === 'string' ? p : p?.name || p?.id)).filter(Boolean);
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        style: {
+          background: 'var(--background-paper)',
+          border: '1px solid var(--divider)',
+          color: 'var(--text-primary)',
+          borderRadius: '16px',
+          padding: '16px',
+          maxWidth: '520px',
+          width: '100%'
+        }
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
+          ✉️ Edit Sequence Message
+        </DialogTitle>
+        <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
+          {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>From (Caller)</InputLabel>
+            <Select
+              value={source}
+              label="From (Caller)"
+              onChange={(e) => setSource(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {pList.map(p => (
+                <MenuItem key={p} value={p}>{p}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>To (Receiver)</InputLabel>
+            <Select
+              value={target}
+              label="To (Receiver)"
+              onChange={(e) => setTarget(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {pList.map(p => (
+                <MenuItem key={p} value={p}>{p}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>Message Type / Action</InputLabel>
+            <Select
+              value={actionType}
+              label="Message Type / Action"
+              onChange={(e) => setActionType(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              <MenuItem value="sends">Sends (Solid Arrow)</MenuItem>
+              <MenuItem value="requests">Requests (Solid Arrow)</MenuItem>
+              <MenuItem value="returns">Returns (Dashed Arrow)</MenuItem>
+              <MenuItem value="displays">Displays (Solid Arrow)</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            size="small"
+            label="Message Text / Method Call"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="e.g. login(username, password)"
+            InputLabelProps={{ style: { color: 'var(--text-secondary)' } }}
+            inputProps={{ style: { color: 'var(--text-primary)' } }}
+          />
+        </DialogContent>
+        <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
+          <Button
+            onClick={() => onDelete(messageData.messageIndex)}
+            color="error"
+            variant="outlined"
+            style={{ textTransform: 'none', borderRadius: '8px', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}
+          >
+            Delete Message
+          </Button>
+          <Box style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
+            <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+            <Button type="submit" variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>
+              Save Changes
+            </Button>
+          </Box>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+const EditGanttDependencyDialog = ({ open, onClose, dependency, tasks = [], onSubmit, onDelete }) => {
+  const [fromTask, setFromTask] = useState('');
+  const [toTask, setToTask] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (dependency) {
+      setFromTask(dependency.fromTask || '');
+      setToTask(dependency.toTask || '');
+      setError('');
+    }
+  }, [dependency, open]);
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!fromTask || !toTask) {
+      setError('Please select both tasks.');
+      return;
+    }
+    if (fromTask === toTask) {
+      setError('A task cannot depend on itself.');
+      return;
+    }
+    onSubmit(dependency.fromTask, dependency.toTask, fromTask, toTask);
+  };
+
+  const taskList = (tasks || []).map(t => (typeof t === 'string' ? t : t?.name || t?.id)).filter(Boolean);
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        style: {
+          background: 'var(--background-paper)',
+          border: '1px solid var(--divider)',
+          color: 'var(--text-primary)',
+          borderRadius: '16px',
+          padding: '16px',
+          maxWidth: '520px',
+          width: '100%'
+        }
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
+          📊 Edit Gantt Task Dependency
+        </DialogTitle>
+        <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
+          {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>Predecessor Task (After / depends on)</InputLabel>
+            <Select
+              value={fromTask}
+              label="Predecessor Task (After / depends on)"
+              onChange={(e) => setFromTask(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {taskList.map(t => (
+                <MenuItem key={t} value={t}>{t}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>Successor Task (Target)</InputLabel>
+            <Select
+              value={toTask}
+              label="Successor Task (Target)"
+              onChange={(e) => setToTask(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {taskList.map(t => (
+                <MenuItem key={t} value={t}>{t}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
+          <Button
+            onClick={() => onDelete(dependency.fromTask, dependency.toTask)}
+            color="error"
+            variant="outlined"
+            style={{ textTransform: 'none', borderRadius: '8px', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}
+          >
+            Delete Dependency
+          </Button>
+          <Box style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
+            <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+            <Button type="submit" variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>
+              Save Changes
+            </Button>
+          </Box>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };
@@ -708,17 +1600,17 @@ const AddParticipantDialog = ({ open, onClose, onSubmit, existingNames }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '12px', maxWidth: '400px', width: '100%' } }}>
-      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '12px', color: 'var(--text-primary)' }}>
+    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '16px', maxWidth: '440px', width: '100%' } }}>
+      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
         ⏹ Add Participant
       </DialogTitle>
-      <DialogContent style={{ marginTop: '16px' }}>
+      <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', overflow: 'visible' }}>
         {error && <Alert severity="error" style={{ marginBottom: '16px', borderRadius: '8px' }}>{error}</Alert>}
         <TextField fullWidth label="Participant Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Database" variant="outlined" size="small" InputLabelProps={{ style: { color: 'var(--text-secondary)' } }} inputProps={{ style: { color: 'var(--text-primary)' } }} sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--divider)' }, '&:hover fieldset': { borderColor: 'var(--primary-main)' }, '&.Mui-focused fieldset': { borderColor: 'var(--primary-main)' } } }} />
       </DialogContent>
-      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 24px', gap: '8px' }}>
-        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none' }}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold' }}>Create Participant</Button>
+      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>Create Participant</Button>
       </DialogActions>
     </Dialog>
   );
@@ -742,11 +1634,11 @@ const AddSequenceMessageDialog = ({ open, onClose, onSubmit, participants }) => 
   };
 
   return (
-    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '12px', maxWidth: '450px', width: '100%' } }}>
-      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '12px', color: 'var(--text-primary)' }}>
+    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '16px', maxWidth: '480px', width: '100%' } }}>
+      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
         ✉️ Add Message
       </DialogTitle>
-      <DialogContent style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
         {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
 
         <Box style={{ display: 'flex', gap: '16px' }}>
@@ -767,9 +1659,9 @@ const AddSequenceMessageDialog = ({ open, onClose, onSubmit, participants }) => 
 
         <TextField fullWidth label="Message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Request Data" variant="outlined" size="small" InputLabelProps={{ style: { color: 'var(--text-secondary)' } }} inputProps={{ style: { color: 'var(--text-primary)' } }} sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--divider)' }, '&:hover fieldset': { borderColor: 'var(--primary-main)' }, '&.Mui-focused fieldset': { borderColor: 'var(--primary-main)' } } }} />
       </DialogContent>
-      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 24px', gap: '8px' }}>
-        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none' }}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold' }}>Create Message</Button>
+      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>Create Message</Button>
       </DialogActions>
     </Dialog>
   );
@@ -815,16 +1707,16 @@ const AddTaskDialog = ({ open, onClose, onSubmit, existingTasks }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '12px', maxWidth: '400px', width: '100%' } }}>
-      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '12px', color: 'var(--text-primary)' }}>
+    <Dialog open={open} onClose={onClose} PaperProps={{ style: { background: 'var(--background-paper)', border: '1px solid var(--divider)', color: 'var(--text-primary)', borderRadius: '16px', padding: '16px', maxWidth: '460px', width: '100%' } }}>
+      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
         📅 Add Task
       </DialogTitle>
-      <DialogContent style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
         {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
 
         <TextField fullWidth label="Task Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Design UI" variant="outlined" size="small" InputLabelProps={{ style: { color: 'var(--text-secondary)' } }} inputProps={{ style: { color: 'var(--text-primary)' } }} sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'var(--divider)' }, '&:hover fieldset': { borderColor: 'var(--primary-main)' }, '&.Mui-focused fieldset': { borderColor: 'var(--primary-main)' } } }} />
 
-        <FormControl component="fieldset" style={{ marginTop: '8px' }}>
+        <FormControl component="fieldset" style={{ marginTop: '4px' }}>
           <RadioGroup row value={mode} onChange={(e) => setMode(e.target.value)} style={{ color: 'var(--text-primary)' }}>
             <FormControlLabel value="date" control={<Radio style={{ color: 'var(--primary-main)' }} />} label="By Date" style={{ color: 'var(--text-primary)' }} />
             <FormControlLabel value="duration" control={<Radio style={{ color: 'var(--primary-main)' }} />} label="By Duration" style={{ color: 'var(--text-primary)' }} />
@@ -860,9 +1752,9 @@ const AddTaskDialog = ({ open, onClose, onSubmit, existingTasks }) => {
           </FormControl>
         )}
       </DialogContent>
-      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 24px', gap: '8px' }}>
-        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none' }}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold' }}>Create Task</Button>
+      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>Create Task</Button>
       </DialogActions>
     </Dialog>
   );
@@ -903,16 +1795,16 @@ const AddActivityNodeDialog = ({ open, onClose, onSubmit, existingNodeIds }) => 
           border: '1px solid var(--divider)',
           color: 'var(--text-primary)',
           borderRadius: '16px',
-          padding: '12px',
-          maxWidth: '450px',
+          padding: '16px',
+          maxWidth: '480px',
           width: '100%'
         }
       }}
     >
-      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '12px', color: 'var(--text-primary)' }}>
+      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
         ⚡ Add Activity Node
       </DialogTitle>
-      <DialogContent style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
         {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
 
         <FormControl fullWidth size="small">
@@ -975,10 +1867,133 @@ const AddActivityNodeDialog = ({ open, onClose, onSubmit, existingNodeIds }) => 
           }}
         />
       </DialogContent>
-      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 24px', gap: '8px' }}>
-        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none' }}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold' }}>Create Node</Button>
+      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>Create Node</Button>
       </DialogActions>
+    </Dialog>
+  );
+};
+
+const EditActivityNodeDialog = ({ open, onClose, node, partitions = [], onSubmit, onDelete }) => {
+  const [label, setLabel] = useState('');
+  const [nodeType, setNodeType] = useState('ACTION');
+  const [partition, setPartition] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (node) {
+      setLabel(node.label || node.id || '');
+      setNodeType((node.type || 'action').toUpperCase());
+      setPartition(node.partition || '');
+      setError('');
+    }
+  }, [node, open]);
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!label.trim()) {
+      setError('Node label cannot be empty.');
+      return;
+    }
+    onSubmit(node, { label: label.trim(), type: nodeType, partition: partition.trim() });
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        style: {
+          background: 'var(--background-paper)',
+          border: '1px solid var(--divider)',
+          color: 'var(--text-primary)',
+          borderRadius: '16px',
+          padding: '16px',
+          maxWidth: '520px',
+          width: '100%'
+        }
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
+          ⚡ Edit Activity Node
+        </DialogTitle>
+        <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
+          {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
+
+          <TextField
+            fullWidth
+            size="small"
+            label="Node ID (Unique)"
+            value={node?.id || ''}
+            disabled
+            InputLabelProps={{ style: { color: 'var(--text-secondary)' } }}
+            inputProps={{ style: { color: 'var(--text-secondary)', fontFamily: 'monospace' } }}
+          />
+
+          <TextField
+            fullWidth
+            size="small"
+            label="Display Label"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Validate Input Data"
+            InputLabelProps={{ style: { color: 'var(--text-secondary)' } }}
+            inputProps={{ style: { color: 'var(--text-primary)' } }}
+          />
+
+          <FormControl fullWidth size="small">
+            <InputLabel style={{ color: 'var(--text-secondary)' }}>Node Type</InputLabel>
+            <Select
+              value={nodeType}
+              label="Node Type"
+              onChange={(e) => setNodeType(e.target.value)}
+              style={{ color: 'var(--text-primary)' }}
+            >
+              <MenuItem value="ACTION">Action / Step (Rounded Card 🟦)</MenuItem>
+              <MenuItem value="DECISION">Decision / Condition (Diamond 🔶)</MenuItem>
+              <MenuItem value="FORK">Fork Bar (Split Parallel Flows ══)</MenuItem>
+              <MenuItem value="JOIN">Join Bar (Merge Parallel Flows ══)</MenuItem>
+              <MenuItem value="START">Initial / Start Node (🟢)</MenuItem>
+              <MenuItem value="END">Activity Final / End Node (🎯)</MenuItem>
+            </Select>
+          </FormControl>
+
+          {partitions && partitions.length > 0 && (
+            <FormControl fullWidth size="small">
+              <InputLabel style={{ color: 'var(--text-secondary)' }}>Swimlane / Partition</InputLabel>
+              <Select
+                value={partition}
+                label="Swimlane / Partition"
+                onChange={(e) => setPartition(e.target.value)}
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <MenuItem value=""><em>None (Global)</em></MenuItem>
+                {partitions.map(p => (
+                  <MenuItem key={p} value={p}>{p}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        </DialogContent>
+        <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
+          <Button
+            onClick={() => onDelete(node)}
+            color="error"
+            variant="outlined"
+            style={{ textTransform: 'none', borderRadius: '8px', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}
+          >
+            Delete Node
+          </Button>
+          <Box style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
+            <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+            <Button type="submit" variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>
+              Save Changes
+            </Button>
+          </Box>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };
@@ -1014,16 +2029,16 @@ const AddActivityTransitionDialog = ({ open, onClose, onSubmit, nodes }) => {
           border: '1px solid var(--divider)',
           color: 'var(--text-primary)',
           borderRadius: '16px',
-          padding: '12px',
-          maxWidth: '450px',
+          padding: '16px',
+          maxWidth: '480px',
           width: '100%'
         }
       }}
     >
-      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '12px', color: 'var(--text-primary)' }}>
+      <DialogTitle style={{ fontWeight: 800, fontSize: '1.25rem', borderBottom: '1px solid var(--divider)', paddingBottom: '14px', color: 'var(--text-primary)' }}>
         ➡️ Add Transition
       </DialogTitle>
-      <DialogContent style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <DialogContent style={{ marginTop: '8px', paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflow: 'visible' }}>
         {error && <Alert severity="error" style={{ borderRadius: '8px' }}>{error}</Alert>}
 
         <Box style={{ display: 'flex', gap: '16px' }}>
@@ -1090,12 +2105,85 @@ const AddActivityTransitionDialog = ({ open, onClose, onSubmit, nodes }) => {
           }}
         />
       </DialogContent>
-      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 24px', gap: '8px' }}>
-        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none' }}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold' }}>Create Transition</Button>
+      <DialogActions style={{ borderTop: '1px solid var(--divider)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <Button onClick={onClose} style={{ color: 'var(--text-secondary)', textTransform: 'none', whiteSpace: 'nowrap', fontWeight: 600 }}>Cancel</Button>
+        <Button onClick={handleSubmit} variant="contained" style={{ background: 'var(--primary-main)', textTransform: 'none', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '6px 18px' }}>Add Transition</Button>
       </DialogActions>
     </Dialog>
   );
+};
+
+const getDiagramPlaceholder = (key) => {
+  switch (key) {
+    case 'er':
+      return 'e.g. Healthcare management database with Patients, Doctors, Appointments, Medical Records, Prescriptions, and Billing Invoices...';
+    case 'usecase':
+      return 'e.g. Online Banking System with Customers, Tellers, Branch Managers, and Fraud Detection System...';
+    case 'activity':
+      return 'e.g. Order fulfillment workflow from Customer checkout, Inventory verification, Payment processing, Packaging, to Delivery dispatch...';
+    case 'sequence':
+      return 'e.g. User Authentication and Two-Factor Verification (2FA) flow between Mobile App, API Gateway, Auth Service, SMS Provider, and Database...';
+    case 'gantt':
+      return 'e.g. 6-month Mobile App Development project covering Discovery, UI/UX Design, Frontend/Backend Sprints, QA Testing, App Store Submission, and Launch...';
+    default:
+      return 'e.g. Describe your system requirements, entities, or workflow goals...';
+  }
+};
+
+const getDiagramSpecificRules = (key) => {
+  switch (key) {
+    case 'er':
+      return `DIAGRAM-SPECIFIC ER RULES:
+- Declare every table using 'ENTITY <EntityName>' followed by 'ATTRIBUTES' on the next line.
+- Indent fields and use format: '<field_name> : <type> PRIMARY KEY', '<field_name> : <type> FOREIGN KEY', or '<field_name> : <type>'.
+- Declare relationships using: 'RELATIONSHIP <EntityA> <ONE|MANY> <Verb> <EntityB> <ONE|MANY>'.
+- Cardinalities must be strictly 'ONE' or 'MANY'.
+- Do NOT output SQL 'CREATE TABLE', Mermaid, JSON, or curly braces.`;
+    case 'usecase':
+      return `DIAGRAM-SPECIFIC USE CASE RULES:
+- Declare the boundary using 'SYSTEM <System Name>'.
+- Declare actors using 'ACTOR <ActorName>'.
+- Declare use cases using 'USE CASE <UseCaseName>'.
+- Connect actor to use case using: '<ActorName> -> <UseCaseName>'.
+- Connect use case to use case using: '<UseCase1> INCLUDES <UseCase2>' for mandatory inclusion, '<UseCase1> EXTENDS <UseCase2>' for optional extension, or '<UseCase1> INHERITS <UseCase2>' for generalization.
+- Connect actor to actor using: '<ChildActor> INHERITS <ParentActor>'.
+- Do NOT use '->' between two use cases or between two actors.`;
+    case 'activity':
+      return `DIAGRAM-SPECIFIC ACTIVITY RULES:
+- Start with 'ACTIVITY <Workflow Title>'.
+- Group steps into lanes using 'SWIMLANE <LaneName>' or 'PARTITION <LaneName>'.
+- Use unique snake_case IDs for all nodes: 'START <id> ["Label"]', 'ACTION <id> ["Label"]', 'DECISION <id> ["Label"]', 'FORK <id> ["Label"]', 'JOIN <id> ["Label"]', 'END <id> ["Label"]'.
+- Connect flows using: '<source_id> -> <target_id>' or '<source_id> -> <target_id> [GuardCondition]'.
+- Always provide conditional guards (e.g. '[Yes]', '[No]', '[Valid]') on transitions originating from a DECISION node.
+- Every workflow path must terminate at an END node.`;
+    case 'sequence':
+      return `DIAGRAM-SPECIFIC SEQUENCE RULES:
+- Start with 'SEQUENCE <Title>'.
+- Declare all lifelines from left to right using 'PARTICIPANT <Name>'.
+- Message statements must follow the strict natural grammar and end with a period:
+  * '<Caller> sends "<Message>" to <Receiver>.' (Synchronous call)
+  * '<Caller> requests "<Data>" from <Receiver>.' (Data query/request)
+  * '<Sender> returns "<Result>" to <Receiver>.' (Return reply)
+  * '<Caller> displays "<UI View>" to <User>.' (UI display)
+- Conditional branching can use: 'IF <condition> THEN ... ELSE ... END'.
+- Every message string MUST be enclosed in double quotes and end with a period (.).`;
+    case 'gantt':
+      return `DIAGRAM-SPECIFIC GANTT RULES:
+- Start with 'GANTT <Roadmap Title>'.
+- Organize phases using 'PROJECT <PhaseName>'.
+- Define tasks with:
+  TASK <Task Name>
+  START <YYYY-MM-DD>
+  END <YYYY-MM-DD>
+  DEPENDS ON <PredecessorTaskName> (optional)
+- Define milestones with:
+  MILESTONE <Milestone Name>
+  DATE <YYYY-MM-DD>
+- All dates MUST be in ISO format (YYYY-MM-DD).
+- Ensure chronological consistency: dependent tasks should start on or after their predecessor's end date.`;
+    default:
+      return '';
+  }
 };
 
 const AiPromptModal = ({ open, onClose, diagramKey, diagramTitle, templateCode }) => {
@@ -1103,6 +2191,7 @@ const AiPromptModal = ({ open, onClose, diagramKey, diagramTitle, templateCode }
   const [copied, setCopied] = useState(false);
 
   const getFullPrompt = () => {
+    const specificRules = getDiagramSpecificRules(diagramKey);
     return `You are an expert Software Engineer and System Architecture AI assistant.
 I am using SophiaPath Software Engineering Lab to design a ${diagramTitle} (${diagramKey.toUpperCase()}).
 
@@ -1118,12 +2207,12 @@ MY TARGET SYSTEM / PROJECT REQUIREMENTS:
 ${userTarget.trim() ? userTarget.trim() : 'Please design a clean, comprehensive, real-world diagram for my system.'}
 
 ==================================================
-AI RESPONSE RULES:
+${specificRules ? specificRules + '\n\n==================================================\n' : ''}AI RESPONSE RULES:
 ==================================================
 1. Output ONLY valid SophiaPath DSL code adhering strictly to the keywords and syntax rules above.
 2. Enclose the generated DSL code in a single markdown code block (\`\`\`).
 3. Make sure all entities, attributes, relationships, actors, use cases, states, transitions, or lifelines accurately reflect my requirements.
-4. Do not wrap the code with markdown headers or conversational filler so I can copy-paste it directly into SophiaPath.`;
+4. Do not wrap the code with conversational filler or markdown headers so I can copy-paste it directly into SophiaPath.`;
   };
 
   const fullPrompt = getFullPrompt();
@@ -1174,7 +2263,7 @@ AI RESPONSE RULES:
 
         <TextField
           label="Your Target Requirements / Description (Optional)"
-          placeholder="e.g. E-Commerce platform with customer accounts, shopping cart, product catalog with categories, order checkout, invoices, and Stripe payments..."
+          placeholder={getDiagramPlaceholder(diagramKey)}
           multiline
           rows={3}
           value={userTarget}
@@ -1248,13 +2337,14 @@ AI RESPONSE RULES:
           <Button
             variant="contained"
             onClick={handleOpenChatGPT}
-            startIcon={<OpenInNewIcon />}
+            startIcon={<AutoAwesomeIcon />}
             style={{
               borderRadius: '10px',
               textTransform: 'none',
-              fontWeight: 800,
               background: '#10a37f',
-              color: '#ffffff'
+              color: '#fff',
+              fontWeight: 700,
+              boxShadow: '0 4px 14px rgba(16, 163, 127, 0.35)'
             }}
           >
             Open in ChatGPT
@@ -1816,8 +2906,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       setActiveTab(idx);
       const key = SWE_TABS_META[idx].key;
       setCode(TEMPLATES[key] || TEMPLATES.er);
-      setZoomScale(key === 'activity' ? 0.65 : 1.0);
-      setPreviewZoomScale(key === 'activity' ? 0.65 : 1.0);
+      setZoomScale(key === 'activity' ? 0.9 : 1.0);
+      setPreviewZoomScale(key === 'activity' ? 0.9 : 1.0);
       setError(null);
     }
   }, [open, initialTab]);
@@ -1849,12 +2939,30 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
   const [splitPercent, setSplitPercent] = useState(35);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Zooming and Panning states (defaults to 0.65 for activity and 1.0 for others)
-  const [zoomScale, setZoomScale] = useState(() => (initialTab === 'activity' ? 0.65 : 1.0));
+  // Zooming and Panning states (defaults to 0.9 for activity and 1.0 for others)
+  const [zoomScale, setZoomScale] = useState(() => (initialTab === 'activity' ? 0.9 : 1.0));
   const [draggingNode, setDraggingNode] = useState(null);
   const [ganttWaypoints, setGanttWaypoints] = useState({});
   const [usecaseWaypoints, setUsecaseWaypoints] = useState({});
   const [draggingWaypoint, setDraggingWaypoint] = useState(null);
+
+  // Use Case Interactive Drag-Connecting states
+  const [usecaseConnecting, setUsecaseConnecting] = useState(null);
+  const [isUseCaseRelDialogOpen, setIsUseCaseRelDialogOpen] = useState(false);
+  const [pendingUseCaseRel, setPendingUseCaseRel] = useState({ sourceLabel: '', targetLabel: '', type: 'INCLUDE' });
+
+  // Activity Diagram Interactive Drag-Connecting states
+  const [activityConnecting, setActivityConnecting] = useState(null);
+  const [isActTransitionDialogOpen, setIsActTransitionDialogOpen] = useState(false);
+  const [pendingActTransition, setPendingActTransition] = useState({ sourceId: '', targetId: '', sourceLabel: '', targetLabel: '' });
+
+  // Interactive Arrow / Connection Edit & Delete States (All Diagrams)
+  const [editingERRel, setEditingERRel] = useState(null);
+  const [editingUCLink, setEditingUCLink] = useState(null);
+  const [editingActTrans, setEditingActTrans] = useState(null);
+  const [editingActNode, setEditingActNode] = useState(null);
+  const [editingSeqMsg, setEditingSeqMsg] = useState(null);
+  const [editingGanttDep, setEditingGanttDep] = useState(null);
 
   // Gantt Chart Canva-Style Interactive States
   const [selectedGanttTask, setSelectedGanttTask] = useState(null);
@@ -1866,7 +2974,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
   // Preview Dialog states matching Java UML playground
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [activeTheme, setActiveTheme] = useState(themeMode || 'dark');
-  const [previewZoomScale, setPreviewZoomScale] = useState(() => (initialTab === 'activity' ? 0.65 : 1.0));
+  const [previewZoomScale, setPreviewZoomScale] = useState(() => (initialTab === 'activity' ? 0.9 : 1.0));
 
   useEffect(() => {
     if (themeMode) {
@@ -1907,6 +3015,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     setCanvasContainerState(node);
   }, []);
   const dragStartOffset = useRef({ x: 0, y: 0 });
+  const hasDraggedNodeRef = useRef(false);
   const zoomAnchorRef = useRef(null);
   const isDraggingSplitRef = useRef(false);
 
@@ -1948,8 +3057,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     setActiveTab(newValue);
     const nextKey = tabsMeta[newValue].key;
     setCode(TEMPLATES[nextKey]);
-    setZoomScale(nextKey === 'activity' ? 0.65 : 1.0);
-    setPreviewZoomScale(nextKey === 'activity' ? 0.65 : 1.0);
+    setZoomScale(nextKey === 'activity' ? 0.9 : 1.0);
+    setPreviewZoomScale(nextKey === 'activity' ? 0.9 : 1.0);
     setError(null);
     if (canvasContainerRef.current) {
       canvasContainerRef.current.scrollLeft = 0;
@@ -2359,7 +3468,11 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (pendingRelationSource) {
+        if (activityConnecting) {
+          setActivityConnecting(null);
+        } else if (usecaseConnecting) {
+          setUsecaseConnecting(null);
+        } else if (pendingRelationSource) {
           setPendingRelationSource(null);
         } else if (isFullscreen) {
           setIsFullscreen(false);
@@ -2368,7 +3481,645 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen, pendingRelationSource]);
+  }, [isFullscreen, pendingRelationSource, usecaseConnecting, activityConnecting]);
+
+  const addUseCaseRelationInCode = (srcLabel, tgtLabel, relType = 'assoc') => {
+    const s = srcLabel ? srcLabel.trim() : '';
+    const t = tgtLabel ? tgtLabel.trim() : '';
+    if (!s || !t || s.toLowerCase() === t.toLowerCase()) return;
+
+    let newLine = '';
+    if (relType === 'INHERITS') {
+      newLine = `${s} INHERITS ${t}`;
+    } else if (relType === 'EXTEND' || relType === 'EXTENDS') {
+      newLine = `${s} EXTENDS ${t}`;
+    } else if (relType === 'INCLUDE' || relType === 'INCLUDES') {
+      newLine = `${s} INCLUDES ${t}`;
+    } else {
+      newLine = `${s} -> ${t}`;
+    }
+
+    const sId = s.toLowerCase().replace(/\s+/g, '_');
+    const tId = t.toLowerCase().replace(/\s+/g, '_');
+
+    setCode(prev => {
+      const lines = prev.split('\n');
+      let replaced = false;
+
+      const updated = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('%%') || trimmed.startsWith('#')) return line;
+
+        // Check if this line is an association between s and t (in either direction)
+        const assocMatch = trimmed.match(/^([A-Za-z0-9_\-\s]+)\s*->\s*([A-Za-z0-9_\-\s]+)$/i);
+        if (assocMatch) {
+          const lSrc = assocMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
+          const lTgt = assocMatch[2].trim().toLowerCase().replace(/\s+/g, '_');
+          if ((lSrc === sId && lTgt === tId) || (lSrc === tId && lTgt === sId)) {
+            if (!replaced) {
+              replaced = true;
+              return newLine;
+            }
+            return null; // Remove any extra duplicate lines
+          }
+        }
+
+        // Check if this line is a keyword relationship between s and t (in either direction)
+        const keyMatch = trimmed.match(/^([A-Za-z0-9_\-\s]+)\s+(EXTENDS|INCLUDES|EXTEND|INCLUDE|INHERITS)\s+([A-Za-z0-9_\-\s]+)$/i);
+        if (keyMatch) {
+          const lSrc = keyMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
+          const lTgt = keyMatch[3].trim().toLowerCase().replace(/\s+/g, '_');
+          if ((lSrc === sId && lTgt === tId) || (lSrc === tId && lTgt === sId)) {
+            if (!replaced) {
+              replaced = true;
+              return newLine;
+            }
+            return null; // Remove any extra duplicate lines
+          }
+        }
+
+        return line;
+      }).filter(line => line !== null);
+
+      if (replaced) {
+        return updated.join('\n');
+      }
+
+      return prev.trimEnd() + `\n${newLine}`;
+    });
+  };
+
+  const handleStartUseCaseConnect = (e, nodeId, nodeLabel, nodeType, nodePos, offset) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = nodePos.x + offset.x;
+    const startY = nodePos.y + offset.y;
+    setUsecaseConnecting({
+      sourceId: nodeId,
+      sourceLabel: nodeLabel,
+      sourceType: nodeType,
+      startX: startX,
+      startY: startY,
+      currentX: startX,
+      currentY: startY
+    });
+  };
+
+  // Window listeners for live Use Case drag-connecting
+  useEffect(() => {
+    if (!usecaseConnecting) return;
+
+    const handleMouseMove = (e) => {
+      const canvasEl = document.getElementById('canvas-interactive-area');
+      if (canvasEl) {
+        const rect = canvasEl.getBoundingClientRect();
+        setUsecaseConnecting(prev => prev ? ({
+          ...prev,
+          currentX: (e.clientX - rect.left + canvasEl.scrollLeft) / zoomScale,
+          currentY: (e.clientY - rect.top + canvasEl.scrollTop) / zoomScale
+        }) : null);
+      }
+    };
+
+    const handleMouseUp = (e) => {
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+
+      let targetId = null;
+      let targetType = null;
+      let targetLabel = null;
+
+      // Check Actor cards
+      const actorCards = document.querySelectorAll('.usecase-actor-card');
+      for (const card of actorCards) {
+        const rect = card.getBoundingClientRect();
+        if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+          const id = card.getAttribute('data-node-id');
+          const label = card.getAttribute('data-node-label');
+          if (id && id !== usecaseConnecting.sourceId) {
+            targetId = id;
+            targetType = 'actor';
+            targetLabel = label || id;
+            break;
+          }
+        }
+      }
+
+      // Check UseCase cards
+      if (!targetId) {
+        const ucCards = document.querySelectorAll('.usecase-bubble-card');
+        for (const card of ucCards) {
+          const rect = card.getBoundingClientRect();
+          if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+            const id = card.getAttribute('data-node-id');
+            const label = card.getAttribute('data-node-label');
+            if (id && id !== usecaseConnecting.sourceId) {
+              targetId = id;
+              targetType = 'usecase';
+              targetLabel = label || id;
+              break;
+            }
+          }
+        }
+      }
+
+      if (targetId && targetLabel) {
+        const srcId = usecaseConnecting.sourceId;
+        const srcType = usecaseConnecting.sourceType;
+        const srcLabel = usecaseConnecting.sourceLabel || srcId;
+
+        if (srcType === 'actor' && targetType === 'usecase') {
+          // Actor -> UseCase
+          addUseCaseRelationInCode(srcLabel, targetLabel, 'assoc');
+        } else if (srcType === 'usecase' && targetType === 'actor') {
+          // UseCase -> Actor (also Actor -> UseCase)
+          addUseCaseRelationInCode(targetLabel, srcLabel, 'assoc');
+        } else if (srcType === 'actor' && targetType === 'actor') {
+          // Actor -> Actor: INHERITANCE (Generalization)
+          addUseCaseRelationInCode(srcLabel, targetLabel, 'INHERITS');
+        } else if (srcType === 'usecase' && targetType === 'usecase') {
+          // UseCase -> UseCase: Open include vs extend dialog
+          setPendingUseCaseRel({ sourceLabel: srcLabel, targetLabel: targetLabel, type: 'INCLUDE' });
+          setIsUseCaseRelDialogOpen(true);
+        }
+      }
+
+      setUsecaseConnecting(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [usecaseConnecting, zoomScale]);
+
+  const addActivityTransitionInCode = (srcId, tgtId, guard = '') => {
+    const s = srcId ? srcId.trim() : '';
+    const t = tgtId ? tgtId.trim() : '';
+    if (!s || !t || s === t) return;
+
+    const guardStr = guard && guard.trim() ? ` [${guard.trim()}]` : '';
+    const newLine = `${s} -> ${t}${guardStr}`;
+
+    setCode(prev => {
+      const lines = prev.split('\n');
+      const alreadyExists = lines.some(l => {
+        const trimmed = l.trim();
+        return trimmed.toLowerCase().startsWith(`${s} -> ${t}`.toLowerCase());
+      });
+      if (alreadyExists) return prev;
+      return prev.trimEnd() + `\n${newLine}`;
+    });
+  };
+
+  const handleStartActivityConnect = (e, nodeId, nodeLabel, nodeType, nodePos, offset) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = nodePos.x + offset.x;
+    const startY = nodePos.y + offset.y;
+    setActivityConnecting({
+      sourceId: nodeId,
+      sourceLabel: nodeLabel || nodeId,
+      sourceType: nodeType,
+      startX: startX,
+      startY: startY,
+      currentX: startX,
+      currentY: startY
+    });
+  };
+
+  // Window listeners for live Activity Diagram drag-connecting
+  useEffect(() => {
+    if (!activityConnecting) return;
+
+    const handleMouseMove = (e) => {
+      const canvasEl = document.getElementById('canvas-interactive-area');
+      if (canvasEl) {
+        const rect = canvasEl.getBoundingClientRect();
+        setActivityConnecting(prev => prev ? ({
+          ...prev,
+          currentX: (e.clientX - rect.left + canvasEl.scrollLeft) / zoomScale,
+          currentY: (e.clientY - rect.top + canvasEl.scrollTop) / zoomScale
+        }) : null);
+      }
+    };
+
+    const handleMouseUp = (e) => {
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+
+      let targetId = null;
+      let targetLabel = null;
+      let targetType = null;
+
+      const actCards = document.querySelectorAll('.activity-node-card');
+      for (const card of actCards) {
+        const rect = card.getBoundingClientRect();
+        if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+          const id = card.getAttribute('data-act-node-id');
+          const label = card.getAttribute('data-act-node-label');
+          const type = card.getAttribute('data-act-node-type');
+          if (id && id !== activityConnecting.sourceId) {
+            targetId = id;
+            targetLabel = label || id;
+            targetType = type;
+            break;
+          }
+        }
+      }
+
+      if (targetId && targetId !== activityConnecting.sourceId) {
+        const srcId = activityConnecting.sourceId;
+        const srcType = activityConnecting.sourceType;
+        const srcLabel = activityConnecting.sourceLabel;
+
+        if (srcType === 'decision') {
+          setPendingActTransition({
+            sourceId: srcId,
+            targetId: targetId,
+            sourceLabel: srcLabel,
+            targetLabel: targetLabel
+          });
+          setIsActTransitionDialogOpen(true);
+        } else {
+          addActivityTransitionInCode(srcId, targetId);
+        }
+      }
+
+      setActivityConnecting(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [activityConnecting, zoomScale]);
+
+  // 1. ER Relationship update & delete helpers
+  const handleUpdateERRelationship = (oldRel, newSource, newSourceCard, newTarget, newTargetCard, newLabel) => {
+    const relName = (newLabel && newLabel.trim()) ? newLabel.trim() : 'TO';
+    const newLine = `RELATIONSHIP ${newSource} ${newSourceCard} ${relName} ${newTarget} ${newTargetCard}`;
+
+    setCode(prev => {
+      const lines = prev.split('\n');
+      let replaced = false;
+      const updated = lines.map(line => {
+        const trimmed = line.trim();
+        if (!replaced) {
+          const match = trimmed.match(/^RELATIONSHIP\s+([A-Za-z0-9_-]+)\s+(ONE|MANY)\s+([A-Za-z0-9_-]+)\s+([A-Za-z0-9_-]+)\s+(ONE|MANY)/i);
+          if (match) {
+            const s = match[1];
+            const t = match[4];
+            if ((s.toLowerCase() === oldRel.source.toLowerCase() && t.toLowerCase() === oldRel.target.toLowerCase()) ||
+                (s.toLowerCase() === oldRel.target.toLowerCase() && t.toLowerCase() === oldRel.source.toLowerCase())) {
+              replaced = true;
+              return newLine;
+            }
+          }
+        }
+        return line;
+      });
+      return updated.join('\n');
+    });
+  };
+
+  const handleDeleteERRelationship = (rel) => {
+    setCode(prev => {
+      const lines = prev.split('\n');
+      let deleted = false;
+      const filtered = lines.filter(line => {
+        const trimmed = line.trim();
+        if (!deleted) {
+          const match = trimmed.match(/^RELATIONSHIP\s+([A-Za-z0-9_-]+)\s+(ONE|MANY)\s+([A-Za-z0-9_-]+)\s+([A-Za-z0-9_-]+)\s+(ONE|MANY)/i);
+          if (match) {
+            const s = match[1];
+            const t = match[4];
+            if ((s.toLowerCase() === rel.source.toLowerCase() && t.toLowerCase() === rel.target.toLowerCase()) ||
+                (s.toLowerCase() === rel.target.toLowerCase() && t.toLowerCase() === rel.source.toLowerCase())) {
+              deleted = true;
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+      return filtered.join('\n');
+    });
+  };
+
+  // 2. Use Case Link update & delete helpers
+  const handleUpdateUseCaseLink = (oldLink, newSource, newTarget, newRelType) => {
+    let newLine = '';
+    if (newRelType === 'INHERITS') {
+      newLine = `${newSource} INHERITS ${newTarget}`;
+    } else if (newRelType === 'EXTEND' || newRelType === 'EXTENDS') {
+      newLine = `${newSource} EXTENDS ${newTarget}`;
+    } else if (newRelType === 'INCLUDE' || newRelType === 'INCLUDES') {
+      newLine = `${newSource} INCLUDES ${newTarget}`;
+    } else {
+      newLine = `${newSource} -> ${newTarget}`;
+    }
+
+    const oldS = oldLink.source.toLowerCase().replace(/\s+/g, '_');
+    const oldT = oldLink.target.toLowerCase().replace(/\s+/g, '_');
+    const newS = newSource.toLowerCase().replace(/\s+/g, '_');
+    const newT = newTarget.toLowerCase().replace(/\s+/g, '_');
+
+    setCode(prev => {
+      const lines = prev.split('\n');
+      let replaced = false;
+
+      const updated = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('%%') || trimmed.startsWith('#')) return line;
+
+        const assocMatch = trimmed.match(/^([A-Za-z0-9_\-\s]+)\s*->\s*([A-Za-z0-9_\-\s]+)$/i);
+        if (assocMatch) {
+          const s = assocMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
+          const t = assocMatch[2].trim().toLowerCase().replace(/\s+/g, '_');
+          const isOld = (s === oldS && t === oldT) || (s === oldT && t === oldS);
+          const isNew = (s === newS && t === newT) || (s === newT && t === newS);
+          if (isOld || isNew) {
+            if (!replaced) {
+              replaced = true;
+              return newLine;
+            }
+            return null; // Strip duplicates
+          }
+        }
+
+        const keywordMatch = trimmed.match(/^([A-Za-z0-9_\-\s]+)\s+(EXTENDS|INCLUDES|EXTEND|INCLUDE|INHERITS)\s+([A-Za-z0-9_\-\s]+)$/i);
+        if (keywordMatch) {
+          const s = keywordMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
+          const t = keywordMatch[3].trim().toLowerCase().replace(/\s+/g, '_');
+          const isOld = (s === oldS && t === oldT) || (s === oldT && t === oldS);
+          const isNew = (s === newS && t === newT) || (s === newT && t === newS);
+          if (isOld || isNew) {
+            if (!replaced) {
+              replaced = true;
+              return newLine;
+            }
+            return null; // Strip duplicates
+          }
+        }
+
+        return line;
+      }).filter(line => line !== null);
+
+      if (replaced) {
+        return updated.join('\n');
+      }
+      return prev.trimEnd() + `\n${newLine}`;
+    });
+  };
+
+  const handleDeleteUseCaseLink = (oldLink) => {
+    setCode(prev => {
+      const lines = prev.split('\n');
+      let deleted = false;
+      const filtered = lines.filter(line => {
+        const trimmed = line.trim();
+        if (!deleted) {
+          const assocMatch = trimmed.match(/^([A-Za-z0-9_\-\s]+)\s*->\s*([A-Za-z0-9_\-\s]+)$/i);
+          if (assocMatch) {
+            const s = assocMatch[1].trim().replace(/\s+/g, '_');
+            const t = assocMatch[2].trim().replace(/\s+/g, '_');
+            if ((s.toLowerCase() === oldLink.source.toLowerCase() && t.toLowerCase() === oldLink.target.toLowerCase()) ||
+                (s.toLowerCase() === oldLink.target.toLowerCase() && t.toLowerCase() === oldLink.source.toLowerCase())) {
+              deleted = true;
+              return false;
+            }
+          }
+          const keywordMatch = trimmed.match(/^([A-Za-z0-9_\-\s]+)\s+(EXTENDS|INCLUDES|EXTEND|INCLUDE|INHERITS)\s+([A-Za-z0-9_\-\s]+)$/i);
+          if (keywordMatch) {
+            const s = keywordMatch[1].trim().replace(/\s+/g, '_');
+            const t = keywordMatch[3].trim().replace(/\s+/g, '_');
+            if ((s.toLowerCase() === oldLink.source.toLowerCase() && t.toLowerCase() === oldLink.target.toLowerCase()) ||
+                (s.toLowerCase() === oldLink.target.toLowerCase() && t.toLowerCase() === oldLink.source.toLowerCase())) {
+              deleted = true;
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+      return filtered.join('\n');
+    });
+  };
+
+  // 3. Activity Transition update & delete helpers
+  const handleUpdateActivityTransition = (oldTrans, newSource, newTarget, newGuard) => {
+    const guardStr = (newGuard && newGuard.trim()) ? ` [${newGuard.trim()}]` : '';
+    const newLine = `${newSource} -> ${newTarget}${guardStr}`;
+
+    setCode(prev => {
+      const lines = prev.split('\n');
+      let replaced = false;
+      const updated = lines.map(line => {
+        const trimmed = line.trim();
+        if (!replaced) {
+          const match = trimmed.match(/^([A-Za-z0-9_\-]+)\s*->\s*([A-Za-z0-9_\-]+)(?:\s*(?:\[([^\]]+)\]|:\s*(.+)))?$/i);
+          if (match) {
+            const s = match[1].trim();
+            const t = match[2].trim();
+            if (s.toLowerCase() === oldTrans.source.toLowerCase() && t.toLowerCase() === oldTrans.target.toLowerCase()) {
+              replaced = true;
+              return newLine;
+            }
+          }
+        }
+        return line;
+      });
+      return updated.join('\n');
+    });
+  };
+
+  const handleDeleteActivityTransition = (oldTrans) => {
+    setCode(prev => {
+      const lines = prev.split('\n');
+      let deleted = false;
+      const filtered = lines.filter(line => {
+        const trimmed = line.trim();
+        if (!deleted) {
+          const match = trimmed.match(/^([A-Za-z0-9_\-]+)\s*->\s*([A-Za-z0-9_\-]+)(?:\s*(?:\[([^\]]+)\]|:\s*(.+)))?$/i);
+          if (match) {
+            const s = match[1].trim();
+            const t = match[2].trim();
+            if (s.toLowerCase() === oldTrans.source.toLowerCase() && t.toLowerCase() === oldTrans.target.toLowerCase()) {
+              deleted = true;
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+      return filtered.join('\n');
+    });
+  };
+
+  const handleUpdateActivityNode = (oldNode, newProps) => {
+    if (!oldNode) return;
+    const oldId = oldNode.id;
+    const newLabel = (newProps.label || oldNode.label || oldId).trim();
+    const newType = (newProps.type || oldNode.type || 'ACTION').toUpperCase();
+    const newPartition = newProps.partition !== undefined ? newProps.partition : oldNode.partition;
+
+    setCode(prevCode => {
+      const lines = prevCode.split('\n');
+      let targetLineIdx = -1;
+
+      for (let i = 0; i < lines.length; i++) {
+        const trimmed = lines[i].trim();
+        const declMatch = trimmed.match(/^(START|END|FINAL|STOP|DECISION|CONDITION|MERGE|FORK|JOIN|ACTION|STEP)\s+([A-Za-z0-9_\-]+)(?:\s+(.+))?$/i);
+        if (declMatch && declMatch[2].toLowerCase() === oldId.toLowerCase()) {
+          targetLineIdx = i;
+          break;
+        }
+      }
+
+      const newLine = `${newType} ${oldId} "${newLabel}"`;
+
+      if (targetLineIdx !== -1) {
+        if (newPartition === oldNode.partition) {
+          lines[targetLineIdx] = newLine;
+          return lines.join('\n');
+        } else {
+          lines.splice(targetLineIdx, 1);
+          if (newPartition) {
+            let partIdx = -1;
+            for (let i = 0; i < lines.length; i++) {
+              const trimmed = lines[i].trim();
+              const pMatch = trimmed.match(/^(?:SWIMLANE|PARTITION|ACTOR|LANE)\s+(.+)$/i);
+              if (pMatch && pMatch[1].trim().toLowerCase() === newPartition.toLowerCase()) {
+                partIdx = i;
+                break;
+              }
+            }
+            if (partIdx !== -1) {
+              lines.splice(partIdx + 1, 0, newLine);
+            } else {
+              lines.push(`\nSWIMLANE ${newPartition}`);
+              lines.push(newLine);
+            }
+          } else {
+            lines.push(newLine);
+          }
+          return lines.join('\n');
+        }
+      } else {
+        lines.push(newLine);
+        return lines.join('\n');
+      }
+    });
+    setEditingActNode(null);
+  };
+
+  const handleDeleteActivityNode = (nodeToDelete) => {
+    if (!nodeToDelete) return;
+    const delId = nodeToDelete.id;
+
+    setCode(prevCode => {
+      const lines = prevCode.split('\n');
+      const filtered = lines.filter(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return true;
+        const declMatch = trimmed.match(/^(START|END|FINAL|STOP|DECISION|CONDITION|MERGE|FORK|JOIN|ACTION|STEP)\s+([A-Za-z0-9_\-]+)/i);
+        if (declMatch && declMatch[2].toLowerCase() === delId.toLowerCase()) {
+          return false;
+        }
+        const transMatch = trimmed.match(/^([A-Za-z0-9_\-]+)\s*->\s*([A-Za-z0-9_\-]+)/i);
+        if (transMatch) {
+          const s = transMatch[1].trim().toLowerCase();
+          const t = transMatch[2].trim().toLowerCase();
+          if (s === delId.toLowerCase() || t === delId.toLowerCase()) {
+            return false;
+          }
+        }
+        return true;
+      });
+      return filtered.join('\n');
+    });
+
+    setNodePositions(prev => {
+      const next = { ...prev };
+      delete next[delId];
+      return next;
+    });
+
+    setEditingActNode(null);
+  };
+
+  // 4. Sequence Message update & delete helpers
+  const handleUpdateSequenceMessage = (msgIndex, newSource, newTarget, newActionType, newLabel) => {
+    const lbl = (newLabel && newLabel.trim()) ? newLabel.trim() : 'Message';
+    let newLine = '';
+    if (newActionType === 'requests') {
+      newLine = `${newSource} requests "${lbl}" from ${newTarget}`;
+    } else if (newActionType === 'returns') {
+      newLine = `${newSource} returns "${lbl}" to ${newTarget}`;
+    } else if (newActionType === 'displays') {
+      newLine = `${newSource} displays "${lbl}" to ${newTarget}`;
+    } else {
+      newLine = `${newSource} sends "${lbl}" to ${newTarget}`;
+    }
+
+    setCode(prev => {
+      const lines = prev.split('\n');
+      let msgCounter = 0;
+      const updated = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('%%') || trimmed.startsWith('#')) return line;
+        if (trimmed.match(/^SEQUENCE\s+/i) || trimmed.match(/^PARTICIPANT\s+/i)) return line;
+
+        if (msgCounter === msgIndex) {
+          msgCounter++;
+          return newLine;
+        }
+        msgCounter++;
+        return line;
+      });
+      return updated.join('\n');
+    });
+  };
+
+  const handleDeleteSequenceMessage = (msgIndex) => {
+    setCode(prev => {
+      const lines = prev.split('\n');
+      let msgCounter = 0;
+      const filtered = lines.filter(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('%%') || trimmed.startsWith('#')) return true;
+        if (trimmed.match(/^SEQUENCE\s+/i) || trimmed.match(/^PARTICIPANT\s+/i)) return true;
+
+        if (msgCounter === msgIndex) {
+          msgCounter++;
+          return false;
+        }
+        msgCounter++;
+        return true;
+      });
+      return filtered.join('\n');
+    });
+  };
+
+  // 5. Gantt Dependency update & delete helpers
+  const handleUpdateGanttDependency = (oldFrom, oldTo, newFrom, newTo) => {
+    setCode(prev => {
+      let nextCode = removeGanttDependencyInCode(prev, oldTo, oldFrom);
+      nextCode = addGanttDependencyInCode(nextCode, newTo, newFrom);
+      return nextCode;
+    });
+  };
+
+  const handleDeleteGanttDependency = (fromTask, toTask) => {
+    setCode(prev => {
+      return removeGanttDependencyInCode(prev, toTask, fromTask);
+    });
+  };
 
   // Calculate canvas dimensions dynamically to expand scroll boundaries
   const getCanvasDimensions = () => {
@@ -2402,29 +4153,29 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         }
       });
     } else if (activeTabKey === 'activity') {
-      const { nodes, partitions } = parseActivity(code);
-      const autoPos = computeActivityAutoLayout(nodes, [], partitions);
+      const { nodes, transitions, partitions } = parseActivity(code);
+      const autoPos = computeActivityAutoLayout(nodes, transitions, partitions);
       nodes.forEach(n => {
         const pos = nodePositions[n.id] || autoPos[n.id];
         if (pos) {
-          if (pos.x + 250 + 200 > maxX) maxX = pos.x + 250 + 200;
-          if (pos.y + 150 + 200 > maxY) maxY = pos.y + 150 + 200;
+          if (pos.x + 200 + 100 > maxX) maxX = pos.x + 200 + 100;
+          if (pos.y + 100 + 100 > maxY) maxY = pos.y + 100 + 100;
         }
       });
       if (partitions && partitions.length > 0) {
-        let currentX = 80;
+        let currentX = 40;
         partitions.forEach((partName) => {
           const partNodes = nodes.filter(n => (n.partition || partitions[0]) === partName);
-          let maxNodeRight = currentX + 380;
+          let maxNodeRight = currentX + 240;
           partNodes.forEach(n => {
             const p = nodePositions[n.id] || autoPos[n.id];
-            if (p && p.x + 196 + 50 > maxNodeRight) {
-              maxNodeRight = p.x + 196 + 50;
+            if (p && p.x + 180 + 30 > maxNodeRight) {
+              maxNodeRight = p.x + 180 + 30;
             }
           });
-          currentX = Math.max(currentX + 380, maxNodeRight);
+          currentX = Math.max(currentX + 240, maxNodeRight);
         });
-        if (currentX + 200 > maxX) maxX = currentX + 200;
+        if (currentX + 100 > maxX) maxX = currentX + 100;
       }
     } else if (activeTabKey === 'sequence') {
       const { participants, messages } = parseSequence(code);
@@ -2571,28 +4322,28 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       const cy = newY + entityH / 2;
       const validFields = fields.filter(f => f.name);
       const numFields = validFields.length;
-      
-      let currentFieldIdx = 0;
-      let layerIndex = 0;
-      
-      while (currentFieldIdx < numFields) {
-        const R = 120 + layerIndex * 90;
-        const maxInLayer = Math.floor((2 * Math.PI * R) / 95);
-        const countInThisLayer = Math.min(maxInLayer, numFields - currentFieldIdx);
-        
-        for (let j = 0; j < countInThisLayer; j++) {
-          const f = validFields[currentFieldIdx + j];
-          const attrKey = `${entityName}::attr::${f.name}`;
-          const startAngle = -Math.PI / 2 + (layerIndex * Math.PI / 6);
-          const angle = startAngle + (2 * Math.PI * j) / countInThisLayer;
-          next[attrKey] = {
-            x: cx + R * Math.cos(angle),
-            y: cy + R * Math.sin(angle)
-          };
-        }
-        currentFieldIdx += countInThisLayer;
-        layerIndex++;
-      }
+      const hw = entityW / 2;
+      const hh = entityH / 2;
+      const rx = 42;
+      const ry = 18;
+      const gap = 14;
+
+      validFields.forEach((f, idx) => {
+        const attrKey = `${entityName}::attr::${f.name}`;
+        const angle = -Math.PI / 2 + (2 * Math.PI * idx) / Math.max(1, numFields);
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const absCos = Math.abs(cos) + 1e-6;
+        const absSin = Math.abs(sin) + 1e-6;
+        const dRect = Math.min(hw / absCos, hh / absSin);
+        const rAttr = (rx * ry) / Math.sqrt((ry * cos) ** 2 + (rx * sin) ** 2);
+        const dist = dRect + rAttr + gap;
+
+        next[attrKey] = {
+          x: Math.round(cx + dist * cos),
+          y: Math.round(cy + dist * sin)
+        };
+      });
 
       return next;
     });
@@ -2767,25 +4518,68 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       }
     }
     else if (tabKey === 'usecase') {
-      const { actors, usecases, links } = parseUseCase(diagramCode);
+      const { systemName, actors, usecases, links } = parseUseCase(diagramCode);
       const autoPositions = computeUseCaseAutoLayout(actors, usecases, links, useCaseActorPlacement);
       let xs = [];
       let ys = [];
 
       actors.forEach((act, idx) => {
         const pos = nodePositions[act.id] || autoPositions[act.id] || { x: 100, y: idx * 180 + 150 };
-        xs.push(pos.x - 30);
-        xs.push(pos.x + 120);
-        ys.push(pos.y - 20);
-        ys.push(pos.y + 120);
+        xs.push(pos.x);
+        xs.push(pos.x + 76);
+        ys.push(pos.y);
+        ys.push(pos.y + 118);
       });
+
+      let minUcX = Infinity;
+      let maxUcX = -Infinity;
+      let minUcY = Infinity;
+      let maxUcY = -Infinity;
 
       usecases.forEach((uc, idx) => {
         const pos = nodePositions[uc.id] || autoPositions[uc.id] || { x: 420, y: idx * 110 + 100 };
-        xs.push(pos.x - 60);
-        xs.push(pos.x + 260);
-        ys.push(pos.y - 60);
-        ys.push(pos.y + 100);
+        xs.push(pos.x);
+        xs.push(pos.x + 200);
+        ys.push(pos.y);
+        ys.push(pos.y + 50);
+
+        if (pos.x < minUcX) minUcX = pos.x;
+        if (pos.x + 200 > maxUcX) maxUcX = pos.x + 200;
+        if (pos.y < minUcY) minUcY = pos.y;
+        if (pos.y + 50 > maxUcY) maxUcY = pos.y + 50;
+      });
+
+      if (usecases.length > 0) {
+        const paddingLeft = 60;
+        const paddingRight = 60;
+        const paddingTop = 75;
+        const paddingBottom = 60;
+
+        let boxX = minUcX - paddingLeft;
+        let boxY = minUcY - paddingTop;
+        let boxWidth = (maxUcX + paddingRight) - boxX;
+        let boxHeight = (maxUcY + paddingBottom) - boxY;
+
+        if (boxWidth < 360) {
+          const diff = 360 - boxWidth;
+          boxWidth = 360;
+          boxX -= diff / 2;
+        }
+        if (boxHeight < 540) {
+          const diff = 540 - boxHeight;
+          boxHeight = 540;
+          boxY -= diff / 2;
+        }
+
+        xs.push(boxX, boxX + boxWidth);
+        ys.push(boxY, boxY + boxHeight);
+      }
+
+      Object.values(usecaseWaypoints || {}).forEach(wp => {
+        if (wp && typeof wp.x === 'number' && typeof wp.y === 'number') {
+          xs.push(wp.x);
+          ys.push(wp.y);
+        }
       });
 
       if (xs.length > 0) {
@@ -2800,38 +4594,46 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       const { nodes, transitions, partitions } = parseActivity(diagramCode);
       const autoPositions = computeActivityAutoLayout(nodes, transitions, partitions);
       let xs = [];
-      let ys = [];
+      let ys = [12];
+
+      const nodeDim = (type) => {
+        if (type === 'start' || type === 'end') return { w: 32, h: 32 };
+        if (type === 'decision') return { w: 120, h: 56 };
+        if (type === 'fork' || type === 'join') return { w: 140, h: 10 };
+        return { w: 180, h: 48 };
+      };
 
       if (partitions && partitions.length > 0) {
-        let currentX = 80;
-        xs.push(80);
+        let currentX = 30;
+        xs.push(30);
         partitions.forEach((partName) => {
           const partNodes = nodes.filter(n => (n.partition || partitions[0]) === partName);
-          let maxNodeRight = currentX + 380;
+          let minX = Infinity;
+          let maxX = -Infinity;
           partNodes.forEach(n => {
             const p = nodePositions[n.id] || autoPositions[n.id];
-            if (p && p.x + 196 + 50 > maxNodeRight) {
-              maxNodeRight = p.x + 196 + 50;
+            const dim = nodeDim(n.type);
+            if (p) {
+              if (p.x < minX) minX = p.x;
+              if (p.x + dim.w > maxX) maxX = p.x + dim.w;
             }
           });
-          currentX = Math.max(currentX + 380, maxNodeRight);
+          const xLeft = minX !== Infinity ? Math.min(currentX, minX - 35) : currentX;
+          const partW = minX !== Infinity ? Math.max(260, (maxX - xLeft) + 35) : 260;
+          const xRight = xLeft + partW;
+          xs.push(xLeft);
+          xs.push(xRight);
+          currentX = xRight;
         });
-        xs.push(currentX);
-        ys.push(10);
       }
 
       nodes.forEach((n) => {
-        const pos = nodePositions[n.id] || autoPositions[n.id] || { x: 400, y: 100 };
-        let w = 196;
-        let h = 54;
-        if (n.type === 'start' || n.type === 'end') { w = 36; h = 36; }
-        else if (n.type === 'decision') { w = 140; h = 70; }
-        else if (n.type === 'fork' || n.type === 'join') { w = 160; h = 12; }
-
+        const pos = nodePositions[n.id] || autoPositions[n.id] || { x: 300, y: 100 };
+        const dim = nodeDim(n.type);
         xs.push(pos.x);
-        xs.push(pos.x + w);
+        xs.push(pos.x + dim.w);
         ys.push(pos.y);
-        ys.push(pos.y + h);
+        ys.push(pos.y + dim.h + 60);
       });
 
       if (xs.length > 0) {
@@ -2998,35 +4800,37 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       const autoPos = computeActivityAutoLayout(nodes, transitions, partitions);
 
       const nodeDim = (type) => {
-        if (type === 'start' || type === 'end') return { w: 36, h: 36 };
-        if (type === 'decision') return { w: 140, h: 70 };
-        if (type === 'fork' || type === 'join') return { w: 160, h: 12 };
-        return { w: 196, h: 54 };
+        if (type === 'start' || type === 'end') return { w: 32, h: 32 };
+        if (type === 'decision') return { w: 120, h: 56 };
+        if (type === 'fork' || type === 'join') return { w: 140, h: 10 };
+        return { w: 180, h: 46 };
       };
 
-      let maxY = 700;
+      let maxY = 450;
       nodes.forEach(n => {
-        const p = activePositions[n.id] || autoPos[n.id] || { x: 400, y: 100 };
+        const p = activePositions[n.id] || autoPos[n.id] || { x: 300, y: 70 };
         const dim = nodeDim(n.type);
-        if (p && p.y + dim.h + 80 > maxY) maxY = p.y + dim.h + 80;
+        if (p && p.y + dim.h + 60 > maxY) maxY = p.y + dim.h + 60;
       });
 
       const partBounds = [];
       if (hasPartitions) {
-        let currentX = 80;
-        partitions.forEach((partName) => {
+        let currentX = 30;
+        partitions.forEach((partName, pIdx) => {
           const partNodes = nodes.filter(n => (n.partition || partitions[0]) === partName);
-          let maxNodeRight = currentX + 380;
+          let minX = Infinity;
+          let maxX = -Infinity;
           partNodes.forEach(n => {
             const p = activePositions[n.id] || autoPos[n.id];
             const dim = nodeDim(n.type);
-            if (p && p.x + dim.w + 50 > maxNodeRight) {
-              maxNodeRight = p.x + dim.w + 50;
+            if (p) {
+              if (p.x < minX) minX = p.x;
+              if (p.x + dim.w > maxX) maxX = p.x + dim.w;
             }
           });
-          const partW = Math.max(380, maxNodeRight - currentX);
-          const xLeft = currentX;
-          const xRight = currentX + partW;
+          const xLeft = minX !== Infinity ? Math.min(currentX, minX - 35) : currentX;
+          const partW = minX !== Infinity ? Math.max(260, (maxX - xLeft) + 35) : 260;
+          const xRight = xLeft + partW;
           partBounds.push({ xLeft, xRight, width: partW, xCenter: xLeft + partW / 2, partName });
           currentX = xRight;
         });
@@ -3036,10 +4840,10 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       let swimlanesSvg = '';
       if (hasPartitions) {
         swimlanesSvg = `<g id="export-activity-swimlanes">` + partBounds.map((pb, pIdx) => `
-          <rect x="${pb.xLeft + 10}" y="16" width="${pb.width - 20}" height="42" rx="10" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="2" />
-          <text x="${pb.xCenter}" y="37" text-anchor="middle" dominant-baseline="central" fill="${primaryMain}" font-size="16" font-weight="900" font-family="'Outfit', sans-serif" letter-spacing="0.08em">${escapeXml(pb.partName.toUpperCase())}</text>
-          <line x1="${pb.xLeft}" y1="16" x2="${pb.xLeft}" y2="${maxY}" stroke="${primaryMain}" stroke-opacity="0.4" stroke-width="2.5" stroke-dasharray="${pIdx === 0 ? 'none' : '5,5'}" />
-          ${pIdx === partBounds.length - 1 ? `<line x1="${pb.xRight}" y1="16" x2="${pb.xRight}" y2="${maxY}" stroke="${primaryMain}" stroke-opacity="0.4" stroke-width="2.5" />` : ''}
+          <rect x="${pb.xLeft + 6}" y="12" width="${pb.width - 12}" height="36" rx="8" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
+          <text x="${pb.xCenter}" y="30" text-anchor="middle" dominant-baseline="central" fill="${primaryMain}" font-size="13" font-weight="800" font-family="'Outfit', sans-serif" letter-spacing="0.06em">${escapeXml(pb.partName.toUpperCase())}</text>
+          <line x1="${pb.xLeft}" y1="12" x2="${pb.xLeft}" y2="${maxY}" stroke="${primaryMain}" stroke-opacity="0.35" stroke-width="2" stroke-dasharray="${pIdx === 0 ? 'none' : '4,4'}" />
+          ${pIdx === partBounds.length - 1 ? `<line x1="${pb.xRight}" y1="12" x2="${pb.xRight}" y2="${maxY}" stroke="${primaryMain}" stroke-opacity="0.35" stroke-width="2" />` : ''}
         `).join('') + `</g>`;
       }
 
@@ -3051,8 +4855,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
         const rawP1 = activePositions[t.source] || autoPos[t.source];
         const rawP2 = activePositions[t.target] || autoPos[t.target];
-        const p1 = { x: rawP1 && Number.isFinite(rawP1.x) ? rawP1.x : 400, y: rawP1 && Number.isFinite(rawP1.y) ? rawP1.y : 100 };
-        const p2 = { x: rawP2 && Number.isFinite(rawP2.x) ? rawP2.x : 400, y: rawP2 && Number.isFinite(rawP2.y) ? rawP2.y : 220 };
+        const p1 = { x: rawP1 && Number.isFinite(rawP1.x) ? rawP1.x : 300, y: rawP1 && Number.isFinite(rawP1.y) ? rawP1.y : 80 };
+        const p2 = { x: rawP2 && Number.isFinite(rawP2.x) ? rawP2.x : 300, y: rawP2 && Number.isFinite(rawP2.y) ? rawP2.y : 180 };
 
         const dim1 = nodeDim(srcNode.type);
         const dim2 = nodeDim(tgtNode.type);
@@ -3072,12 +4876,12 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           const startY = srcCenter.y;
           const endX = p2.x + dim2.w;
           const endY = tgtCenter.y;
-          const loopX = Math.max(p1.x + dim1.w, p2.x + dim2.w) + 60;
-          const r = 12;
+          const loopX = Math.max(p1.x + dim1.w, p2.x + dim2.w) + 45;
+          const r = 10;
           pathD = `M ${startX} ${startY} H ${loopX - r} Q ${loopX} ${startY} ${loopX} ${startY - r} V ${endY + r} Q ${loopX} ${endY} ${loopX - r} ${endY} H ${endX}`;
           midX = loopX;
           midY = (startY + endY) / 2;
-        } else if (Math.abs(dy) < 35 && Math.abs(dx) > 40) {
+        } else if (Math.abs(dy) < 30 && Math.abs(dx) > 30) {
           if (dx > 0) {
             const startX = p1.x + dim1.w;
             const startY = srcCenter.y;
@@ -3095,12 +4899,12 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
             midX = (startX + endX) / 2;
             midY = startY;
           }
-        } else if (srcNode.type === 'decision' && Math.abs(dx) > 60) {
+        } else if (srcNode.type === 'decision' && Math.abs(dx) > 50) {
           const startX = dx > 0 ? p1.x + dim1.w : p1.x;
           const startY = srcCenter.y;
           const endX = tgtCenter.x;
           const endY = p2.y;
-          const r = 12;
+          const r = 10;
           const cornerX = endX;
           if (cornerX > startX) {
             pathD = `M ${startX} ${startY} H ${cornerX - r} Q ${cornerX} ${startY} ${cornerX} ${startY + r} V ${endY}`;
@@ -3115,13 +4919,13 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           const endX = tgtCenter.x;
           const endY = p2.y;
 
-          if (Math.abs(startX - endX) < 8) {
+          if (Math.abs(startX - endX) < 6) {
             pathD = `M ${startX} ${startY} L ${endX} ${endY}`;
             midX = startX;
             midY = (startY + endY) / 2;
           } else {
-            const r = 12;
-            const stepY = startY + Math.min(28, Math.max(16, (endY - startY) * 0.45));
+            const r = 10;
+            const stepY = startY + Math.min(22, Math.max(12, (endY - startY) * 0.42));
             if (endX > startX) {
               pathD = `M ${startX} ${startY} V ${stepY - r} Q ${startX} ${stepY} ${startX + r} ${stepY} H ${endX - r} Q ${endX} ${stepY} ${endX} ${stepY + r} V ${endY}`;
             } else {
@@ -3134,11 +4938,11 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
         return `
           <g id="trans-${idx}">
-            <path d="${pathD}" fill="none" stroke="${primaryMain}" stroke-width="2" marker-end="url(#activity-arrow)" />
+            <path d="${pathD}" fill="none" stroke="${primaryMain}" stroke-width="1.75" marker-end="url(#activity-arrow)" />
             ${t.guard ? `
               <g transform="translate(${midX}, ${midY})">
-                <rect x="${-((t.guard.length * 7 + 16) / 2)}" y="-10" width="${t.guard.length * 7 + 16}" height="20" rx="10" fill="${bgPaper}" stroke="${divider}" stroke-width="1" />
-                <text x="0" y="0" text-anchor="middle" dominant-baseline="central" fill="${textSecondary}" font-size="10" font-weight="700" font-family="'Outfit', sans-serif">[${escapeXml(t.guard)}]</text>
+                <rect x="${-((t.guard.length * 6.5 + 14) / 2)}" y="-9" width="${t.guard.length * 6.5 + 14}" height="18" rx="9" fill="${bgPaper}" stroke="${divider}" stroke-width="1" />
+                <text x="0" y="0" text-anchor="middle" dominant-baseline="central" fill="${textSecondary}" font-size="9" font-weight="700" font-family="'Outfit', sans-serif">[${escapeXml(t.guard)}]</text>
               </g>
             ` : ''}
           </g>
@@ -3147,45 +4951,45 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
       // 3. Nodes
       const nodesSvg = `<g id="export-activity-nodes">` + nodes.map((node, idx) => {
-        const p = activePositions[node.id] || autoPos[node.id] || { x: 400, y: idx * 110 + 80 };
+        const p = activePositions[node.id] || autoPos[node.id] || { x: 300, y: idx * 80 + 70 };
 
         if (node.type === 'start') {
-          const cx = p.x + 18;
-          const cy = p.y + 18;
+          const cx = p.x + 16;
+          const cy = p.y + 16;
           return `
             <circle cx="${cx}" cy="${cy}" r="14" fill="#10B981" />
-            <circle cx="${cx}" cy="${cy}" r="6" fill="${bgDefault}" />
+            <circle cx="${cx}" cy="${cy}" r="5" fill="${bgDefault}" />
           `;
         }
         if (node.type === 'end') {
-          const cx = p.x + 18;
-          const cy = p.y + 18;
+          const cx = p.x + 16;
+          const cy = p.y + 16;
           return `
-            <circle cx="${cx}" cy="${cy}" r="15" fill="${bgPaper}" stroke="#EF4444" stroke-width="2" />
-            <circle cx="${cx}" cy="${cy}" r="9" fill="#EF4444" />
+            <circle cx="${cx}" cy="${cy}" r="14" fill="${bgPaper}" stroke="#EF4444" stroke-width="2" />
+            <circle cx="${cx}" cy="${cy}" r="8" fill="#EF4444" />
           `;
         }
         if (node.type === 'fork' || node.type === 'join') {
-          return `<rect x="${p.x}" y="${p.y}" width="160" height="12" rx="6" fill="${primaryMain}" />`;
+          return `<rect x="${p.x}" y="${p.y}" width="140" height="10" rx="5" fill="${primaryMain}" />`;
         }
         if (node.type === 'decision') {
-          const cx = p.x + 70;
-          const cy = p.y + 35;
-          const textSvg = renderCenteredTextLines(node.label, cx, cy, 110, { fontSize: 11, lineHeight: 14, fontWeight: 800 });
+          const cx = p.x + 60;
+          const cy = p.y + 28;
+          const textSvg = renderCenteredTextLines(node.label, cx, cy, 95, { fontSize: 10, lineHeight: 12, fontWeight: 800 });
           return `
             <g id="decision-${node.id}">
-              <polygon points="${cx},${p.y} ${p.x + 140},${cy} ${cx},${p.y + 70} ${p.x},${cy}" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
+              <polygon points="${cx},${p.y} ${p.x + 120},${cy} ${cx},${p.y + 56} ${p.x},${cy}" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
               ${textSvg}
             </g>
           `;
         }
         // Action card
-        const cx = p.x + 98;
-        const cy = p.y + 27;
-        const textSvg = renderCenteredTextLines(node.label, cx, cy, 175, { fontSize: 13, lineHeight: 16, fontWeight: 700 });
+        const cx = p.x + 90;
+        const cy = p.y + 23;
+        const textSvg = renderCenteredTextLines(node.label, cx, cy, 160, { fontSize: 12, lineHeight: 15, fontWeight: 700 });
         return `
           <g id="action-${node.id}">
-            <rect x="${p.x}" y="${p.y}" width="196" height="54" rx="12" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
+            <rect x="${p.x}" y="${p.y}" width="180" height="46" rx="12" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
             ${textSvg}
           </g>
         `;
@@ -3193,37 +4997,119 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
       innerSvgContent = swimlanesSvg + transitionsSvg + nodesSvg;
     } else if (tabKey === 'usecase') {
-      const { actors, usecases, links } = parseUseCase(diagramCode);
+      const { systemName, actors, usecases, links } = parseUseCase(diagramCode);
       const autoPos = computeUseCaseAutoLayout(actors, usecases, links, useCaseActorPlacement);
 
-      const rightActors = actors.filter(a => (activePositions[a.id]?.x || autoPos[a.id]?.x || 0) >= 600);
-      const isDualColumn = rightActors.length > 0;
-      const boxLeft = 240;
-      const boxWidth = isDualColumn ? 680 : 480;
-      const boxTop = 60;
-      const boxHeight = Math.max(500, usecases.length * 110 + 120);
+      // 1. Calculate dynamic system boundary box
+      let boxX = 260;
+      let boxY = 30;
+      let boxWidth = 360;
+      let boxHeight = 540;
+
+      if (usecases.length > 0) {
+        let minUcX = Infinity;
+        let maxUcX = -Infinity;
+        let minUcY = Infinity;
+        let maxUcY = -Infinity;
+
+        usecases.forEach((uc, idx) => {
+          const coord = activePositions[uc.id] || autoPos[uc.id] || { x: 420, y: idx * 110 + 100 };
+          if (coord.x < minUcX) minUcX = coord.x;
+          if (coord.x + 200 > maxUcX) maxUcX = coord.x + 200;
+          if (coord.y < minUcY) minUcY = coord.y;
+          if (coord.y + 50 > maxUcY) maxUcY = coord.y + 50;
+        });
+
+        const paddingLeft = 60;
+        const paddingRight = 60;
+        const paddingTop = 75;
+        const paddingBottom = 60;
+
+        boxX = minUcX - paddingLeft;
+        boxY = minUcY - paddingTop;
+        boxWidth = (maxUcX + paddingRight) - boxX;
+        boxHeight = (maxUcY + paddingBottom) - boxY;
+
+        if (boxWidth < 360) {
+          const diff = 360 - boxWidth;
+          boxWidth = 360;
+          boxX -= diff / 2;
+        }
+        if (boxHeight < 540) {
+          const diff = 540 - boxHeight;
+          boxHeight = 540;
+          boxY -= diff / 2;
+        }
+      }
 
       const systemBoundarySvg = `
-        <rect x="${boxLeft}" y="${boxTop}" width="${boxWidth}" height="${boxHeight}" rx="16" fill="${bgDefault}" stroke="${primaryMain}" stroke-width="1.5" stroke-dasharray="6,6" />
-        <text x="${boxLeft + boxWidth / 2}" y="${boxTop + 24}" text-anchor="middle" dominant-baseline="central" fill="${primaryMain}" font-size="14" font-weight="900" font-family="'Outfit', sans-serif" letter-spacing="0.05em">SYSTEM BOUNDARY</text>
+        <rect x="${boxX}" y="${boxY}" width="${boxWidth}" height="${boxHeight}" rx="16" fill="${bgPaper}" fill-opacity="${activeTheme === 'dark' ? '0.04' : '0.02'}" stroke="${primaryMain}" stroke-width="1.5" />
+        <text x="${boxX + boxWidth / 2}" y="${boxY + 25}" text-anchor="middle" dominant-baseline="central" fill="${textSecondary}" font-size="13" font-weight="bold" font-family="'Outfit', sans-serif" letter-spacing="0.05em">${escapeXml(systemName ? systemName.toUpperCase() : 'SYSTEM BOUNDARY')}</text>
       `;
 
+      // 2. Render all links using precise connection anchor routing matching the live canvas
       const linksSvg = `<g id="export-usecase-links">` + (links || []).map(link => {
-        const act = actors.find(a => a.id === link.source || a.name === link.source);
-        const uc = usecases.find(u => u.id === link.target || u.name === link.target);
-        if (!act || !uc) return '';
-        const pAct = activePositions[act.id] || autoPos[act.id] || { x: 100, y: 150 };
-        const pUc = activePositions[uc.id] || autoPos[uc.id] || { x: 420, y: 100 };
+        const start = activePositions[link.source] || autoPos[link.source];
+        const end = activePositions[link.target] || autoPos[link.target];
+        if (!start || !end) return '';
 
-        const isActLeft = pAct.x < pUc.x;
-        const startX = isActLeft ? pAct.x + 76 : pAct.x;
-        const startY = pAct.y + 40;
-        const endX = isActLeft ? pUc.x : pUc.x + 200;
-        const endY = pUc.y + 25;
+        const isExtend = link.label === 'EXTEND';
+        const isInclude = link.label === 'INCLUDE';
+        const isInherits = link.label === 'INHERITS';
+        const isExtendInclude = isExtend || isInclude;
 
-        return `<path d="M ${startX} ${startY} L ${endX} ${endY}" fill="none" stroke="${primaryMain}" stroke-width="1.5" marker-end="url(#usecase-arrow)" />`;
+        const isSourceActor = actors.some(a => a.id === link.source);
+        const isTargetActor = actors.some(a => a.id === link.target);
+
+        const w1 = isSourceActor ? 76 : 200;
+        const h1 = isSourceActor ? 118 : 50;
+        const w2 = isTargetActor ? 76 : 200;
+        const h2 = isTargetActor ? 118 : 50;
+
+        const pts = getBestConnectionPoints(start, end, w1, h1, w2, h2, links, link);
+        const x1 = pts.start.x;
+        const y1 = pts.start.y;
+        const x2 = pts.end.x;
+        const y2 = pts.end.y;
+
+        const wpKey = `${link.source}_${link.target}`;
+        const wp = usecaseWaypoints ? usecaseWaypoints[wpKey] : null;
+        const cx = wp ? wp.x : (x1 + x2) / 2;
+        const cy = wp ? wp.y : (y1 + y2) / 2;
+
+        const pathD = wp ? `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}` : `M ${x1} ${y1} L ${x2} ${y2}`;
+
+        let strokeColor = primaryMain;
+        let strokeDasharray = 'none';
+        let markerEnd = 'none';
+
+        if (isExtendInclude) {
+          strokeColor = '#00FFCC';
+          strokeDasharray = '5,5';
+          markerEnd = 'url(#usecase-arrow)';
+        } else if (isInherits) {
+          markerEnd = 'url(#usecase-generalization-arrow)';
+        }
+
+        let labelSvg = '';
+        if (isExtendInclude) {
+          labelSvg = `
+            <g>
+              <rect x="${cx - 38}" y="${cy - 9}" width="76" height="18" rx="4" fill="${bgDefault}" stroke="${divider || 'rgba(255,255,255,0.15)'}" stroke-width="1" />
+              <text x="${cx}" y="${cy}" fill="#00FFCC" font-size="9" font-weight="bold" font-family="'Outfit', sans-serif" text-anchor="middle" dominant-baseline="central">${link.label === 'EXTEND' ? '&lt;&lt;extend&gt;&gt;' : '&lt;&lt;include&gt;&gt;'}</text>
+            </g>
+          `;
+        }
+
+        return `
+          <g>
+            <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-dasharray="${strokeDasharray}" marker-end="${markerEnd}" />
+            ${labelSvg}
+          </g>
+        `;
       }).join('') + `</g>`;
 
+      // 3. Render Use Case Bubbles (rounded pills matching on-screen)
       const usecasesSvg = `<g id="export-usecases">` + usecases.map((uc, idx) => {
         const p = activePositions[uc.id] || autoPos[uc.id] || { x: 420, y: idx * 110 + 100 };
         const cx = p.x + 100;
@@ -3231,23 +5117,26 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         const textSvg = renderCenteredTextLines(uc.label || uc.name, cx, cy, 180, { fontSize: 12, lineHeight: 15, fontWeight: 700 });
         return `
           <g id="uc-${uc.id}">
-            <ellipse cx="${cx}" cy="${cy}" rx="100" ry="25" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1.5" />
+            <rect x="${p.x}" y="${p.y}" width="200" height="50" rx="25" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="2" />
             ${textSvg}
           </g>
         `;
       }).join('') + `</g>`;
 
+      // 4. Render Actors (stick figures matching on-screen exact geometry)
       const actorsSvg = `<g id="export-actors">` + actors.map((act, idx) => {
         const p = activePositions[act.id] || autoPos[act.id] || { x: 100, y: idx * 180 + 150 };
         const cx = p.x + 38;
+        const headCy = p.y + 15;
+        const textSvg = renderCenteredTextLines(act.label || act.name, cx, p.y + 98, 74, { fontSize: 11, lineHeight: 13, fontWeight: 700 });
         return `
           <g id="act-${act.id}">
-            <circle cx="${cx}" cy="${p.y + 24}" r="12" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="3" />
-            <line x1="${cx}" y1="${p.y + 36}" x2="${cx}" y2="${p.y + 68}" stroke="${primaryMain}" stroke-width="3" />
-            <line x1="${cx - 20}" y1="${p.y + 46}" x2="${cx + 20}" y2="${p.y + 46}" stroke="${primaryMain}" stroke-width="3" />
-            <line x1="${cx}" y1="${p.y + 68}" x2="${cx - 15}" y2="${p.y + 92}" stroke="${primaryMain}" stroke-width="3" />
-            <line x1="${cx}" y1="${p.y + 68}" x2="${cx + 15}" y2="${p.y + 92}" stroke="${primaryMain}" stroke-width="3" />
-            <text x="${cx}" y="${p.y + 106}" text-anchor="middle" dominant-baseline="central" fill="${textPrimary}" font-size="12" font-weight="800" font-family="'Outfit', sans-serif">${escapeXml(act.label || act.name)}</text>
+            <circle cx="${cx}" cy="${headCy}" r="12" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="3" />
+            <line x1="${cx}" y1="${headCy + 12}" x2="${cx}" y2="${headCy + 43}" stroke="${primaryMain}" stroke-width="3" />
+            <line x1="${cx - 20}" y1="${headCy + 21}" x2="${cx + 20}" y2="${headCy + 21}" stroke="${primaryMain}" stroke-width="3" />
+            <line x1="${cx}" y1="${headCy + 43}" x2="${cx - 15}" y2="${headCy + 68}" stroke="${primaryMain}" stroke-width="3" />
+            <line x1="${cx}" y1="${headCy + 43}" x2="${cx + 15}" y2="${headCy + 68}" stroke="${primaryMain}" stroke-width="3" />
+            ${textSvg}
           </g>
         `;
       }).join('') + `</g>`;
@@ -3654,7 +5543,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       <line x1="14" y1="2" x2="14" y2="18" stroke="${primaryMain}" stroke-width="2" />
     </marker>
     <marker id="usecase-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 10 5 L 0 9" fill="none" stroke="${primaryMain}" stroke-width="1.5" />
+      <path d="M 0 1 L 10 5 L 0 9" fill="none" stroke="#00FFCC" stroke-width="1.5" />
     </marker>
     <marker id="usecase-generalization-arrow" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
       <path d="M 0 2 L 12 6 L 0 10 Z" fill="${bgDefault}" stroke="${primaryMain}" stroke-width="1.5" />
@@ -3922,7 +5811,15 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           usecases.push({ id: tgtId, label: tgt });
         }
 
-        links.push({ source: srcId, target: tgtId, label: '' });
+        const existingIdx = links.findIndex(l =>
+          (l.source.toLowerCase() === srcId.toLowerCase() && l.target.toLowerCase() === tgtId.toLowerCase()) ||
+          (l.source.toLowerCase() === tgtId.toLowerCase() && l.target.toLowerCase() === srcId.toLowerCase())
+        );
+        if (existingIdx >= 0) {
+          links[existingIdx] = { source: srcId, target: tgtId, label: '' };
+        } else {
+          links.push({ source: srcId, target: tgtId, label: '' });
+        }
         return;
       }
 
@@ -3944,7 +5841,15 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         if (type === 'EXTENDS') type = 'EXTEND';
         if (type === 'INCLUDES') type = 'INCLUDE';
         
-        links.push({ source: srcId, target: tgtId, label: type });
+        const existingIdx = links.findIndex(l =>
+          (l.source.toLowerCase() === srcId.toLowerCase() && l.target.toLowerCase() === tgtId.toLowerCase()) ||
+          (l.source.toLowerCase() === tgtId.toLowerCase() && l.target.toLowerCase() === srcId.toLowerCase())
+        );
+        if (existingIdx >= 0) {
+          links[existingIdx] = { source: srcId, target: tgtId, label: type };
+        } else {
+          links.push({ source: srcId, target: tgtId, label: type });
+        }
         return;
       }
     });
@@ -4175,15 +6080,30 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         }
       }
 
-      const Rx = Math.max(ew / 2 + 18, 52 + numFields * 2.5);
-      const Ry = Math.max(36, 28 + numFields * 1.6);
+      // Attribute layout with exact boundary clearance and small padding
+      const gap = 14;
+      const hw = ew / 2;
+      const hh = entityH / 2; // 25
+      const rx = 42;
+      const ry = 18;
 
       fields.forEach((f, idx) => {
         const attrKey = `${entity.name}::attr::${f.name}`;
         const angle = chosenAngles[idx];
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const absCos = Math.abs(cos) + 1e-6;
+        const absSin = Math.abs(sin) + 1e-6;
+
+        // Exact distance along ray from center (cx, cy) to entity rectangle edge
+        const dRect = Math.min(hw / absCos, hh / absSin);
+        // Exact radius of attribute ellipse along ray
+        const rAttr = (rx * ry) / Math.sqrt((ry * cos) ** 2 + (rx * sin) ** 2);
+
+        const dist = dRect + rAttr + gap;
         positions[attrKey] = {
-          x: Math.round(cx + Rx * Math.cos(angle)),
-          y: Math.round(cy + Ry * Math.sin(angle))
+          x: Math.round(cx + dist * cos),
+          y: Math.round(cy + dist * sin)
         };
       });
     });
@@ -4209,13 +6129,22 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     // 6. Overlap & Clearance Post-Pass
     const nodeBoxes = [];
     entities.forEach(e => {
+      const ew = getEntityWidth(e.name);
+      const ePos = positions[e.name];
+      const eCx = ePos ? ePos.x + ew / 2 : 0;
+      const eCy = ePos ? ePos.y + entityH / 2 : 0;
+
       (e.fields || []).forEach(f => {
         const attrKey = `${e.name}::attr::${f.name}`;
         if (positions[attrKey]) {
           nodeBoxes.push({
             id: attrKey,
-            hw: 38 + 8,
-            hh: 16 + 8,
+            entityName: e.name,
+            eCx,
+            eCy,
+            ew,
+            hw: 42 + 6,
+            hh: 18 + 6,
             cx: positions[attrKey].x,
             cy: positions[attrKey].y
           });
@@ -4225,6 +6154,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
     for (let iter = 0; iter < 30; iter++) {
       let moved = false;
+      // 6a. Relax overlapping attribute siblings
       for (let i = 0; i < nodeBoxes.length; i++) {
         for (let j = i + 1; j < nodeBoxes.length; j++) {
           const a = nodeBoxes[i];
@@ -4248,6 +6178,29 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           }
         }
       }
+
+      // 6b. Enforce strict non-collision clearance against entity card
+      nodeBoxes.forEach(box => {
+        if (!box.eCx) return;
+        const dx = box.cx - box.eCx;
+        const dy = box.cy - box.eCy;
+        const angle = Math.atan2(dy, dx);
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const absCos = Math.abs(cos) + 1e-6;
+        const absSin = Math.abs(sin) + 1e-6;
+        const dRect = Math.min((box.ew / 2) / absCos, 25 / absSin);
+        const rAttr = (42 * 18) / Math.sqrt((18 * cos) ** 2 + (42 * sin) ** 2);
+        const minDist = dRect + rAttr + 14;
+        const currDist = Math.hypot(dx, dy);
+
+        if (currDist < minDist) {
+          moved = true;
+          box.cx = box.eCx + minDist * cos;
+          box.cy = box.eCy + minDist * sin;
+        }
+      });
+
       if (!moved) break;
     }
 
@@ -4673,6 +6626,47 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       prevGroupBottom = groupTop + groupH;
     });
 
+    // ── Step 6b: Enforce minimum distance between connected use cases ──────
+    const MIN_CONNECTED_UC_GAP_Y = 70;
+    for (let iter = 0; iter < 10; iter++) {
+      let adjusted = false;
+      ucUcLinks.forEach(link => {
+        const posA = positions[link.source];
+        const posB = positions[link.target];
+        if (!posA || !posB) return;
+        const cxA = posA.x + UC_W / 2;
+        const cyA = posA.y + UC_H / 2;
+        const cxB = posB.x + UC_W / 2;
+        const cyB = posB.y + UC_H / 2;
+        const absDx = Math.abs(cxB - cxA);
+        const absDy = Math.abs(cyB - cyA);
+
+        if (absDx < UC_W * 0.75) {
+          const currentGapY = absDy - UC_H;
+          if (currentGapY < MIN_CONNECTED_UC_GAP_Y) {
+            adjusted = true;
+            const shiftNeeded = MIN_CONNECTED_UC_GAP_Y - currentGapY;
+            if (cyB >= cyA) {
+              usecases.forEach(u => {
+                if (positions[u.id] && positions[u.id].y >= posB.y && u.id !== link.source) {
+                  positions[u.id].y += shiftNeeded;
+                  if (primaryYCenter[u.id] !== undefined) primaryYCenter[u.id] += shiftNeeded;
+                }
+              });
+            } else {
+              usecases.forEach(u => {
+                if (positions[u.id] && positions[u.id].y >= posA.y && u.id !== link.target) {
+                  positions[u.id].y += shiftNeeded;
+                  if (primaryYCenter[u.id] !== undefined) primaryYCenter[u.id] += shiftNeeded;
+                }
+              });
+            }
+          }
+        }
+      });
+      if (!adjusted) break;
+    }
+
     // ── Step 7: position actors (Left and Right) with guaranteed vertical padding ──
     const maxPrimaryOrSecX = isDualColumn
       ? (secondaryUcs.length > 0 ? (RIGHT_UC_COL_X + 260 + UC_W / 2) : (RIGHT_UC_COL_X + UC_W / 2))
@@ -4816,8 +6810,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         return;
       }
 
-      // SWIMLANE / PARTITION <Name>
-      const partMatch = trimmed.match(/^(?:SWIMLANE|PARTITION)\s+(.+)$/i);
+      // SWIMLANE / PARTITION / ACTOR / LANE <Name>
+      const partMatch = trimmed.match(/^(?:SWIMLANE|PARTITION|ACTOR|LANE)\s+(.+)$/i);
       if (partMatch) {
         currentPartition = cleanLabel(partMatch[1]);
         if (!partitions.includes(currentPartition)) {
@@ -4913,6 +6907,90 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       }
     });
 
+    // Automatically sort partitions / actors based on execution flow invocation order
+    if (partitions.length > 1) {
+      const inDeg = {};
+      const adj = {};
+      nodes.forEach(n => {
+        inDeg[n.id] = 0;
+        adj[n.id] = [];
+      });
+      transitions.forEach(t => {
+        if (adj[t.source] && inDeg[t.target] !== undefined) {
+          adj[t.source].push(t.target);
+          inDeg[t.target] = (inDeg[t.target] || 0) + 1;
+        }
+      });
+
+      // BFS to determine execution / invocation step of each node
+      const flowStep = {};
+      const queue = [];
+      
+      // Start nodes get step 0
+      nodes.filter(n => n.type === 'start').forEach(n => {
+        flowStep[n.id] = 0;
+        queue.push(n.id);
+      });
+
+      // If no explicit start node, use nodes with inDegree 0
+      if (queue.length === 0) {
+        nodes.filter(n => inDeg[n.id] === 0).forEach(n => {
+          flowStep[n.id] = 0;
+          queue.push(n.id);
+        });
+      }
+
+      // If still empty, use first transition source or first node
+      if (queue.length === 0 && nodes.length > 0) {
+        flowStep[nodes[0].id] = 0;
+        queue.push(nodes[0].id);
+      }
+
+      while (queue.length > 0) {
+        const curr = queue.shift();
+        const curStep = flowStep[curr] ?? 0;
+        (adj[curr] || []).forEach(nxt => {
+          if (flowStep[nxt] === undefined || flowStep[nxt] > curStep + 1) {
+            flowStep[nxt] = curStep + 1;
+            queue.push(nxt);
+          }
+        });
+      }
+
+      // Any remaining nodes get fallback step based on their order in code
+      nodes.forEach((n, idx) => {
+        if (flowStep[n.id] === undefined) {
+          flowStep[n.id] = 100 + idx;
+        }
+      });
+
+      // Calculate the minimum invocation step for each partition
+      const partMinStep = {};
+      const partOriginalIndex = {};
+      partitions.forEach((p, idx) => {
+        partOriginalIndex[p] = idx;
+        const pNodes = nodes.filter(n => (n.partition || partitions[0]) === p);
+        if (pNodes.length === 0) {
+          partMinStep[p] = 9999;
+        } else {
+          // If partition has a start node, it gets highest priority (-1) to be leftmost
+          const hasStart = pNodes.some(n => n.type === 'start');
+          if (hasStart) {
+            partMinStep[p] = -1;
+          } else {
+            partMinStep[p] = Math.min(...pNodes.map(n => flowStep[n.id] ?? 999));
+          }
+        }
+      });
+
+      partitions.sort((a, b) => {
+        const stepA = partMinStep[a] ?? 9999;
+        const stepB = partMinStep[b] ?? 9999;
+        if (stepA !== stepB) return stepA - stepB;
+        return (partOriginalIndex[a] || 0) - (partOriginalIndex[b] || 0);
+      });
+    }
+
     return { title, nodes, transitions, partitions };
   }
 
@@ -4997,11 +7075,12 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     const nodeMap = {};
     nodes.forEach(n => { nodeMap[n.id] = n; });
 
+    // Tight, crisp, modern node dimensions
     const getNodeDim = (type) => {
-      if (type === 'start' || type === 'end') return { w: 36, h: 36 };
-      if (type === 'decision') return { w: 140, h: 70 };
-      if (type === 'fork' || type === 'join') return { w: 160, h: 12 };
-      return { w: 196, h: 54 };
+      if (type === 'start' || type === 'end') return { w: 32, h: 32 };
+      if (type === 'decision') return { w: 120, h: 56 };
+      if (type === 'fork' || type === 'join') return { w: 140, h: 10 };
+      return { w: 180, h: 48 };
     };
 
     // 1. Build adjacency list, parents list, and degrees
@@ -5082,18 +7161,46 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       }
     });
 
-    const hasPartitions = partitions && partitions.length > 0;
-    const LAYER_GAP_Y = 160;
-    const START_Y = 130;
-    const NODE_SPACING_X = 240;
+    // 3. Flow-based Partition Sorting: Ensure actors are placed left-to-right in invocation order
+    let effectivePartitions = partitions ? [...partitions] : [];
+    if (effectivePartitions.length > 1) {
+      const partMinStep = {};
+      const partOriginalIndex = {};
+      effectivePartitions.forEach((p, idx) => {
+        partOriginalIndex[p] = idx;
+        const pNodes = nodes.filter(n => (n.partition || effectivePartitions[0]) === p);
+        if (pNodes.length === 0) {
+          partMinStep[p] = 9999;
+        } else {
+          const hasStart = pNodes.some(n => n.type === 'start');
+          if (hasStart) {
+            partMinStep[p] = -1;
+          } else {
+            partMinStep[p] = Math.min(...pNodes.map(n => layers[n.id] ?? 999));
+          }
+        }
+      });
+
+      effectivePartitions.sort((a, b) => {
+        const stepA = partMinStep[a] ?? 9999;
+        const stepB = partMinStep[b] ?? 9999;
+        if (stepA !== stepB) return stepA - stepB;
+        return (partOriginalIndex[a] || 0) - (partOriginalIndex[b] || 0);
+      });
+    }
+
+    const hasPartitions = effectivePartitions && effectivePartitions.length > 0;
+    const LAYER_GAP_Y = 110;
+    const START_Y = 88;
+    const NODE_SPACING_X = 210;
 
     if (hasPartitions) {
-      let currentPartX = 80;
+      let currentPartX = 40;
 
-      partitions.forEach(partName => {
-        const partNodes = nodes.filter(n => (n.partition || partitions[0]) === partName);
+      effectivePartitions.forEach(partName => {
+        const partNodes = nodes.filter(n => (n.partition || effectivePartitions[0]) === partName);
         if (partNodes.length === 0) {
-          currentPartX += 420;
+          currentPartX += 280;
           return;
         }
 
@@ -5106,100 +7213,106 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         });
 
         const sortedLayerKeys = Object.keys(partLayerGroups).map(Number).sort((a, b) => a - b);
-        const minPartX = currentPartX + 40;
+        const nodeTargetCenter = {};
 
-        // Top-down pass: align each node to its parent or parent branch slot
+        // Top-down hierarchical barycenter and branch assignment
         sortedLayerKeys.forEach(l => {
           const layerNodes = partLayerGroups[l];
-
-          // Sort layer nodes by the horizontal center of their parents
-          layerNodes.sort((a, b) => {
-            const aParents = parents[a.id].filter(pid => positions[pid] !== undefined);
-            const bParents = parents[b.id].filter(pid => positions[pid] !== undefined);
-            const aMeanX = aParents.length > 0 ? aParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / aParents.length : 0;
-            const bMeanX = bParents.length > 0 ? bParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / bParents.length : 0;
-            if (aMeanX !== bMeanX) return aMeanX - bMeanX;
-            return nodes.indexOf(a) - nodes.indexOf(b);
-          });
-
           const y = START_Y + l * LAYER_GAP_Y;
 
-          layerNodes.forEach((node) => {
-            const dim = getNodeDim(node.type);
-            const nodeParents = parents[node.id].filter(pid => positions[pid] !== undefined);
+          layerNodes.forEach(node => {
+            const pred = (parents[node.id] || []).filter(pid => partNodes.some(pn => pn.id === pid));
+            if (pred.length === 1) {
+              const pId = pred[0];
+              const pPos = positions[pId];
+              const pDim = getNodeDim(nodeMap[pId]?.type);
+              const pCenter = pPos ? (pPos.x + pDim.w / 2) : (currentPartX + 260 / 2);
+              const siblings = (adj[pId] || []).filter(cid => partNodes.some(pn => pn.id === cid) && layers[cid] === l);
 
-            let desiredCenterX;
-            if (nodeParents.length > 0) {
-              const parentObj = nodeMap[nodeParents[0]];
-              const parentChildren = (adj[parentObj.id] || []).filter(cid => partNodes.some(pn => pn.id === cid));
-
-              if (parentChildren.length > 1) {
-                const childIdx = parentChildren.indexOf(node.id);
-                const parentCenter = positions[parentObj.id].x + getNodeDim(parentObj.type).w / 2;
-                const totalSpan = (parentChildren.length - 1) * NODE_SPACING_X;
-                desiredCenterX = parentCenter - totalSpan / 2 + childIdx * NODE_SPACING_X;
+              if (siblings.length > 1) {
+                const sIdx = siblings.indexOf(node.id);
+                if (nodeMap[pId]?.type === 'decision') {
+                  const trans = transitions.find(t => t.source === pId && t.target === node.id);
+                  const isRejectOrNo = trans && (trans.guard?.toLowerCase() === 'no' || trans.guard?.toLowerCase() === 'false' || trans.guard?.toLowerCase() === 'reject');
+                  if (isRejectOrNo) {
+                    nodeTargetCenter[node.id] = pCenter - 200;
+                  } else {
+                    nodeTargetCenter[node.id] = pCenter + 160;
+                  }
+                } else {
+                  nodeTargetCenter[node.id] = pCenter + (sIdx - (siblings.length - 1) / 2) * NODE_SPACING_X;
+                }
               } else {
-                desiredCenterX = nodeParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / nodeParents.length;
+                nodeTargetCenter[node.id] = pCenter;
               }
+            } else if (pred.length > 1) {
+              const pCenters = pred.map(pid => {
+                const pPos = positions[pid];
+                const pDim = getNodeDim(nodeMap[pid]?.type);
+                return pPos ? (pPos.x + pDim.w / 2) : (currentPartX + 260 / 2);
+              });
+              nodeTargetCenter[node.id] = pCenters.reduce((a, b) => a + b, 0) / pCenters.length;
             } else {
-              desiredCenterX = minPartX + 180;
+              nodeTargetCenter[node.id] = currentPartX + 260 / 2;
             }
-
-            positions[node.id] = {
-              x: desiredCenterX - dim.w / 2,
-              y
-            };
           });
 
-          // Resolve horizontal overlaps within this layer
-          for (let i = 0; i < layerNodes.length - 1; i++) {
-            const currNode = layerNodes[i];
-            const nextNode = layerNodes[i + 1];
-            const currDim = getNodeDim(currNode.type);
-            const minNextX = positions[currNode.id].x + currDim.w + 40;
-            if (positions[nextNode.id].x < minNextX) {
-              const shift = minNextX - positions[nextNode.id].x;
-              for (let j = i + 1; j < layerNodes.length; j++) {
-                positions[layerNodes[j].id].x += shift;
+          // Sort layer nodes by target center
+          layerNodes.sort((a, b) => (nodeTargetCenter[a.id] || 0) - (nodeTargetCenter[b.id] || 0));
+
+          // Resolve horizontal overlaps among nodes in the same layer
+          const assignedCenters = {};
+          layerNodes.forEach((node, idx) => {
+            let cx = nodeTargetCenter[node.id];
+            if (idx > 0) {
+              const prevId = layerNodes[idx - 1].id;
+              const prevCx = assignedCenters[prevId];
+              const minAllowed = prevCx + NODE_SPACING_X;
+              if (cx < minAllowed) {
+                cx = minAllowed;
               }
             }
-          }
+            assignedCenters[node.id] = cx;
+          });
+
+          layerNodes.forEach(node => {
+            const dim = getNodeDim(node.type);
+            const cx = assignedCenters[node.id];
+            positions[node.id] = {
+              x: cx - dim.w / 2,
+              y: y + (getNodeDim('action').h - dim.h) / 2
+            };
+          });
         });
 
         // Bottom-up pass: center Fork and Join bars over their children / predecessors
         sortedLayerKeys.slice().reverse().forEach(l => {
           const layerNodes = partLayerGroups[l];
           layerNodes.forEach(node => {
-            const children = (adj[node.id] || []).filter(cid => positions[cid] !== undefined && partNodes.some(pn => pn.id === cid));
-            if (children.length > 1) {
-              const childrenCenters = children.map(cid => positions[cid].x + getNodeDim(nodeMap[cid].type).w / 2);
-              const meanChildCenter = childrenCenters.reduce((a, b) => a + b, 0) / childrenCenters.length;
-              positions[node.id].x = meanChildCenter - getNodeDim(node.type).w / 2;
+            if (node.type === 'fork' || node.type === 'join') {
+              const connected = node.type === 'fork'
+                ? (adj[node.id] || []).filter(cid => positions[cid] !== undefined && partNodes.some(pn => pn.id === cid))
+                : (parents[node.id] || []).filter(pid => positions[pid] !== undefined && partNodes.some(pn => pn.id === pid));
+              if (connected.length > 1) {
+                const centers = connected.map(id => positions[id].x + getNodeDim(nodeMap[id].type).w / 2);
+                const meanCenter = centers.reduce((a, b) => a + b, 0) / centers.length;
+                positions[node.id].x = meanCenter - getNodeDim(node.type).w / 2;
+              }
             }
           });
         });
 
-        // Ensure all partition nodes stay within positive coordinates >= minPartX
-        let partMinX = Infinity;
-        let partMaxX = -Infinity;
+        // Shift nodes so min left is at least currentPartX + 40
+        const minPartX = Math.min(...partNodes.map(n => positions[n.id].x));
+        const requiredLeft = currentPartX + 40;
+        const shiftX = requiredLeft - minPartX;
         partNodes.forEach(n => {
-          const p = positions[n.id];
-          const dim = getNodeDim(n.type);
-          if (p) {
-            if (p.x < partMinX) partMinX = p.x;
-            if (p.x + dim.w > partMaxX) partMaxX = p.x + dim.w;
-          }
+          positions[n.id].x += shiftX;
         });
 
-        if (partMinX < minPartX) {
-          const offset = minPartX - partMinX;
-          partNodes.forEach(n => {
-            if (positions[n.id]) positions[n.id].x += offset;
-          });
-          partMaxX += offset;
-        }
-
-        currentPartX = Math.max(currentPartX + 420, partMaxX + 80);
+        const maxPartX = Math.max(...partNodes.map(n => positions[n.id].x + getNodeDim(n.type).w));
+        const laneWidth = Math.max(280, (maxPartX - currentPartX) + 40);
+        currentPartX += laneWidth;
       });
     } else {
       // Global layout without partitions
@@ -5211,80 +7324,36 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       });
 
       const sortedLayerKeys = Object.keys(layerGroups).map(Number).sort((a, b) => a - b);
-      const BASE_CENTER_X = 540;
+      const BASE_CENTER_X = 340;
 
       sortedLayerKeys.forEach(l => {
         const layerNodes = layerGroups[l];
         const y = START_Y + l * LAYER_GAP_Y;
 
-        layerNodes.sort((a, b) => {
-          const aParents = parents[a.id].filter(pid => positions[pid] !== undefined);
-          const bParents = parents[b.id].filter(pid => positions[pid] !== undefined);
-          const aMeanX = aParents.length > 0 ? aParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / aParents.length : 0;
-          const bMeanX = bParents.length > 0 ? bParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / bParents.length : 0;
-          if (aMeanX !== bMeanX) return aMeanX - bMeanX;
-          return nodes.indexOf(a) - nodes.indexOf(b);
-        });
-
-        layerNodes.forEach((node) => {
+        if (layerNodes.length === 1) {
+          const node = layerNodes[0];
           const dim = getNodeDim(node.type);
-          const nodeParents = parents[node.id].filter(pid => positions[pid] !== undefined);
-
-          let desiredCenterX;
-          if (nodeParents.length > 0) {
-            const parentObj = nodeMap[nodeParents[0]];
-            const parentChildren = (adj[parentObj.id] || []).filter(cid => nodes.some(pn => pn.id === cid));
-
-            if (parentChildren.length > 1) {
-              const childIdx = parentChildren.indexOf(node.id);
-              const parentCenter = positions[parentObj.id].x + getNodeDim(parentObj.type).w / 2;
-              const totalSpan = (parentChildren.length - 1) * NODE_SPACING_X;
-              desiredCenterX = parentCenter - totalSpan / 2 + childIdx * NODE_SPACING_X;
-            } else {
-              desiredCenterX = nodeParents.reduce((sum, pid) => sum + positions[pid].x + getNodeDim(nodeMap[pid].type).w / 2, 0) / nodeParents.length;
-            }
-          } else {
-            desiredCenterX = BASE_CENTER_X;
-          }
-
           positions[node.id] = {
-            x: desiredCenterX - dim.w / 2,
-            y
+            x: BASE_CENTER_X - dim.w / 2,
+            y: y + (getNodeDim('action').h - dim.h) / 2
           };
-        });
-
-        // Resolve overlaps
-        for (let i = 0; i < layerNodes.length - 1; i++) {
-          const currNode = layerNodes[i];
-          const nextNode = layerNodes[i + 1];
-          const currDim = getNodeDim(currNode.type);
-          const minNextX = positions[currNode.id].x + currDim.w + 40;
-          if (positions[nextNode.id].x < minNextX) {
-            const shift = minNextX - positions[nextNode.id].x;
-            for (let j = i + 1; j < layerNodes.length; j++) {
-              positions[layerNodes[j].id].x += shift;
-            }
-          }
+        } else {
+          const totalWidth = (layerNodes.length - 1) * NODE_SPACING_X;
+          const startX = BASE_CENTER_X - totalWidth / 2;
+          layerNodes.forEach((node, idx) => {
+            const dim = getNodeDim(node.type);
+            positions[node.id] = {
+              x: startX + idx * NODE_SPACING_X - dim.w / 2,
+              y: y + (getNodeDim('action').h - dim.h) / 2
+            };
+          });
         }
-      });
-
-      // Bottom-up pass for Fork and Join centering
-      sortedLayerKeys.slice().reverse().forEach(l => {
-        const layerNodes = layerGroups[l];
-        layerNodes.forEach(node => {
-          const children = (adj[node.id] || []).filter(cid => positions[cid] !== undefined);
-          if (children.length > 1) {
-            const childrenCenters = children.map(cid => positions[cid].x + getNodeDim(nodeMap[cid].type).w / 2);
-            const meanChildCenter = childrenCenters.reduce((a, b) => a + b, 0) / childrenCenters.length;
-            positions[node.id].x = meanChildCenter - getNodeDim(node.type).w / 2;
-          }
-        });
       });
     }
 
     nodes.forEach((n, idx) => {
       if (!positions[n.id] || !Number.isFinite(positions[n.id].x) || !Number.isFinite(positions[n.id].y)) {
-        positions[n.id] = { x: 400, y: idx * 110 + 80 };
+        positions[n.id] = { x: 300, y: idx * 80 + 70 };
       }
     });
 
@@ -5972,19 +8041,23 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       const fields = entity.fields || [];
       const numFields = fields.length;
       
-      // Calculate concentric default positions to prevent overlaps
-      const Rx = Math.max(ew / 2 + 35, 105);
-      const Ry = 62;
-
       fields.forEach((f, fIdx) => {
         const attrKey = `${entity.name}::attr::${f.name}`;
-        const angle = -Math.PI / 2 + (2 * Math.PI * fIdx) / Math.max(1, numFields);
-        const defPos = {
-          x: Math.round(cx + Rx * Math.cos(angle)),
-          y: Math.round(cy + Ry * Math.sin(angle))
-        };
-        const attrX = nodePositions[attrKey]?.x ?? defPos.x;
-        const attrY = nodePositions[attrKey]?.y ?? defPos.y;
+        let attrX = nodePositions[attrKey]?.x;
+        let attrY = nodePositions[attrKey]?.y;
+
+        if (attrX === undefined || attrY === undefined) {
+          const angle = -Math.PI / 2 + (2 * Math.PI * fIdx) / Math.max(1, numFields);
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          const absCos = Math.abs(cos) + 1e-6;
+          const absSin = Math.abs(sin) + 1e-6;
+          const dRect = Math.min((ew / 2) / absCos, 25 / absSin);
+          const rAttr = (42 * 18) / Math.sqrt((18 * cos) ** 2 + (42 * sin) ** 2);
+          const dist = dRect + rAttr + 14;
+          attrX = Math.round(cx + dist * cos);
+          attrY = Math.round(cy + dist * sin);
+        }
 
         computedAttributes.push({
           entityName: entity.name,
@@ -6063,24 +8136,40 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
           {/* Relationship lines */}
           {computedRelationships.map((rel, idx) => (
-            <g key={`rel-lines-${idx}`}>
+            <g
+              key={`rel-lines-${idx}`}
+              className="er-rel-group"
+              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingERRel(rel);
+              }}
+            >
+              {/* Invisible fat hit-area for easy clicking */}
+              <path
+                className="diagram-hit-area"
+                d={`M ${rel.pts1.start.x} ${rel.pts1.start.y} L ${rel.mx} ${rel.my} L ${rel.pts2.end.x} ${rel.pts2.end.y}`}
+                stroke="transparent"
+                strokeWidth="20"
+                fill="none"
+              >
+                <title>Click to edit or delete relationship</title>
+              </path>
               <path
                 d={`M ${rel.pts1.start.x} ${rel.pts1.start.y} L ${rel.mx} ${rel.my}`}
-                stroke="var(--primary-main)"
+                stroke={isDarkMode ? "var(--primary-main)" : "#334155"}
                 strokeWidth="2"
                 fill="none"
-                opacity="0.85"
+                opacity={isDarkMode ? 0.85 : 0.95}
                 markerStart={rel.markerStart}
-                style={{ pointerEvents: 'none' }}
               />
               <path
                 d={`M ${rel.mx} ${rel.my} L ${rel.pts2.end.x} ${rel.pts2.end.y}`}
-                stroke="var(--primary-main)"
+                stroke={isDarkMode ? "var(--primary-main)" : "#334155"}
                 strokeWidth="2"
                 fill="none"
-                opacity="0.85"
+                opacity={isDarkMode ? 0.85 : 0.95}
                 markerEnd={rel.markerEnd}
-                style={{ pointerEvents: 'none' }}
               />
             </g>
           ))}
@@ -6109,7 +8198,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                 rx="42"
                 ry="18"
                 fill="var(--background-paper)"
-                stroke="var(--primary-main)"
+                stroke={isDarkMode ? "var(--primary-main)" : "#0284c7"}
                 strokeWidth="1.5"
               />
               <text
@@ -6141,7 +8230,12 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           {computedRelationships.map((rel, idx) => (
             <g
               key={`rel-shape-${idx}`}
-              style={{ pointerEvents: 'auto', cursor: draggingNode === rel.key ? 'grabbing' : 'grab' }}
+              className="er-rel-group"
+              style={{ pointerEvents: 'auto', cursor: draggingNode === rel.key ? 'grabbing' : 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingERRel(rel);
+              }}
               onMouseDown={(e) => {
                 e.stopPropagation();
                 setDraggingNode(rel.key);
@@ -6154,13 +8248,15 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               <polygon
                 points={`${rel.mx},${rel.my - 22} ${rel.mx + 40},${rel.my} ${rel.mx},${rel.my + 22} ${rel.mx - 40},${rel.my}`}
                 fill="var(--background-paper)"
-                stroke="var(--primary-dark)"
+                stroke={isDarkMode ? "var(--primary-dark)" : "#0284c7"}
                 strokeWidth="2"
-              />
+              >
+                <title>Click to edit or delete relationship</title>
+              </polygon>
               <text
                 x={rel.mx}
                 y={rel.my + 3}
-                fill="var(--primary-main)"
+                fill={isDarkMode ? "var(--primary-main)" : "#0f172a"}
                 fontSize="9"
                 fontWeight="800"
                 textAnchor="middle"
@@ -6248,8 +8344,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
         {/* Draw Connection Links */}
         {links.map((link, idx) => {
-          const start = nodePositions[link.source];
-          const end = nodePositions[link.target];
+          const start = nodePositions[link.source] || autoPos[link.source];
+          const end = nodePositions[link.target] || autoPos[link.target];
           if (!start || !end) return null;
 
           const isExtend = link.label === 'EXTEND';
@@ -6273,31 +8369,55 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
           const wpKey = `${link.source}_${link.target}`;
           const wp = usecaseWaypoints[wpKey];
-          const cx = wp ? wp.x : (x1 + x2) / 2;
+
+          const isBothUC = !isSourceActor && !isTargetActor;
+          const defaultCx = (isBothUC && Math.abs(x1 - x2) < 40)
+            ? (x1 + x2) / 2 + 35
+            : (x1 + x2) / 2;
+          const cx = wp ? wp.x : defaultCx;
           const cy = wp ? wp.y : (y1 + y2) / 2;
           
           const pathD = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
           const handleKey = `${wpKey}::ctrl::usecase`;
           
-          let strokeColor = 'var(--primary-main)';
+          let strokeColor = isDarkMode ? 'var(--primary-main)' : '#475569';
           let strokeDasharray = '0';
           let markerEnd = 'none';
           
           if (isExtendInclude) {
-            strokeColor = '#00FFCC';
+            strokeColor = isDarkMode ? '#00FFCC' : '#0284c7';
             strokeDasharray = '5,5';
             markerEnd = 'url(#usecase-arrow)';
           } else if (isInherits) {
+            strokeColor = isDarkMode ? '#c084fc' : '#7e22ce';
             markerEnd = 'url(#usecase-generalization-arrow)';
           }
 
           return (
-            <g key={idx} className="gantt-dependency-group" style={{ pointerEvents: 'auto' }}>
+            <g
+              key={idx}
+              className="usecase-link-group"
+              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingUCLink(link);
+              }}
+            >
+              {/* Invisible fat hit-area for easy clicking */}
+              <path
+                className="diagram-hit-area"
+                d={pathD}
+                fill="none"
+                stroke="transparent"
+                strokeWidth="18"
+              >
+                <title>Click to edit or delete connection</title>
+              </path>
               <path
                 d={pathD}
                 fill="none"
                 stroke={strokeColor}
-                strokeWidth="1.5"
+                strokeWidth="1.75"
                 strokeDasharray={strokeDasharray}
                 markerEnd={markerEnd}
               />
@@ -6306,8 +8426,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                 cx={cx}
                 cy={cy}
                 r={5}
-                fill={draggingWaypoint === handleKey ? '#fff' : 'var(--primary-main)'}
-                stroke="#1e1e1e"
+                fill={draggingWaypoint === handleKey ? '#fff' : (isDarkMode ? 'var(--primary-main)' : '#0284c7')}
+                stroke={isDarkMode ? "#1e1e1e" : "#ffffff"}
                 strokeWidth="1.5"
                 cursor="grab"
                 onMouseDown={(e) => {
@@ -6323,14 +8443,14 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                     width="76"
                     height="18"
                     rx="4"
-                    fill="var(--background-default)"
-                    stroke="var(--divider)"
+                    fill="var(--background-paper)"
+                    stroke={isDarkMode ? "var(--divider)" : "rgba(2, 132, 199, 0.35)"}
                     strokeWidth="1"
                   />
                   <text
                     x={cx}
                     y={cy - 1}
-                    fill="#00FFCC"
+                    fill={isDarkMode ? "#00FFCC" : "#0284c7"}
                     fontSize="9"
                     fontWeight="bold"
                     textAnchor="middle"
@@ -6456,38 +8576,40 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     const hasPartitions = partitions && partitions.length > 0;
 
     const nodeDim = (type) => {
-      if (type === 'start' || type === 'end') return { w: 36, h: 36 };
-      if (type === 'decision') return { w: 140, h: 70 };
-      if (type === 'fork' || type === 'join') return { w: 160, h: 12 };
-      return { w: 196, h: 54 };
+      if (type === 'start' || type === 'end') return { w: 32, h: 32 };
+      if (type === 'decision') return { w: 120, h: 56 };
+      if (type === 'fork' || type === 'join') return { w: 140, h: 10 };
+      return { w: 180, h: 46 };
     };
 
     const autoPos = computeActivityAutoLayout(nodes, transitions, partitions);
 
-    let maxY = 700;
+    let maxY = 450;
     nodes.forEach(n => {
       const p = nodePositions[n.id] || autoPos[n.id];
       const dim = nodeDim(n.type);
-      if (p && p.y + dim.h + 80 > maxY) maxY = p.y + dim.h + 80;
+      if (p && p.y + dim.h + 60 > maxY) maxY = p.y + dim.h + 60;
     });
 
     const partBounds = [];
     if (hasPartitions) {
-      let currentX = 80;
+      let currentX = 30;
       partitions.forEach((partName, pIdx) => {
         const partNodes = nodes.filter(n => (n.partition || partitions[0]) === partName);
-        let maxNodeRight = currentX + 380;
+        let minX = Infinity;
+        let maxX = -Infinity;
         partNodes.forEach(n => {
           const p = nodePositions[n.id] || autoPos[n.id];
           const dim = nodeDim(n.type);
-          if (p && p.x + dim.w + 50 > maxNodeRight) {
-            maxNodeRight = p.x + dim.w + 50;
+          if (p) {
+            if (p.x < minX) minX = p.x;
+            if (p.x + dim.w > maxX) maxX = p.x + dim.w;
           }
         });
 
-        const partW = Math.max(380, maxNodeRight - currentX);
-        const xLeft = currentX;
-        const xRight = currentX + partW;
+        const xLeft = minX !== Infinity ? Math.min(currentX, minX - 35) : currentX;
+        const partW = minX !== Infinity ? Math.max(260, (maxX - xLeft) + 35) : 260;
+        const xRight = xLeft + partW;
         partBounds.push({ xLeft, xRight, width: partW, xCenter: xLeft + partW / 2, partName });
         currentX = xRight;
       });
@@ -6502,46 +8624,46 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               return (
                 <g key={`swimlane-${pIdx}`}>
                   <rect
-                    x={pb.xLeft + 10}
-                    y={16}
-                    width={pb.width - 20}
-                    height={42}
+                    x={pb.xLeft + 6}
+                    y={12}
+                    width={pb.width - 12}
+                    height={36}
                     fill="var(--background-paper)"
                     stroke="var(--primary-main)"
-                    strokeWidth={2}
-                    rx={10}
+                    strokeWidth={1.5}
+                    rx={8}
                   />
                   <text
                     x={pb.xCenter}
-                    y={43}
+                    y={34}
                     textAnchor="middle"
                     fill="var(--primary-main)"
-                    fontSize="16"
-                    fontWeight="900"
+                    fontSize="13"
+                    fontWeight="800"
                     fontFamily="Outfit, sans-serif"
-                    letterSpacing="0.08em"
+                    letterSpacing="0.06em"
                   >
                     {pb.partName.toUpperCase()}
                   </text>
                   <line
                     x1={pb.xLeft}
-                    y1={16}
+                    y1={12}
                     x2={pb.xLeft}
                     y2={maxY}
                     stroke="var(--primary-main)"
-                    strokeOpacity={0.4}
-                    strokeWidth={2.5}
-                    strokeDasharray={pIdx === 0 ? 'none' : '5,5'}
+                    strokeOpacity={0.35}
+                    strokeWidth={2}
+                    strokeDasharray={pIdx === 0 ? 'none' : '4,4'}
                   />
                   {pIdx === partBounds.length - 1 && (
                     <line
                       x1={pb.xRight}
-                      y1={16}
+                      y1={12}
                       x2={pb.xRight}
                       y2={maxY}
                       stroke="var(--primary-main)"
-                      strokeOpacity={0.4}
-                      strokeWidth={2.5}
+                      strokeOpacity={0.35}
+                      strokeWidth={2}
                     />
                   )}
                 </g>
@@ -6558,12 +8680,12 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           const rawP1 = nodePositions[t.source] || autoPos[t.source];
           const rawP2 = nodePositions[t.target] || autoPos[t.target];
           const p1 = {
-            x: rawP1 && Number.isFinite(rawP1.x) ? rawP1.x : 400,
-            y: rawP1 && Number.isFinite(rawP1.y) ? rawP1.y : 100
+            x: rawP1 && Number.isFinite(rawP1.x) ? rawP1.x : 300,
+            y: rawP1 && Number.isFinite(rawP1.y) ? rawP1.y : 80
           };
           const p2 = {
-            x: rawP2 && Number.isFinite(rawP2.x) ? rawP2.x : 400,
-            y: rawP2 && Number.isFinite(rawP2.y) ? rawP2.y : 220
+            x: rawP2 && Number.isFinite(rawP2.x) ? rawP2.x : 300,
+            y: rawP2 && Number.isFinite(rawP2.y) ? rawP2.y : 180
           };
 
           const dim1 = nodeDim(srcNode.type);
@@ -6584,12 +8706,12 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
             const startY = srcCenter.y;
             const endX = p2.x + dim2.w;
             const endY = tgtCenter.y;
-            const loopX = Math.max(p1.x + dim1.w, p2.x + dim2.w) + 60;
-            const r = 12;
+            const loopX = Math.max(p1.x + dim1.w, p2.x + dim2.w) + 45;
+            const r = 10;
             pathD = `M ${startX} ${startY} H ${loopX - r} Q ${loopX} ${startY} ${loopX} ${startY - r} V ${endY + r} Q ${loopX} ${endY} ${loopX - r} ${endY} H ${endX}`;
             midX = loopX;
             midY = (startY + endY) / 2;
-          } else if (Math.abs(dy) < 35 && Math.abs(dx) > 40) {
+          } else if (Math.abs(dy) < 30 && Math.abs(dx) > 30) {
             // Horizontal side-by-side transition
             if (dx > 0) {
               const startX = p1.x + dim1.w;
@@ -6608,13 +8730,13 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               midX = (startX + endX) / 2;
               midY = startY;
             }
-          } else if (srcNode.type === 'decision' && Math.abs(dx) > 60) {
+          } else if (srcNode.type === 'decision' && Math.abs(dx) > 50) {
             // Side branch from decision diamond
             const startX = dx > 0 ? p1.x + dim1.w : p1.x;
             const startY = srcCenter.y;
             const endX = tgtCenter.x;
             const endY = p2.y;
-            const r = 12;
+            const r = 10;
             const cornerX = endX;
             if (cornerX > startX) {
               pathD = `M ${startX} ${startY} H ${cornerX - r} Q ${cornerX} ${startY} ${cornerX} ${startY + r} V ${endY}`;
@@ -6630,13 +8752,13 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
             const endX = tgtCenter.x;
             const endY = p2.y;
 
-            if (Math.abs(startX - endX) < 8) {
+            if (Math.abs(startX - endX) < 6) {
               pathD = `M ${startX} ${startY} L ${endX} ${endY}`;
               midX = startX;
               midY = (startY + endY) / 2;
             } else {
-              const r = 12;
-              const stepY = startY + Math.min(28, Math.max(16, (endY - startY) * 0.45));
+              const r = 10;
+              const stepY = startY + Math.min(22, Math.max(12, (endY - startY) * 0.42));
               if (endX > startX) {
                 pathD = `M ${startX} ${startY} V ${stepY - r} Q ${startX} ${stepY} ${startX + r} ${stepY} H ${endX - r} Q ${endX} ${stepY} ${endX} ${stepY + r} V ${endY}`;
               } else {
@@ -6648,38 +8770,56 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           }
 
           const isEdgeTraversed = simVisitedEdges.includes(t.id);
-          const strokeColor = isEdgeTraversed ? '#00FFCC' : 'var(--primary-main)';
-          const strokeWidth = isEdgeTraversed ? 2.5 : 2;
+          const strokeColor = isEdgeTraversed ? (isDarkMode ? '#00FFCC' : '#059669') : (isDarkMode ? 'var(--primary-main)' : '#475569');
+          const strokeWidth = isEdgeTraversed ? 2.5 : 1.75;
 
           return (
-            <g key={`act-trans-${idx}`} className="activity-transition-group">
+            <g
+              key={`act-trans-${idx}`}
+              className="activity-transition-group"
+              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingActTrans(t);
+              }}
+            >
+              {/* Invisible fat hit-area for easy clicking */}
+              <path
+                className="diagram-hit-area"
+                d={pathD}
+                fill="none"
+                stroke="transparent"
+                strokeWidth="18"
+              >
+                <title>Click to edit or delete transition</title>
+              </path>
               <path
                 d={pathD}
                 fill="none"
                 stroke={strokeColor}
                 strokeWidth={strokeWidth}
-                markerEnd="url(#activity-arrow)"
+                markerEnd={isEdgeTraversed ? "url(#activity-arrow-active)" : "url(#activity-arrow)"}
                 opacity={isSimulating && !isEdgeTraversed ? 0.9 : 1}
                 style={{ transition: 'stroke 0.3s ease, opacity 0.3s ease' }}
               />
               {t.guard && (
                 <g transform={`translate(${midX}, ${midY})`}>
                   <rect
-                    x={-((t.guard.length * 7 + 16) / 2)}
-                    y={-11}
-                    width={t.guard.length * 7 + 16}
-                    height={20}
-                    rx={10}
+                    x={-((t.guard.length * 6.5 + 14) / 2)}
+                    y={-9}
+                    width={t.guard.length * 6.5 + 14}
+                    height={18}
+                    rx={9}
                     fill="var(--background-paper)"
-                    stroke={isEdgeTraversed ? '#00FFCC' : 'var(--divider)'}
+                    stroke={isEdgeTraversed ? (isDarkMode ? '#00FFCC' : '#059669') : 'var(--divider)'}
                     strokeWidth={1}
                   />
                   <text
                     x={0}
                     y={3}
                     textAnchor="middle"
-                    fill={isEdgeTraversed ? '#00FFCC' : 'var(--text-secondary)'}
-                    fontSize="10"
+                    fill={isEdgeTraversed ? (isDarkMode ? '#00FFCC' : '#059669') : 'var(--text-primary)'}
+                    fontSize="9"
                     fontWeight="700"
                     fontFamily="Outfit, sans-serif"
                   >
@@ -6779,27 +8919,47 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           const isResponseOrDisplay = msg.type === 'return' || msg.type === 'display';
 
           return (
-            <g key={idx}>
+            <g
+              key={idx}
+              className="sequence-message-group"
+              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingSeqMsg({ messageIndex: idx, ...msg });
+              }}
+            >
+              {/* Invisible fat hit-area for easy clicking */}
+              <line
+                className="diagram-hit-area"
+                x1={x1}
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke="transparent"
+                strokeWidth="20"
+              >
+                <title>Click to edit or delete message</title>
+              </line>
               <line
                 x1={x1}
                 y1={y}
                 x2={x2}
                 y2={y}
-                stroke={isResponseOrDisplay ? 'var(--primary-main)' : 'var(--text-primary)'}
-                strokeWidth="1.5"
+                stroke={isResponseOrDisplay ? (isDarkMode ? 'var(--primary-main)' : '#0284c7') : (isDarkMode ? 'var(--text-primary)' : '#1e293b')}
+                strokeWidth="1.75"
                 strokeDasharray={isResponseOrDisplay ? '4,4' : '0'}
               />
               {x2 > x1 ? (
-                <polygon points={`${x2},${y} ${x2 - 8},${y - 4} ${x2 - 8},${y + 4}`} fill={isResponseOrDisplay ? 'var(--primary-main)' : 'var(--text-primary)'} />
+                <polygon points={`${x2},${y} ${x2 - 8},${y - 4} ${x2 - 8},${y + 4}`} fill={isResponseOrDisplay ? (isDarkMode ? 'var(--primary-main)' : '#0284c7') : (isDarkMode ? 'var(--text-primary)' : '#1e293b')} />
               ) : (
-                <polygon points={`${x2},${y} ${x2 + 8},${y - 4} ${x2 + 8},${y + 4}`} fill={isResponseOrDisplay ? 'var(--primary-main)' : 'var(--text-primary)'} />
+                <polygon points={`${x2},${y} ${x2 + 8},${y - 4} ${x2 + 8},${y + 4}`} fill={isResponseOrDisplay ? (isDarkMode ? 'var(--primary-main)' : '#0284c7') : (isDarkMode ? 'var(--text-primary)' : '#1e293b')} />
               )}
               <text
                 x={(x1 + x2) / 2}
                 y={y - 8}
-                fill={isResponseOrDisplay ? 'var(--primary-main)' : 'var(--text-primary)'}
-                fontSize="14"
-                fontWeight="600"
+                fill={isResponseOrDisplay ? (isDarkMode ? 'var(--primary-main)' : '#0284c7') : (isDarkMode ? 'var(--text-primary)' : '#0f172a')}
+                fontSize="13"
+                fontWeight="700"
                 textAnchor="middle"
               >
                 {msg.label}
@@ -7148,17 +9308,35 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               );
 
               return (
-                <g key={`${idx}_${depIdx}`} className="gantt-dependency-group">
+                <g
+                  key={`${idx}_${depIdx}`}
+                  className="gantt-dependency-group"
+                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingGanttDep({ fromTask: depName, toTask: task.name });
+                  }}
+                >
+                  {/* Invisible fat hit-area for easy clicking */}
+                  <path
+                    className="diagram-hit-area"
+                    d={pathInfo.d}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth="16"
+                  >
+                    <title>Click to edit or delete dependency</title>
+                  </path>
                   <path
                     d={pathInfo.d}
                     fill="none"
-                    stroke="var(--primary-main)"
+                    stroke={isDarkMode ? "var(--primary-main)" : "#0284c7"}
                     strokeWidth="2.2"
                     strokeLinecap="round"
                   />
                   <polygon
                     points={`${pathInfo.arrowTipX},${pathInfo.yEnd} ${pathInfo.arrowBaseX},${pathInfo.yEnd - 4.5} ${pathInfo.arrowBaseX},${pathInfo.yEnd + 4.5}`}
-                    fill="var(--primary-main)"
+                    fill={isDarkMode ? "var(--primary-main)" : "#0284c7"}
                   />
                   {!isPreview && pathInfo.handles.map(handle => {
                     const handleKey = `${wpKey}::${handle.id}`;
@@ -7169,8 +9347,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                         cx={handle.cx}
                         cy={handle.cy}
                         r={5}
-                        fill={draggingWaypoint === handleKey ? '#fff' : 'var(--primary-main)'}
-                        stroke="#1e1e1e"
+                        fill={draggingWaypoint === handleKey ? '#fff' : (isDarkMode ? 'var(--primary-main)' : '#0284c7')}
+                        stroke={isDarkMode ? "#1e1e1e" : "#ffffff"}
                         strokeWidth="1.5"
                         cursor="grab"
                         onMouseDown={(e) => {
@@ -8098,6 +10276,47 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               boxSizing: 'border-box'
             }}
           >
+            <style>{`
+              .er-rel-group,
+              .usecase-link-group,
+              .activity-transition-group,
+              .sequence-message-group,
+              .gantt-dependency-group {
+                cursor: pointer !important;
+              }
+              .diagram-hit-area {
+                stroke: transparent !important;
+                fill: none !important;
+                opacity: 0 !important;
+                filter: none !important;
+                pointer-events: auto !important;
+              }
+              .er-rel-group:hover path:not(.diagram-hit-area),
+              .er-rel-group:hover polygon:not(.diagram-hit-area),
+              .usecase-link-group:hover path:not(.diagram-hit-area),
+              .activity-transition-group:hover path:not(.diagram-hit-area),
+              .sequence-message-group:hover line:not(.diagram-hit-area),
+              .sequence-message-group:hover polygon:not(.diagram-hit-area),
+              .gantt-dependency-group:hover path:not(.diagram-hit-area),
+              .gantt-dependency-group:hover polygon:not(.diagram-hit-area) {
+                stroke: #ef4444 !important;
+                opacity: 0.8 !important;
+                filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.45)) !important;
+                transition: stroke 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
+              }
+              .sequence-message-group:hover polygon:not(.diagram-hit-area),
+              .gantt-dependency-group:hover polygon:not(.diagram-hit-area) {
+                fill: #ef4444 !important;
+              }
+              .er-rel-group:hover text,
+              .sequence-message-group:hover text,
+              .usecase-link-group:hover text,
+              .activity-transition-group:hover text {
+                fill: #ef4444 !important;
+                opacity: 0.85 !important;
+                transition: fill 0.15s ease, opacity 0.15s ease;
+              }
+            `}</style>
             <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <Typography variant="subtitle2" style={{ fontWeight: 800, color: 'var(--text-secondary)', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 VISUAL DIAGRAM PREVIEW
@@ -8452,7 +10671,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Reset View">
-                  <IconButton size="small" onClick={() => { setZoomScale(activeTabKey === 'activity' ? 0.65 : 1.0); if (canvasContainerRef.current) { canvasContainerRef.current.scrollLeft = 0; canvasContainerRef.current.scrollTop = 0; } }} style={{ color: 'var(--text-primary)' }}>
+                  <IconButton size="small" onClick={() => { setZoomScale(activeTabKey === 'activity' ? 0.9 : 1.0); if (canvasContainerRef.current) { canvasContainerRef.current.scrollLeft = 0; canvasContainerRef.current.scrollTop = 0; } }} style={{ color: 'var(--text-primary)' }}>
                     <ResetIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -8521,26 +10740,57 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                       <defs>
                         {/* ER Crow-foot connection marker ends */}
                         <marker id="crow-foot-many" viewBox="0 0 20 20" refX="20" refY="10" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
-                          <path d="M 0 4 L 20 10 L 0 16 M 10 0 L 10 20" fill="none" stroke="var(--primary-main)" strokeWidth="2" />
+                          <path d="M 0 4 L 20 10 L 0 16 M 10 0 L 10 20" fill="none" stroke={isDarkMode ? "var(--primary-main)" : "#334155"} strokeWidth="2" />
                         </marker>
                         <marker id="crow-foot-one" viewBox="0 0 20 20" refX="20" refY="10" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
-                          <line x1="8" y1="2" x2="8" y2="18" stroke="var(--primary-main)" strokeWidth="2" />
-                          <line x1="14" y1="2" x2="14" y2="18" stroke="var(--primary-main)" strokeWidth="2" />
+                          <line x1="8" y1="2" x2="8" y2="18" stroke={isDarkMode ? "var(--primary-main)" : "#334155"} strokeWidth="2" />
+                          <line x1="14" y1="2" x2="14" y2="18" stroke={isDarkMode ? "var(--primary-main)" : "#334155"} strokeWidth="2" />
                         </marker>
                         <marker id="usecase-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                          <path d="M 0 1 L 10 5 L 0 9" fill="none" stroke="var(--primary-main)" strokeWidth="1.5" />
+                          <path d="M 0 1 L 10 5 L 0 9" fill="none" stroke={isDarkMode ? "#00FFCC" : "#0284c7"} strokeWidth="1.75" />
                         </marker>
                         <marker id="usecase-generalization-arrow" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-                          <path d="M 0 2 L 12 6 L 0 10 Z" fill="var(--background-default)" stroke="var(--primary-main)" strokeWidth="1.5" />
+                          <path d="M 0 2 L 12 6 L 0 10 Z" fill="var(--background-paper)" stroke={isDarkMode ? "#c084fc" : "#7e22ce"} strokeWidth="1.5" />
                         </marker>
                         <marker id="activity-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                          <path d="M 0 1.5 L 9 5 L 0 8.5 Z" fill="var(--primary-main)" stroke="var(--primary-main)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M 0 1.5 L 9 5 L 0 8.5 Z" fill={isDarkMode ? "var(--primary-main)" : "#334155"} stroke={isDarkMode ? "var(--primary-main)" : "#334155"} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                        </marker>
+                        <marker id="activity-arrow-active" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                          <path d="M 0 1.5 L 9 5 L 0 8.5 Z" fill={isDarkMode ? "#00FFCC" : "#059669"} stroke={isDarkMode ? "#00FFCC" : "#059669"} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                         </marker>
                       </defs>
 
                       {activeTabKey === 'er' && renderERDiagram()}
                       {activeTabKey === 'usecase' && renderUseCaseDiagram()}
                       {activeTabKey === 'activity' && renderActivityDiagram()}
+
+                      {activeTabKey === 'usecase' && usecaseConnecting && (
+                        <g style={{ pointerEvents: 'none' }}>
+                          <path
+                            d={`M ${usecaseConnecting.startX} ${usecaseConnecting.startY} Q ${(usecaseConnecting.startX + usecaseConnecting.currentX) / 2} ${(usecaseConnecting.startY + usecaseConnecting.currentY) / 2 - 20} ${usecaseConnecting.currentX} ${usecaseConnecting.currentY}`}
+                            fill="none"
+                            stroke={isDarkMode ? "#00FFCC" : "var(--primary-main)"}
+                            strokeWidth="2.5"
+                            strokeDasharray="5,5"
+                            markerEnd="url(#usecase-arrow)"
+                          />
+                          <circle cx={usecaseConnecting.currentX} cy={usecaseConnecting.currentY} r="6" fill={isDarkMode ? "#00FFCC" : "var(--primary-main)"} />
+                        </g>
+                      )}
+
+                      {activeTabKey === 'activity' && activityConnecting && (
+                        <g style={{ pointerEvents: 'none' }}>
+                          <path
+                            d={`M ${activityConnecting.startX} ${activityConnecting.startY} Q ${(activityConnecting.startX + activityConnecting.currentX) / 2} ${(activityConnecting.startY + activityConnecting.currentY) / 2 - 20} ${activityConnecting.currentX} ${activityConnecting.currentY}`}
+                            fill="none"
+                            stroke={isDarkMode ? "#00FFCC" : "var(--primary-main)"}
+                            strokeWidth="2.5"
+                            strokeDasharray="5,5"
+                            markerEnd="url(#activity-arrow)"
+                          />
+                          <circle cx={activityConnecting.currentX} cy={activityConnecting.currentY} r="6" fill={isDarkMode ? "#00FFCC" : "var(--primary-main)"} />
+                        </g>
+                      )}
                     </svg>
 
                     {/* Sequence and Gantt have internal SVG wrapper structures */}
@@ -8617,9 +10867,11 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                       return (
                         <div
                           key={idx}
+                          data-node-id={actor.id}
+                          data-node-label={actor.label}
                           className="se-node-card usecase-actor-card"
                           onMouseDown={(e) => {
-                            if (e.target.closest('button')) return;
+                            if (e.target.closest('button') || e.target.closest('.usecase-connect-handle')) return;
                             setDraggingNode(actor.id);
                             dragStartOffset.current = {
                               x: e.clientX / zoomScale - coord.x,
@@ -8645,6 +10897,16 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                             userSelect: 'none'
                           }}
                         >
+                          <div
+                            className="usecase-connect-handle port-left"
+                            title="Drag to connect"
+                            onMouseDown={(e) => handleStartUseCaseConnect(e, actor.id, actor.label, 'actor', coord, { x: 0, y: 59 })}
+                          />
+                          <div
+                            className="usecase-connect-handle port-right"
+                            title="Drag to connect"
+                            onMouseDown={(e) => handleStartUseCaseConnect(e, actor.id, actor.label, 'actor', coord, { x: 76, y: 59 })}
+                          />
                           <svg width="60" height="84" viewBox="-30 -44 60 88" style={{ overflow: 'visible', flexShrink: 0 }}>
                             <circle cx="0" cy="-30" r="12" fill="var(--background-paper)" stroke="var(--primary-main)" strokeWidth="3" />
                             <line x1="0" y1="-18" x2="0" y2="15" stroke="var(--primary-main)" strokeWidth="3" />
@@ -8678,9 +10940,11 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                       return (
                         <div
                           key={idx}
+                          data-node-id={uc.id}
+                          data-node-label={uc.label}
                           className="se-node-card usecase-bubble-card"
                           onMouseDown={(e) => {
-                            if (e.target.closest('button')) return;
+                            if (e.target.closest('button') || e.target.closest('.usecase-connect-handle')) return;
                             setDraggingNode(uc.id);
                             dragStartOffset.current = {
                               x: e.clientX / zoomScale - coord.x,
@@ -8707,6 +10971,16 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                             userSelect: 'none'
                           }}
                         >
+                          <div
+                            className="usecase-connect-handle port-left"
+                            title="Drag to connect"
+                            onMouseDown={(e) => handleStartUseCaseConnect(e, uc.id, uc.label, 'usecase', coord, { x: 0, y: 25 })}
+                          />
+                          <div
+                            className="usecase-connect-handle port-right"
+                            title="Drag to connect"
+                            onMouseDown={(e) => handleStartUseCaseConnect(e, uc.id, uc.label, 'usecase', coord, { x: 200, y: 25 })}
+                          />
                           <span style={{ fontWeight: 'bold', fontSize: '0.85rem', margin: 0, padding: 0, lineHeight: 1.2, textAlign: 'center' }}>
                             {uc.label}
                           </span>
@@ -8715,32 +10989,41 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                     })}
 
                     {activeTabKey === 'activity' && parsedActivity.nodes.map((node, idx) => {
-                      const coord = nodePositions[node.id] || activityAutoPositions[node.id] || { x: 400, y: idx * 110 + 80 };
+                      const coord = nodePositions[node.id] || activityAutoPositions[node.id] || { x: 300, y: idx * 80 + 70 };
                       const isActiveInSim = isSimulating && simActiveNodeIds.includes(node.id);
 
                       if (node.type === 'start') {
                         return (
                           <div
                             key={idx}
-                            className="se-node-card activity-start-node"
+                            data-act-node-id={node.id}
+                            data-act-node-label={node.label || node.id}
+                            data-act-node-type={node.type}
+                            className="se-node-card activity-node-card activity-start-node"
                             onMouseDown={(e) => {
-                              if (e.target.closest('button')) return;
+                              if (e.target.closest('button') || e.target.closest('.activity-connect-handle')) return;
+                              hasDraggedNodeRef.current = false;
                               setDraggingNode(node.id);
                               dragStartOffset.current = {
                                 x: e.clientX / zoomScale - coord.x,
                                 y: e.clientY / zoomScale - coord.y
                               };
                             }}
+                            onClick={(e) => {
+                              if (hasDraggedNodeRef.current) return;
+                              e.stopPropagation();
+                              setEditingActNode(node);
+                            }}
                             style={{
                               position: 'absolute',
                               left: `${coord.x}px`,
                               top: `${coord.y}px`,
-                              width: '36px',
-                              height: '36px',
+                              width: '32px',
+                              height: '32px',
                               borderRadius: '50%',
                               background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                              border: isActiveInSim ? '3px solid #00FFCC' : '2px solid #34D399',
-                              boxShadow: isActiveInSim ? '0 0 20px #00FFCC, 0 0 10px #10B981' : '0 4px 12px rgba(16, 185, 129, 0.4)',
+                              border: isActiveInSim ? '2.5px solid #00FFCC' : '2px solid #34D399',
+                              boxShadow: isActiveInSim ? '0 0 16px #00FFCC, 0 0 8px #10B981' : '0 3px 10px rgba(16, 185, 129, 0.35)',
                               cursor: draggingNode === node.id ? 'grabbing' : 'grab',
                               zIndex: draggingNode === node.id ? 10 : 4,
                               display: 'flex',
@@ -8749,9 +11032,19 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               userSelect: 'none',
                               transition: 'box-shadow 0.3s ease, border 0.3s ease'
                             }}
-                            title={`Start: ${node.label}`}
+                            title={`Start: ${node.label} (Click to edit)`}
                           >
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#fff' }} />
+                            <div
+                              className="activity-connect-handle port-bottom"
+                              title="Drag to connect"
+                              onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label, 'start', coord, { x: 16, y: 32 })}
+                            />
+                            <div
+                              className="activity-connect-handle port-right"
+                              title="Drag to connect"
+                              onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label, 'start', coord, { x: 32, y: 16 })}
+                            />
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#fff' }} />
                           </div>
                         );
                       }
@@ -8760,25 +11053,34 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                         return (
                           <div
                             key={idx}
-                            className="se-node-card activity-end-node"
+                            data-act-node-id={node.id}
+                            data-act-node-label={node.label || node.id}
+                            data-act-node-type={node.type}
+                            className="se-node-card activity-node-card activity-end-node"
                             onMouseDown={(e) => {
-                              if (e.target.closest('button')) return;
+                              if (e.target.closest('button') || e.target.closest('.activity-connect-handle')) return;
+                              hasDraggedNodeRef.current = false;
                               setDraggingNode(node.id);
                               dragStartOffset.current = {
                                 x: e.clientX / zoomScale - coord.x,
                                 y: e.clientY / zoomScale - coord.y
                               };
                             }}
+                            onClick={(e) => {
+                              if (hasDraggedNodeRef.current) return;
+                              e.stopPropagation();
+                              setEditingActNode(node);
+                            }}
                             style={{
                               position: 'absolute',
                               left: `${coord.x}px`,
                               top: `${coord.y}px`,
-                              width: '36px',
-                              height: '36px',
+                              width: '32px',
+                              height: '32px',
                               borderRadius: '50%',
                               background: 'var(--background-paper)',
-                              border: isActiveInSim ? '3px solid #00FFCC' : '2px solid #EF4444',
-                              boxShadow: isActiveInSim ? '0 0 20px #00FFCC' : '0 4px 12px rgba(239, 68, 68, 0.3)',
+                              border: isActiveInSim ? '2.5px solid #00FFCC' : '2px solid #EF4444',
+                              boxShadow: isActiveInSim ? '0 0 16px #00FFCC' : '0 3px 10px rgba(239, 68, 68, 0.25)',
                               cursor: draggingNode === node.id ? 'grabbing' : 'grab',
                               zIndex: draggingNode === node.id ? 10 : 4,
                               display: 'flex',
@@ -8787,9 +11089,9 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               userSelect: 'none',
                               transition: 'box-shadow 0.3s ease, border 0.3s ease'
                             }}
-                            title={`End / Final: ${node.label}`}
+                            title={`End / Final: ${node.label} (Click to edit)`}
                           >
-                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#EF4444' }} />
+                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#EF4444' }} />
                           </div>
                         );
                       }
@@ -8799,31 +11101,51 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                         return (
                           <div
                             key={idx}
-                            className="se-node-card activity-bar-node"
+                            data-act-node-id={node.id}
+                            data-act-node-label={node.label || node.id}
+                            data-act-node-type={node.type}
+                            className="se-node-card activity-node-card activity-bar-node"
                             onMouseDown={(e) => {
-                              if (e.target.closest('button')) return;
+                              if (e.target.closest('button') || e.target.closest('.activity-connect-handle')) return;
+                              hasDraggedNodeRef.current = false;
                               setDraggingNode(node.id);
                               dragStartOffset.current = {
                                 x: e.clientX / zoomScale - coord.x,
                                 y: e.clientY / zoomScale - coord.y
                               };
                             }}
+                            onClick={(e) => {
+                              if (hasDraggedNodeRef.current) return;
+                              e.stopPropagation();
+                              setEditingActNode(node);
+                            }}
                             style={{
                               position: 'absolute',
                               left: `${coord.x}px`,
                               top: `${coord.y}px`,
-                              width: '160px',
-                              height: '12px',
-                              borderRadius: '6px',
+                              width: '140px',
+                              height: '10px',
+                              borderRadius: '5px',
                               background: isActiveInSim ? '#00FFCC' : 'var(--primary-main)',
-                              boxShadow: isActiveInSim ? '0 0 20px #00FFCC' : '0 2px 8px rgba(0,0,0,0.3)',
+                              boxShadow: isActiveInSim ? '0 0 16px #00FFCC' : '0 2px 6px rgba(0,0,0,0.25)',
                               cursor: draggingNode === node.id ? 'grabbing' : 'grab',
                               zIndex: draggingNode === node.id ? 10 : 4,
                               userSelect: 'none',
                               transition: 'background 0.3s ease, box-shadow 0.3s ease'
                             }}
-                            title={`${isFork ? 'Fork (Split)' : 'Join (Merge)'}: ${node.label || node.id}`}
-                          />
+                            title={`${isFork ? 'Fork (Split)' : 'Join (Merge)'}: ${node.label || node.id} (Click to edit)`}
+                          >
+                            <div
+                              className="activity-connect-handle port-top"
+                              title="Drag to connect"
+                              onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label || node.id, node.type, coord, { x: 70, y: 0 })}
+                            />
+                            <div
+                              className="activity-connect-handle port-bottom"
+                              title="Drag to connect"
+                              onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label || node.id, node.type, coord, { x: 70, y: 10 })}
+                            />
+                          </div>
                         );
                       }
 
@@ -8831,21 +11153,30 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                         return (
                           <div
                             key={idx}
-                            className="se-node-card activity-decision-node"
+                            data-act-node-id={node.id}
+                            data-act-node-label={node.label || node.id}
+                            data-act-node-type={node.type}
+                            className="se-node-card activity-node-card activity-decision-node"
                             onMouseDown={(e) => {
-                              if (e.target.closest('button')) return;
+                              if (e.target.closest('button') || e.target.closest('.activity-connect-handle')) return;
+                              hasDraggedNodeRef.current = false;
                               setDraggingNode(node.id);
                               dragStartOffset.current = {
                                 x: e.clientX / zoomScale - coord.x,
                                 y: e.clientY / zoomScale - coord.y
                               };
                             }}
+                            onClick={(e) => {
+                              if (hasDraggedNodeRef.current) return;
+                              e.stopPropagation();
+                              setEditingActNode(node);
+                            }}
                             style={{
                               position: 'absolute',
                               left: `${coord.x}px`,
                               top: `${coord.y}px`,
-                              width: '140px',
-                              height: '70px',
+                              width: '120px',
+                              height: '56px',
                               cursor: draggingNode === node.id ? 'grabbing' : 'grab',
                               zIndex: draggingNode === node.id ? 10 : 4,
                               display: 'flex',
@@ -8855,17 +11186,38 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               userSelect: 'none',
                               boxSizing: 'border-box'
                             }}
+                            title={`Decision: ${node.label} (Click to edit)`}
                           >
-                            <svg width="140" height="70" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', pointerEvents: 'none' }}>
+                            <div
+                              className="activity-connect-handle port-top"
+                              title="Drag to connect"
+                              onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label || node.id, 'decision', coord, { x: 60, y: 0 })}
+                            />
+                            <div
+                              className="activity-connect-handle port-bottom"
+                              title="Drag to connect"
+                              onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label || node.id, 'decision', coord, { x: 60, y: 56 })}
+                            />
+                            <div
+                              className="activity-connect-handle port-left"
+                              title="Drag to connect"
+                              onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label || node.id, 'decision', coord, { x: 0, y: 28 })}
+                            />
+                            <div
+                              className="activity-connect-handle port-right"
+                              title="Drag to connect"
+                              onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label || node.id, 'decision', coord, { x: 120, y: 28 })}
+                            />
+                            <svg width="120" height="56" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', pointerEvents: 'none' }}>
                               <polygon
-                                points="70,2 138,35 70,68 2,35"
+                                points="60,2 118,28 60,54 2,28"
                                 fill="var(--background-paper)"
                                 stroke={isActiveInSim ? '#00FFCC' : 'var(--primary-main)'}
-                                strokeWidth={isActiveInSim ? 3 : 2}
-                                style={{ filter: isActiveInSim ? 'drop-shadow(0 0 10px #00FFCC)' : 'none', transition: 'stroke 0.3s ease' }}
+                                strokeWidth={isActiveInSim ? 2.5 : 1.5}
+                                style={{ filter: isActiveInSim ? 'drop-shadow(0 0 8px #00FFCC)' : 'none', transition: 'stroke 0.3s ease' }}
                               />
                             </svg>
-                            <span style={{ position: 'relative', zIndex: 2, fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', textAlign: 'center', width: '100%', padding: '0 14px', lineHeight: 1.15, display: 'block', wordBreak: 'break-word', boxSizing: 'border-box' }}>
+                            <span style={{ position: 'relative', zIndex: 2, fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-primary)', textAlign: 'center', width: '100%', padding: '0 10px', lineHeight: 1.15, display: 'block', wordBreak: 'break-word', boxSizing: 'border-box' }}>
                               {node.label}
                             </span>
                           </div>
@@ -8876,39 +11228,70 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                       return (
                         <div
                           key={idx}
-                          className="se-node-card activity-action-card"
+                          data-act-node-id={node.id}
+                          data-act-node-label={node.label || node.id}
+                          data-act-node-type={node.type}
+                          className="se-node-card activity-node-card activity-action-card"
                           onMouseDown={(e) => {
-                            if (e.target.closest('button')) return;
+                            if (e.target.closest('button') || e.target.closest('.activity-connect-handle')) return;
+                            hasDraggedNodeRef.current = false;
                             setDraggingNode(node.id);
                             dragStartOffset.current = {
                               x: e.clientX / zoomScale - coord.x,
                               y: e.clientY / zoomScale - coord.y
                             };
                           }}
+                          onClick={(e) => {
+                            if (hasDraggedNodeRef.current) return;
+                            e.stopPropagation();
+                            setEditingActNode(node);
+                          }}
                           style={{
                             position: 'absolute',
                             left: `${coord.x}px`,
                             top: `${coord.y}px`,
-                            width: '196px',
-                            minHeight: '54px',
-                            borderRadius: '16px',
+                            width: '180px',
+                            minHeight: '48px',
+                            height: '48px',
+                            borderRadius: '12px',
                             background: 'var(--background-paper)',
                             border: isActiveInSim ? '2px solid #00FFCC' : '1.5px solid var(--primary-main)',
-                            boxShadow: isActiveInSim ? '0 0 20px rgba(0, 255, 204, 0.4)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
+                            boxShadow: isActiveInSim ? '0 0 16px rgba(0, 255, 204, 0.4)' : '0 3px 8px rgba(0, 0, 0, 0.08)',
                             color: 'var(--text-primary)',
                             zIndex: draggingNode === node.id ? 10 : 4,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '10px 18px',
+                            padding: '6px 12px',
                             cursor: draggingNode === node.id ? 'grabbing' : 'grab',
                             boxSizing: 'border-box',
                             userSelect: 'none',
                             textAlign: 'center',
                             transition: 'border 0.3s ease, box-shadow 0.3s ease'
                           }}
+                          title={`Action: ${node.label} (Click to edit)`}
                         >
-                          <span style={{ fontWeight: 700, fontSize: '0.84rem', lineHeight: 1.25, color: 'var(--text-primary)', width: '100%', textAlign: 'center', margin: 0, padding: 0, display: 'block', wordBreak: 'break-word' }}>
+                          <div
+                            className="activity-connect-handle port-top"
+                            title="Drag to connect"
+                            onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label, 'action', coord, { x: 90, y: 0 })}
+                          />
+                          <div
+                            className="activity-connect-handle port-bottom"
+                            title="Drag to connect"
+                            onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label, 'action', coord, { x: 90, y: 48 })}
+                          />
+                          <div
+                            className="activity-connect-handle port-left"
+                            title="Drag to connect"
+                            onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label, 'action', coord, { x: 0, y: 24 })}
+                          />
+                          <div
+                            className="activity-connect-handle port-right"
+                            title="Drag to connect"
+                            onMouseDown={(e) => handleStartActivityConnect(e, node.id, node.label, 'action', coord, { x: 180, y: 24 })}
+                          />
+                          <span style={{ fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2, color: 'var(--text-primary)', width: '100%', textAlign: 'center', margin: 0, padding: 0, display: 'block', wordBreak: 'break-word' }}>
                             {node.label}
                           </span>
                         </div>
@@ -9164,6 +11547,132 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               target={relationTarget}
               onSubmit={handleCreateRelationship}
             />
+
+            <UseCaseRelationDialog
+              open={isUseCaseRelDialogOpen}
+              onClose={() => setIsUseCaseRelDialogOpen(false)}
+              sourceLabel={pendingUseCaseRel.sourceLabel}
+              targetLabel={pendingUseCaseRel.targetLabel}
+              onSubmit={(relType) => {
+                addUseCaseRelationInCode(pendingUseCaseRel.sourceLabel, pendingUseCaseRel.targetLabel, relType);
+                setIsUseCaseRelDialogOpen(false);
+              }}
+            />
+
+            <ActivityTransitionDialog
+              open={isActTransitionDialogOpen}
+              onClose={() => setIsActTransitionDialogOpen(false)}
+              sourceLabel={pendingActTransition.sourceLabel}
+              targetLabel={pendingActTransition.targetLabel}
+              onSubmit={(guard) => {
+                addActivityTransitionInCode(pendingActTransition.sourceId, pendingActTransition.targetId, guard);
+                setIsActTransitionDialogOpen(false);
+              }}
+            />
+
+            {/* EDIT & DELETE CONNECTION DIALOGS ACROSS ALL DIAGRAMS */}
+            {activeTabKey === 'er' && editingERRel && (
+              <EditERRelationDialog
+                open={!!editingERRel}
+                onClose={() => setEditingERRel(null)}
+                relation={editingERRel}
+                entities={parseER(code)?.entities || []}
+                onSubmit={(...args) => {
+                  handleUpdateERRelationship(...args);
+                  setEditingERRel(null);
+                }}
+                onDelete={(rel) => {
+                  handleDeleteERRelationship(rel);
+                  setEditingERRel(null);
+                }}
+              />
+            )}
+
+            {activeTabKey === 'usecase' && editingUCLink && (
+              <EditUseCaseLinkDialog
+                open={!!editingUCLink}
+                onClose={() => setEditingUCLink(null)}
+                link={editingUCLink}
+                actors={parseUseCase(code)?.actors || []}
+                usecases={parseUseCase(code)?.usecases || []}
+                onSubmit={(...args) => {
+                  handleUpdateUseCaseLink(...args);
+                  setEditingUCLink(null);
+                }}
+                onDelete={(link) => {
+                  handleDeleteUseCaseLink(link);
+                  setEditingUCLink(null);
+                }}
+              />
+            )}
+
+            {activeTabKey === 'activity' && editingActTrans && (
+              <EditActivityTransitionDialog
+                open={!!editingActTrans}
+                onClose={() => setEditingActTrans(null)}
+                transition={editingActTrans}
+                nodes={parsedActivity?.nodes || []}
+                onSubmit={(...args) => {
+                  handleUpdateActivityTransition(...args);
+                  setEditingActTrans(null);
+                }}
+                onDelete={(trans) => {
+                  handleDeleteActivityTransition(trans);
+                  setEditingActTrans(null);
+                }}
+              />
+            )}
+
+            {activeTabKey === 'activity' && editingActNode && (
+              <EditActivityNodeDialog
+                open={!!editingActNode}
+                onClose={() => setEditingActNode(null)}
+                node={editingActNode}
+                partitions={parsedActivity?.partitions || []}
+                onSubmit={(...args) => {
+                  handleUpdateActivityNode(...args);
+                  setEditingActNode(null);
+                }}
+                onDelete={(node) => {
+                  handleDeleteActivityNode(node);
+                  setEditingActNode(null);
+                }}
+              />
+            )}
+
+            {activeTabKey === 'sequence' && editingSeqMsg && (
+              <EditSequenceMessageDialog
+                open={!!editingSeqMsg}
+                onClose={() => setEditingSeqMsg(null)}
+                messageData={editingSeqMsg}
+                participants={parseSequence(code)?.participants || []}
+                onSubmit={(...args) => {
+                  handleUpdateSequenceMessage(...args);
+                  setEditingSeqMsg(null);
+                }}
+                onDelete={(msgIdx) => {
+                  handleDeleteSequenceMessage(msgIdx);
+                  setEditingSeqMsg(null);
+                }}
+              />
+            )}
+
+            {activeTabKey === 'gantt' && editingGanttDep && (
+              <EditGanttDependencyDialog
+                open={!!editingGanttDep}
+                onClose={() => setEditingGanttDep(null)}
+                dependency={editingGanttDep}
+                tasks={parseGantt(editorCode)?.tasks || []}
+                onSubmit={(...args) => {
+                  handleUpdateGanttDependency(...args);
+                  setEditingGanttDep(null);
+                }}
+                onDelete={(from, to) => {
+                  handleDeleteGanttDependency(from, to);
+                  setEditingGanttDep(null);
+                }}
+              />
+            )}
           </Paper>
         </Box>
       </Box>
@@ -9605,7 +12114,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                     })}
 
                     {activeTabKey === 'activity' && parsedActivity.nodes.map((node, idx) => {
-                      const coord = nodePositions[node.id] || activityAutoPositions[node.id] || { x: 400, y: idx * 110 + 80 };
+                      const coord = nodePositions[node.id] || activityAutoPositions[node.id] || { x: 300, y: idx * 80 + 70 };
 
                       if (node.type === 'start') {
                         return (
@@ -9616,12 +12125,12 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               position: 'absolute',
                               left: `${coord.x}px`,
                               top: `${coord.y}px`,
-                              width: '36px',
-                              height: '36px',
+                              width: '32px',
+                              height: '32px',
                               borderRadius: '50%',
                               background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
                               border: '2px solid #34D399',
-                              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
+                              boxShadow: '0 3px 10px rgba(16, 185, 129, 0.35)',
                               zIndex: 3,
                               display: 'flex',
                               alignItems: 'center',
@@ -9629,7 +12138,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               userSelect: 'none'
                             }}
                           >
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#fff' }} />
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#fff' }} />
                           </div>
                         );
                       }
@@ -9643,12 +12152,12 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               position: 'absolute',
                               left: `${coord.x}px`,
                               top: `${coord.y}px`,
-                              width: '36px',
-                              height: '36px',
+                              width: '32px',
+                              height: '32px',
                               borderRadius: '50%',
                               background: 'var(--background-paper)',
                               border: '2px solid #EF4444',
-                              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                              boxShadow: '0 3px 10px rgba(239, 68, 68, 0.25)',
                               zIndex: 3,
                               display: 'flex',
                               alignItems: 'center',
@@ -9656,7 +12165,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               userSelect: 'none'
                             }}
                           >
-                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#EF4444' }} />
+                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#EF4444' }} />
                           </div>
                         );
                       }
@@ -9671,11 +12180,11 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               position: 'absolute',
                               left: `${coord.x}px`,
                               top: `${coord.y}px`,
-                              width: '160px',
-                              height: '12px',
-                              borderRadius: '6px',
+                              width: '140px',
+                              height: '10px',
+                              borderRadius: '5px',
                               background: 'var(--primary-main)',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
                               zIndex: 3,
                               userSelect: 'none'
                             }}
@@ -9693,8 +12202,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               position: 'absolute',
                               left: `${coord.x}px`,
                               top: `${coord.y}px`,
-                              width: '140px',
-                              height: '70px',
+                              width: '120px',
+                              height: '56px',
                               zIndex: 3,
                               display: 'flex',
                               alignItems: 'center',
@@ -9704,15 +12213,15 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                               boxSizing: 'border-box'
                             }}
                           >
-                            <svg width="140" height="70" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', pointerEvents: 'none' }}>
+                            <svg width="120" height="56" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', pointerEvents: 'none' }}>
                               <polygon
-                                points="70,2 138,35 70,68 2,35"
+                                points="60,2 118,28 60,54 2,28"
                                 fill="var(--background-paper)"
                                 stroke="var(--primary-main)"
-                                strokeWidth={2}
+                                strokeWidth={1.5}
                               />
                             </svg>
-                            <span style={{ position: 'relative', zIndex: 2, fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', textAlign: 'center', width: '100%', padding: '0 14px', lineHeight: 1.15, display: 'block', wordBreak: 'break-word', boxSizing: 'border-box' }}>
+                            <span style={{ position: 'relative', zIndex: 2, fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-primary)', textAlign: 'center', width: '100%', padding: '0 10px', lineHeight: 1.15, display: 'block', wordBreak: 'break-word', boxSizing: 'border-box' }}>
                               {node.label}
                             </span>
                           </div>
@@ -9728,24 +12237,25 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                             position: 'absolute',
                             left: `${coord.x}px`,
                             top: `${coord.y}px`,
-                            width: '196px',
-                            minHeight: '54px',
-                            borderRadius: '16px',
+                            width: '180px',
+                            minHeight: '46px',
+                            height: '46px',
+                            borderRadius: '12px',
                             background: 'var(--background-paper)',
                             border: '1.5px solid var(--primary-main)',
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                            boxShadow: '0 3px 8px rgba(0, 0, 0, 0.08)',
                             color: 'var(--text-primary)',
                             zIndex: 3,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '10px 18px',
+                            padding: '6px 12px',
                             boxSizing: 'border-box',
                             userSelect: 'none',
                             textAlign: 'center'
                           }}
                         >
-                          <span style={{ fontWeight: 700, fontSize: '0.84rem', lineHeight: 1.25, color: 'var(--text-primary)', width: '100%', textAlign: 'center', margin: 0, padding: 0, display: 'block', wordBreak: 'break-word' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2, color: 'var(--text-primary)', width: '100%', textAlign: 'center', margin: 0, padding: 0, display: 'block', wordBreak: 'break-word' }}>
                             {node.label}
                           </span>
                         </div>
