@@ -1235,7 +1235,7 @@ const NavigationPage = () => {
             userSelect: 'none',
             transition: 'padding 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
-          onClick={sidebarCollapsed ? () => setSidebarCollapsed(false) : () => navigate('/courses')}
+          onClick={sidebarCollapsed ? () => setSidebarCollapsed(false) : () => navigate('/labs')}
           title={sidebarCollapsed ? "Expand Navigation" : "SophiaPath Home"}
         >
           <motion.div
@@ -1356,20 +1356,15 @@ const NavigationPage = () => {
 
         <List className="nav-menu-list">
           {navigationItems.map((item) => {
-            const active = location.pathname === item.path;
-            const isGuestAccessible =
-              item.path === '/courses' ||
-              item.path === '/sections' ||
-              item.path === '/communities' ||
-              item.path === '/labs' ||
-              item.path === '/settings';
-            const isDisabled = !user && !isGuestAccessible;
+            const isLabs = item.path === '/labs';
+            const active = location.pathname === item.path || (isLabs && (location.pathname === '/' || location.pathname === '/labs'));
+            const isDisabled = !isLabs;
 
             return (
               <div key={item.path} style={{ width: '100%' }}>
                 <ListItemButton
                   selected={active && !isDisabled}
-                  className={`nav-menu-item ${active ? 'is-active' : ''} ${isDisabled ? 'is-disabled' : ''}`}
+                  className={`nav-menu-item ${active && !isDisabled ? 'is-active' : ''} ${isDisabled ? 'is-disabled' : ''}`}
                   onClick={isDisabled ? undefined : () => handleNavigation(item.path)}
                   disabled={isDisabled}
                   sx={{
@@ -1378,7 +1373,10 @@ const NavigationPage = () => {
                     width: '100%',
                     boxSizing: 'border-box',
                     color: isDisabled ? 'var(--text-disabled)' : 'inherit',
-                    opacity: isDisabled ? 0.35 : 1}}
+                    opacity: isDisabled ? 0.35 : 1,
+                    cursor: isDisabled ? 'not-allowed !important' : 'pointer',
+                    pointerEvents: isDisabled ? 'none' : 'auto'
+                  }}
                 >
                   <ListItemIcon
                     className="nav-menu-icon"
@@ -1387,7 +1385,7 @@ const NavigationPage = () => {
                       display: 'flex',
                       justifyContent: 'center',
                       color: isDisabled ? 'var(--text-disabled)' : active ? 'var(--primary-main)' : 'inherit',
-                      opacity: isDisabled ? 0.5 : 1
+                      opacity: isDisabled ? 0.45 : 1
                     }}
                   >
                     {item.icon}
@@ -1404,8 +1402,6 @@ const NavigationPage = () => {
               </div>
             );
           })}
-
-
         </List>
       </div>
 
@@ -1799,8 +1795,18 @@ const NavigationPage = () => {
               {!user ? (
                 <Button
                   variant="contained"
-                  onClick={() => navigate('/login')}
-                  style={{ borderRadius: '8px', textTransform: 'none', background: 'var(--primary-main)', fontWeight: 800 }}
+                  disabled
+                  style={{
+                    borderRadius: '8px',
+                    textTransform: 'none',
+                    fontWeight: 800,
+                    opacity: 0.45,
+                    cursor: 'not-allowed',
+                    pointerEvents: 'none',
+                    background: 'var(--divider)',
+                    color: 'var(--text-secondary)',
+                    boxShadow: 'none'
+                  }}
                 >
                   Sign In
                 </Button>
@@ -1955,7 +1961,7 @@ const NavigationPage = () => {
               <Route path="/cyber-lab" element={<AnimatedPage><CyberLabPage /></AnimatedPage>} />
               <Route path="/security-challenges" element={<AnimatedPage><SecurityChallenges /></AnimatedPage>} />
 
-              <Route path="*" element={<Navigate to="/" />} />
+              <Route path="*" element={<Navigate to="/labs" />} />
             </Routes>
           </AnimatePresence>
         </section>

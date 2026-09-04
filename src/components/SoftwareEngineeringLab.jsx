@@ -280,63 +280,41 @@ ELSE
     Web App displays "Course is Full - Join Waitlist" to Student.
 END`,
 
-  gantt: `// ========================================================
-// SOPHIAPATH GANTT CHART SPECIFICATION (DSL)
-// ========================================================
-// Keywords:
-// - GANTT <title> : Declares chart title
-// - PROJECT <name> : Declares project phase section
-// - TASK <name> : Declares a scheduled task
-// - START <YYYY-MM-DD> : Task start date
-// - END <YYYY-MM-DD> : Task end date
-// - DEPENDS ON <task_name> : Predecessor dependency linking
-// - MILESTONE <name> : Declares a zero-duration milestone
-// - DATE <YYYY-MM-DD> : Milestone occurrence date
+  gantt: `text
+GANTT Software Development Project
 
-GANTT SophiaPath Platform Development Lifecycle
+PROJECT Software Development Project
 
-PROJECT Planning & Architecture
 TASK Requirements Analysis
-START 2026-07-01
-END 2026-07-08
+START 2026-09-01
+END 2026-09-28
 
-TASK System Architecture Design
-START 2026-07-06
-END 2026-07-16
+TASK System Design
+START 2026-09-29
+END 2026-10-26
 DEPENDS ON Requirements Analysis
 
-MILESTONE Architecture Sign-off
-DATE 2026-07-16
+TASK Database Development
+START 2026-10-27
+END 2026-11-23
+DEPENDS ON System Design
 
-PROJECT Core Engineering
-TASK Database Schema & Migrations
-START 2026-07-17
-END 2026-07-28
-DEPENDS ON System Architecture Design
+TASK Backend Development
+START 2026-11-24
+END 2026-12-21
+DEPENDS ON Database Development
 
-TASK Backend REST APIs
-START 2026-07-22
-END 2026-08-14
-DEPENDS ON Database Schema & Migrations
+TASK Frontend Development
+START 2026-12-22
+END 2027-01-25
+DEPENDS ON Backend Development
 
-TASK Frontend UI Components
-START 2026-07-25
-END 2026-08-18
-DEPENDS ON System Architecture Design
+TASK Testing and Deployment
+START 2027-01-26
+END 2027-02-22
+DEPENDS ON Frontend Development
 
-PROJECT Testing & Launch
-TASK Security & Integration Testing
-START 2026-08-15
-END 2026-08-26
-DEPENDS ON Backend REST APIs
-
-TASK Production Deployment
-START 2026-08-25
-END 2026-08-30
-DEPENDS ON Security & Integration Testing
-
-MILESTONE Official Platform Launch
-DATE 2026-08-31`
+`
 };
 
 const AddEntityDialog = ({ open, onClose, onSubmit, existingEntityNames }) => {
@@ -1301,6 +1279,519 @@ const getSweTabIndex = (tab) => {
   return idx >= 0 ? idx : 0;
 };
 
+// ========================================================
+// GANTT DATE & DSL INTERACTION HELPERS
+// ========================================================
+export const parseGanttDate = (str) => {
+  if (!str) return null;
+  const parts = str.trim().split('-');
+  if (parts.length !== 3) return null;
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) - 1;
+  const d = parseInt(parts[2], 10);
+  const date = new Date(y, m, d);
+  return isNaN(date.getTime()) ? null : date;
+};
+
+export const formatGanttDate = (date) => {
+  if (!date || isNaN(date.getTime())) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+export const addDaysToGanttDate = (dateStr, numDays) => {
+  const d = parseGanttDate(dateStr);
+  if (!d) return dateStr;
+  d.setDate(d.getDate() + numDays);
+  return formatGanttDate(d);
+};
+
+export const getDaysBetweenGanttDates = (startStr, endStr) => {
+  const s = parseGanttDate(startStr);
+  const e = parseGanttDate(endStr);
+  if (!s || !e) return 1;
+  const diffTime = e.getTime() - s.getTime();
+  return Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+};
+
+export const getWeekLabel = (monthZeroIndexed, weekIdx) => {
+  const dayOfStart = weekIdx * 7 + 1;
+  return `${monthZeroIndexed + 1}/${dayOfStart}`;
+};
+
+export const getGanttLeftPaneWidth = (chartTitle = '', tasks = []) => {
+  const titleText = chartTitle || 'GANTT SCHEDULE';
+  const titleWidth = titleText.length * 8.5;
+  let maxTaskWidth = 0;
+  tasks.forEach(t => {
+    if (t.name) {
+      const len = t.name.length;
+      if (len * 8 > maxTaskWidth) maxTaskWidth = len * 8;
+    }
+  });
+  const neededForTitle = 24 + titleWidth + 85;
+  const neededForTasks = 48 + maxTaskWidth + 85;
+  return Math.max(260, Math.ceil(Math.max(neededForTitle, neededForTasks)));
+};
+
+export const GANTT_PALETTE = [
+  { label: 'Blue', color: '#0D6EFD', border: '#0B5ED7' },
+  { label: 'Purple', color: '#8B5CF6', border: '#7C3AED' },
+  { label: 'Emerald', color: '#10B981', border: '#059669' },
+  { label: 'Amber', color: '#F59E0B', border: '#D97706' },
+  { label: 'Rose', color: '#EF4444', border: '#DC2626' },
+  { label: 'Cyan', color: '#06B6D4', border: '#0891B2' },
+  { label: 'Indigo', color: '#6366F1', border: '#4F46E5' },
+  { label: 'Slate', color: '#64748B', border: '#475569' }
+];
+
+export const computeGanttDependencyPath = (
+  depTask,
+  depLayout,
+  targetTask,
+  targetLayout,
+  allTasks = [],
+  taskLayoutMap = {},
+  leftPaneWidth = 260,
+  ganttWaypoints = {}
+) => {
+  const r = 6;
+  const isUp = targetLayout.y < depLayout.y;
+  const isDown = targetLayout.y > depLayout.y;
+
+  // Start on top edge if target is on top (above), bottom edge if target is below, or right edge if same row
+  let xStart = depLayout.x + (depTask.isMilestone ? 11 : Math.max(8, depLayout.width - 12));
+  let yStart = depLayout.y + 12;
+
+  if (isUp) {
+    yStart = depLayout.y; // Top horizontal edge
+  } else if (isDown) {
+    yStart = depLayout.y + 24; // Bottom horizontal edge
+  } else {
+    xStart = depLayout.x + (depTask.isMilestone ? 22 : depLayout.width) + 2;
+    yStart = depLayout.y + 12;
+  }
+
+  const xEnd = targetLayout.x;
+  const yEnd = targetLayout.y + 12;
+  const arrowTipX = xEnd;
+  const arrowBaseX = xEnd - 7;
+
+  const wpKey = `${depTask.name}->${targetTask.name}`;
+  const wp = ganttWaypoints ? ganttWaypoints[wpKey] : null;
+
+  let points = [];
+  let handles = [];
+
+  if (arrowBaseX >= xStart + 6) {
+    // Direct L-shape / S-shape: vertical out from edge, then 90° right into target left side
+    let xDrop = xStart;
+    if (wp && wp.xDrop !== undefined) xDrop = wp.xDrop;
+
+    points = [
+      { x: xStart, y: yStart },
+      { x: xDrop, y: yEnd },
+      { x: arrowBaseX, y: yEnd }
+    ];
+    handles = [{ id: 'xDrop', cx: xDrop, cy: (yStart + yEnd) / 2 }];
+  } else {
+    // Multi-segment gutter routing for overlapping / backward targets
+    let gapY = isUp ? (depLayout.y - 14) : (depLayout.y + 38);
+    if (wp && wp.gapY !== undefined) gapY = wp.gapY;
+
+    // Identify intermediate tasks between gapY and yEnd
+    const minY = Math.min(gapY, yEnd);
+    const maxY = Math.max(gapY, yEnd);
+    const intermediateTasks = allTasks.filter(t => {
+      if (t.name === depTask.name || t.name === targetTask.name) return false;
+      const l = taskLayoutMap[t.name];
+      if (!l) return false;
+      return (l.y + 2 >= minY && l.y + 22 <= maxY);
+    });
+
+    let minIntermediateX = arrowBaseX - 16;
+    intermediateTasks.forEach(t => {
+      const l = taskLayoutMap[t.name];
+      if (l && l.x - 16 < minIntermediateX) {
+        minIntermediateX = l.x - 16;
+      }
+    });
+
+    let xEntry = Math.min(arrowBaseX - 16, minIntermediateX);
+    xEntry = Math.max(leftPaneWidth + 14, xEntry);
+    if (wp && wp.xEntry !== undefined) xEntry = wp.xEntry;
+    if (wp && wp.xDrop2 !== undefined) xEntry = wp.xDrop2;
+
+    points = [
+      { x: xStart, y: yStart },
+      { x: xStart, y: gapY },
+      { x: xEntry, y: gapY },
+      { x: xEntry, y: yEnd },
+      { x: arrowBaseX, y: yEnd }
+    ];
+
+    handles = [
+      { id: 'gapY', cx: (xStart + xEntry) / 2, cy: gapY },
+      { id: 'xEntry', cx: xEntry, cy: (gapY + yEnd) / 2 }
+    ];
+  }
+
+  // Deduplicate adjacent identical points
+  const cleanPoints = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const prev = cleanPoints[cleanPoints.length - 1];
+    const curr = points[i];
+    if (Math.abs(prev.x - curr.x) < 0.5 && Math.abs(prev.y - curr.y) < 0.5) continue;
+    cleanPoints.push(curr);
+  }
+
+  // Construct rounded SVG path
+  let d = `M ${cleanPoints[0].x} ${cleanPoints[0].y}`;
+  for (let i = 1; i < cleanPoints.length - 1; i++) {
+    const pPrev = cleanPoints[i - 1];
+    const pCurr = cleanPoints[i];
+    const pNext = cleanPoints[i + 1];
+
+    const dx1 = pCurr.x - pPrev.x;
+    const dy1 = pCurr.y - pPrev.y;
+    const dx2 = pNext.x - pCurr.x;
+    const dy2 = pNext.y - pCurr.y;
+
+    const len1 = Math.hypot(dx1, dy1);
+    const len2 = Math.hypot(dx2, dy2);
+
+    if (len1 < 1 || len2 < 1) continue;
+
+    const cornerR = Math.min(r, len1 / 2, len2 / 2);
+
+    const startX = pCurr.x - (dx1 / len1) * cornerR;
+    const startY = pCurr.y - (dy1 / len1) * cornerR;
+    const endX = pCurr.x + (dx2 / len2) * cornerR;
+    const endY = pCurr.y + (dy2 / len2) * cornerR;
+
+    d += ` L ${startX} ${startY} Q ${pCurr.x} ${pCurr.y} ${endX} ${endY}`;
+  }
+  d += ` L ${cleanPoints[cleanPoints.length - 1].x} ${cleanPoints[cleanPoints.length - 1].y}`;
+
+  return {
+    d,
+    arrowTipX,
+    arrowBaseX,
+    yEnd,
+    handles
+  };
+};
+
+export const parseGantt = (text) => {
+  let title = 'SophiaPath Roadmap';
+  const titleMatch = text ? text.match(/^(?:GANTT|title)\s+(.+)$/im) : null;
+  if (titleMatch) title = titleMatch[1].trim();
+
+  const sections = [];
+  const tasks = [];
+  let currentSection = 'SophiaPath';
+  const lines = (text || '').split('\n');
+
+  const isCustomFormat = (text || '').includes('TASK') || (text || '').includes('PROJECT') || (text || '').includes('START') || (text || '').includes('MILESTONE');
+
+  if (isCustomFormat) {
+    let currentTask = null;
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('%%') || trimmed.startsWith('#')) return;
+
+      const projMatch = trimmed.match(/^PROJECT\s+(.+)$/i);
+      if (projMatch) {
+        currentSection = projMatch[1].trim();
+        if (!sections.includes(currentSection)) {
+          sections.push(currentSection);
+        }
+        return;
+      }
+
+      const taskMatch = trimmed.match(/^TASK\s+(.+)$/i);
+      if (taskMatch) {
+        if (currentTask) tasks.push(currentTask);
+        currentTask = {
+          name: taskMatch[1].trim(),
+          section: currentSection,
+          status: '',
+          startDateStr: '',
+          endDateStr: '',
+          duration: 5,
+          dependencies: [],
+          color: '',
+          isMilestone: false
+        };
+        return;
+      }
+
+      const milestoneMatch = trimmed.match(/^MILESTONE\s+(.+)$/i);
+      if (milestoneMatch) {
+        if (currentTask) tasks.push(currentTask);
+        currentTask = {
+          name: milestoneMatch[1].trim(),
+          section: currentSection,
+          status: 'done',
+          startDateStr: '',
+          endDateStr: '',
+          duration: 0,
+          dependencies: [],
+          color: '',
+          isMilestone: true
+        };
+        return;
+      }
+
+      const startMatch = trimmed.match(/^START\s+(.+)$/i);
+      if (startMatch && currentTask) {
+        currentTask.startDateStr = startMatch[1].trim();
+        return;
+      }
+
+      const endMatch = trimmed.match(/^END\s+(.+)$/i);
+      if (endMatch && currentTask) {
+        currentTask.endDateStr = endMatch[1].trim();
+        return;
+      }
+
+      const dateMatch = trimmed.match(/^DATE\s+(.+)$/i);
+      if (dateMatch && currentTask) {
+        currentTask.startDateStr = dateMatch[1].trim();
+        currentTask.endDateStr = dateMatch[1].trim();
+        currentTask.duration = 0;
+        currentTask.isMilestone = true;
+        return;
+      }
+
+      const depMatch = trimmed.match(/^DEPENDS ON\s+(.+)$/i);
+      if (depMatch && currentTask) {
+        currentTask.dependencies.push(depMatch[1].trim());
+        currentTask.status = 'active';
+        return;
+      }
+
+      const colorMatch = trimmed.match(/^COLOR\s+(.+)$/i);
+      if (colorMatch && currentTask) {
+        currentTask.color = colorMatch[1].trim();
+        return;
+      }
+
+      const statusMatch = trimmed.match(/^STATUS\s+(.+)$/i);
+      if (statusMatch && currentTask) {
+        currentTask.status = statusMatch[1].trim();
+        return;
+      }
+    });
+
+    if (currentTask) {
+      tasks.push(currentTask);
+    }
+
+    tasks.forEach(t => {
+      if (t.startDateStr && t.endDateStr && !t.isMilestone) {
+        t.duration = getDaysBetweenGanttDates(t.startDateStr, t.endDateStr);
+      }
+    });
+
+  } else {
+    // Mermaid fallback
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('%%') || trimmed.startsWith('gantt') || trimmed.startsWith('title') || trimmed.startsWith('dateFormat') || trimmed.startsWith('axisFormat')) return;
+
+      const secMatch = trimmed.match(/^section\s+(.+)$/);
+      if (secMatch) {
+        currentSection = secMatch[1];
+        sections.push(currentSection);
+        return;
+      }
+
+      const taskMatch = trimmed.match(/^([^:]+):\s*(.+)$/);
+      if (taskMatch) {
+        const name = taskMatch[1].trim();
+        const parts = taskMatch[2].split(',').map(p => p.trim());
+        let status = '';
+        let start = '';
+        let duration = 5;
+
+        parts.forEach(part => {
+          if (part === 'active' || part === 'done' || part === 'crit') {
+            status = part;
+          } else if (part.endsWith('d')) {
+            duration = parseInt(part) || 5;
+          } else {
+            start = part;
+          }
+        });
+
+        tasks.push({
+          name,
+          section: currentSection,
+          status,
+          duration,
+          dependencies: [],
+          color: '',
+          isMilestone: false
+        });
+      }
+    });
+  }
+
+  if (sections.length === 0) sections.push(currentSection);
+  return { title, sections, tasks };
+};
+
+export const serializeGantt = (title, sections, tasks) => {
+  let out = `GANTT ${title || 'SophiaPath Development'}\n\n`;
+
+  sections.forEach(sec => {
+    out += `PROJECT ${sec}\n\n`;
+    const secTasks = tasks.filter(t => t.section === sec);
+    secTasks.forEach(t => {
+      if (t.isMilestone || t.duration === 0) {
+        out += `MILESTONE ${t.name}\n`;
+        out += `DATE ${t.startDateStr || t.endDateStr || '2026-08-01'}\n`;
+      } else {
+        out += `TASK ${t.name}\n`;
+        out += `START ${t.startDateStr || '2026-07-01'}\n`;
+        out += `END ${t.endDateStr || '2026-07-05'}\n`;
+        if (t.dependencies && t.dependencies.length > 0) {
+          t.dependencies.forEach(dep => {
+            out += `DEPENDS ON ${dep}\n`;
+          });
+        }
+      }
+      if (t.color) {
+        out += `COLOR ${t.color}\n`;
+      }
+      if (t.status && t.status !== 'active' && t.status !== 'done') {
+        out += `STATUS ${t.status}\n`;
+      }
+      out += '\n';
+    });
+  });
+
+  return out.trim();
+};
+
+export const updateGanttTaskInCode = (prevCode, oldName, newProps) => {
+  const { title, sections, tasks } = parseGantt(prevCode);
+  const target = tasks.find(t => t.name === oldName);
+  if (!target) return prevCode;
+
+  if (newProps.name && newProps.name !== oldName) {
+    tasks.forEach(t => {
+      if (t.dependencies) {
+        t.dependencies = t.dependencies.map(d => d === oldName ? newProps.name : d);
+      }
+    });
+    target.name = newProps.name;
+  }
+
+  Object.assign(target, newProps);
+  if (target.startDateStr && target.endDateStr && !target.isMilestone) {
+    target.duration = getDaysBetweenGanttDates(target.startDateStr, target.endDateStr);
+  }
+
+  return serializeGantt(title, sections, tasks);
+};
+
+export const addGanttDependencyInCode = (prevCode, targetTaskName, sourceTaskName) => {
+  if (targetTaskName === sourceTaskName) return prevCode;
+  const { title, sections, tasks } = parseGantt(prevCode);
+  const target = tasks.find(t => t.name === targetTaskName);
+  if (!target) return prevCode;
+  if (!target.dependencies) target.dependencies = [];
+  if (!target.dependencies.includes(sourceTaskName)) {
+    target.dependencies.push(sourceTaskName);
+  }
+  return serializeGantt(title, sections, tasks);
+};
+
+export const removeGanttDependencyInCode = (prevCode, taskName, depName) => {
+  const { title, sections, tasks } = parseGantt(prevCode);
+  const target = tasks.find(t => t.name === taskName);
+  if (!target) return prevCode;
+  if (target.dependencies) {
+    target.dependencies = target.dependencies.filter(d => d !== depName);
+  }
+  return serializeGantt(title, sections, tasks);
+};
+
+export const deleteGanttTaskInCode = (prevCode, taskName) => {
+  const { title, sections, tasks } = parseGantt(prevCode);
+  const filteredTasks = tasks.filter(t => t.name !== taskName);
+  filteredTasks.forEach(t => {
+    if (t.dependencies) {
+      t.dependencies = t.dependencies.filter(d => d !== taskName);
+    }
+  });
+  return serializeGantt(title, sections, filteredTasks);
+};
+
+export const reorderGanttTasksInCode = (prevCode, sourceIdx, targetIdx) => {
+  const { title, sections, tasks } = parseGantt(prevCode);
+  if (sourceIdx < 0 || sourceIdx >= tasks.length || targetIdx < 0 || targetIdx >= tasks.length) return prevCode;
+  const [moved] = tasks.splice(sourceIdx, 1);
+  tasks.splice(targetIdx, 0, moved);
+  return serializeGantt(title, sections, tasks);
+};
+
+export const insertGanttTaskAfterInCode = (prevCode, afterTaskName) => {
+  const { title, sections, tasks } = parseGantt(prevCode);
+  const idx = tasks.findIndex(t => t.name === afterTaskName);
+  let afterTask = idx !== -1 ? tasks[idx] : (tasks[tasks.length - 1] || null);
+
+  let newStart = '2026-08-01';
+  let newEnd = '2026-08-07';
+  let section = 'SophiaPath';
+  if (afterTask) {
+    section = afterTask.section;
+    newStart = afterTask.endDateStr || afterTask.startDateStr || '2026-08-01';
+    newEnd = addDaysToGanttDate(newStart, 5);
+  }
+
+  let baseName = 'New Task';
+  let count = 1;
+  let newName = baseName;
+  while (tasks.some(t => t.name.toLowerCase() === newName.toLowerCase())) {
+    count++;
+    newName = `${baseName} ${count}`;
+  }
+
+  const nextColor = GANTT_PALETTE[tasks.length % GANTT_PALETTE.length].color;
+  const newTask = {
+    name: newName,
+    section: section,
+    status: '',
+    startDateStr: newStart,
+    endDateStr: newEnd,
+    duration: 5,
+    dependencies: afterTask && !afterTask.isMilestone ? [afterTask.name] : [],
+    color: nextColor,
+    isMilestone: false
+  };
+
+  if (idx !== -1) {
+    tasks.splice(idx + 1, 0, newTask);
+  } else {
+    tasks.push(newTask);
+  }
+
+  return serializeGantt(title, sections, tasks);
+};
+
+export const insertGanttTaskInSectionInCode = (prevCode, sectionName) => {
+  const { title, sections, tasks } = parseGantt(prevCode);
+  const secTasks = tasks.filter(t => t.section === sectionName);
+  const lastTask = secTasks.length > 0 ? secTasks[secTasks.length - 1] : null;
+  return insertGanttTaskAfterInCode(prevCode, lastTask ? lastTask.name : (tasks[tasks.length - 1] ? tasks[tasks.length - 1].name : null));
+};
+
 export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideDiagramSelector = false }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -1325,7 +1816,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       setActiveTab(idx);
       const key = SWE_TABS_META[idx].key;
       setCode(TEMPLATES[key] || TEMPLATES.er);
-      setZoomScale(0.8);
+      setZoomScale(key === 'activity' ? 0.65 : 1.0);
+      setPreviewZoomScale(key === 'activity' ? 0.65 : 1.0);
       setError(null);
     }
   }, [open, initialTab]);
@@ -1339,7 +1831,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [isAddActivityNodeOpen, setIsAddActivityNodeOpen] = useState(false);
   const [isAddActivityTransitionOpen, setIsAddActivityTransitionOpen] = useState(false);
-  const [ganttViewScale, setGanttViewScale] = useState('weeks'); // 'days', 'weeks', 'months'
+  const [ganttViewScale, setGanttViewScale] = useState('months'); // 'days', 'weeks', 'months'
 
   // Activity Diagram Simulation states
   const [isSimulating, setIsSimulating] = useState(false);
@@ -1357,17 +1849,24 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
   const [splitPercent, setSplitPercent] = useState(35);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Zooming and Panning states (defaults to 0.8 - zoomed out twice)
-  const [zoomScale, setZoomScale] = useState(0.8);
+  // Zooming and Panning states (defaults to 0.65 for activity and 1.0 for others)
+  const [zoomScale, setZoomScale] = useState(() => (initialTab === 'activity' ? 0.65 : 1.0));
   const [draggingNode, setDraggingNode] = useState(null);
   const [ganttWaypoints, setGanttWaypoints] = useState({});
   const [usecaseWaypoints, setUsecaseWaypoints] = useState({});
   const [draggingWaypoint, setDraggingWaypoint] = useState(null);
 
+  // Gantt Chart Canva-Style Interactive States
+  const [selectedGanttTask, setSelectedGanttTask] = useState(null);
+  const [ganttDragState, setGanttDragState] = useState(null);
+  const [ganttHoveredTask, setGanttHoveredTask] = useState(null);
+  const [ganttInlineEditingTask, setGanttInlineEditingTask] = useState(null);
+  const [ganttInlineEditingText, setGanttInlineEditingText] = useState('');
+
   // Preview Dialog states matching Java UML playground
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [activeTheme, setActiveTheme] = useState(themeMode || 'dark');
-  const [previewZoomScale, setPreviewZoomScale] = useState(0.8);
+  const [previewZoomScale, setPreviewZoomScale] = useState(() => (initialTab === 'activity' ? 0.65 : 1.0));
 
   useEffect(() => {
     if (themeMode) {
@@ -1449,7 +1948,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     setActiveTab(newValue);
     const nextKey = tabsMeta[newValue].key;
     setCode(TEMPLATES[nextKey]);
-    setZoomScale(0.8);
+    setZoomScale(nextKey === 'activity' ? 0.65 : 1.0);
+    setPreviewZoomScale(nextKey === 'activity' ? 0.65 : 1.0);
     setError(null);
     if (canvasContainerRef.current) {
       canvasContainerRef.current.scrollLeft = 0;
@@ -1669,9 +2169,9 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     };
   }, []);
 
-  // 5. Throttled Node card and waypoint dragging using requestAnimationFrame
+  // 5. Throttled Node card, waypoint, and Gantt dragging using requestAnimationFrame
   useEffect(() => {
-    if (!draggingNode && !draggingWaypoint) return;
+    if (!draggingNode && !draggingWaypoint && !ganttDragState) return;
 
     let animationFrameId = null;
 
@@ -1766,6 +2266,21 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               });
             }
           }
+        } else if (ganttDragState) {
+          const rect = canvasContainerRef.current?.getBoundingClientRect();
+          const currentCanvasX = rect ? (canvasContainerRef.current.scrollLeft + (e.clientX - rect.left)) / zoomScale : e.clientX;
+          const currentCanvasY = rect ? (canvasContainerRef.current.scrollTop + (e.clientY - rect.top)) / zoomScale : e.clientY;
+
+          setGanttDragState(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              currentClientX: e.clientX,
+              currentClientY: e.clientY,
+              currentCanvasX,
+              currentCanvasY
+            };
+          });
         }
       });
     };
@@ -1776,6 +2291,59 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       }
       setDraggingNode(null);
       setDraggingWaypoint(null);
+
+      if (ganttDragState) {
+        const { type, taskName, startClientX, currentClientX, origDuration, dayWidth, targetTaskName, sourceIndex, targetIndex } = ganttDragState;
+        const curX = currentClientX !== undefined ? currentClientX : startClientX;
+        const deltaX = curX - startClientX;
+        const daysShift = Math.round(deltaX / (dayWidth * zoomScale));
+
+        if (type === 'move' && daysShift !== 0) {
+          const { tasks } = parseGantt(editorCode);
+          const task = tasks.find(t => t.name === taskName);
+          if (task) {
+            if (task.isMilestone || task.duration === 0) {
+              const newDate = addDaysToGanttDate(task.startDateStr, daysShift);
+              setCode(prev => updateGanttTaskInCode(prev, taskName, { startDateStr: newDate, endDateStr: newDate }));
+            } else {
+              const newStart = addDaysToGanttDate(task.startDateStr, daysShift);
+              const newEnd = addDaysToGanttDate(task.endDateStr, daysShift);
+              setCode(prev => updateGanttTaskInCode(prev, taskName, { startDateStr: newStart, endDateStr: newEnd }));
+            }
+          }
+        } else if (type === 'resize-right' && daysShift !== 0) {
+          const { tasks } = parseGantt(editorCode);
+          const task = tasks.find(t => t.name === taskName);
+          if (task) {
+            let newEnd = addDaysToGanttDate(task.endDateStr, daysShift);
+            if (newEnd <= task.startDateStr) {
+              newEnd = addDaysToGanttDate(task.startDateStr, 1);
+            }
+            const newDuration = getDaysBetweenGanttDates(task.startDateStr, newEnd);
+            setCode(prev => updateGanttTaskInCode(prev, taskName, { endDateStr: newEnd, duration: newDuration }));
+          }
+        } else if (type === 'resize-left' && daysShift !== 0) {
+          const { tasks } = parseGantt(editorCode);
+          const task = tasks.find(t => t.name === taskName);
+          if (task) {
+            let newStart = addDaysToGanttDate(task.startDateStr, daysShift);
+            if (newStart >= task.endDateStr) {
+              newStart = addDaysToGanttDate(task.endDateStr, -1);
+            }
+            const newDuration = getDaysBetweenGanttDates(newStart, task.endDateStr);
+            setCode(prev => updateGanttTaskInCode(prev, taskName, { startDateStr: newStart, duration: newDuration }));
+          }
+        } else if (type === 'connect') {
+          if (targetTaskName && targetTaskName !== taskName) {
+            setCode(prev => addGanttDependencyInCode(prev, targetTaskName, taskName));
+          }
+        } else if (type === 'reorder') {
+          if (sourceIndex !== undefined && targetIndex !== undefined && sourceIndex !== targetIndex) {
+            setCode(prev => reorderGanttTasksInCode(prev, sourceIndex, targetIndex));
+          }
+        }
+        setGanttDragState(null);
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -1785,7 +2353,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       window.removeEventListener('mouseup', handleMouseUp);
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, [draggingNode, draggingWaypoint, zoomScale, activeTabKey]);
+  }, [draggingNode, draggingWaypoint, ganttDragState, zoomScale, activeTabKey, editorCode]);
 
   // Escape key to exit fullscreen mode or cancel relationship selection
   useEffect(() => {
@@ -1863,16 +2431,16 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       maxX = Math.max(1200, participants.length * 220 + 200);
       maxY = Math.max(800, messages.length * 52 + 180);
     } else if (activeTabKey === 'gantt') {
-      const { tasks } = parseGantt(code);
+      const { title: chartTitle, sections, tasks } = parseGantt(code);
       let earliestDate = new Date('2026-07-01');
       let latestDate = new Date('2026-08-31');
       let foundDate = false;
       
       tasks.forEach(task => {
         if (task.startDateStr) {
-          const d = new Date(task.startDateStr);
-          if (!isNaN(d.getTime())) {
-            const endDate = new Date(d.getTime() + task.duration * 24 * 60 * 60 * 1000);
+          const d = parseGanttDate(task.startDateStr);
+          if (d && !isNaN(d.getTime())) {
+            const endDate = new Date(d.getTime() + (task.duration || 1) * 24 * 60 * 60 * 1000);
             if (!foundDate) {
               earliestDate = d;
               latestDate = endDate;
@@ -1889,13 +2457,29 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       const yStart = earliestDate.getFullYear();
       const mEnd = latestDate.getMonth();
       const yEnd = latestDate.getFullYear();
-      let numMonths = (yEnd - yStart) * 12 + (mEnd - mStart) + 1;
-      if (numMonths < 2 && !foundDate) numMonths = 2;
+      let numMonths = foundDate ? ((yEnd - yStart) * 12 + (mEnd - mStart) + 1) : 1;
       if (numMonths < 1) numMonths = 1;
       
       const monthWidth = ganttViewScale === 'days' ? 930 : ganttViewScale === 'months' ? 160 : 480;
-      maxX = 240 + numMonths * monthWidth + 20;
-      maxY = 800;
+      const leftPaneWidth = getGanttLeftPaneWidth(chartTitle, tasks);
+      const rowHeight = 52;
+      const showSectionHeader = (sec) => {
+        if (sections.length > 1) {
+          return sec && sec.trim().toLowerCase() !== (chartTitle || '').trim().toLowerCase();
+        }
+        return false;
+      };
+
+      let currentY = 70;
+      sections.forEach((section) => {
+        const sectionTasks = tasks.filter(t => t.section === section);
+        if (showSectionHeader(section)) currentY += 24;
+        currentY += sectionTasks.length * rowHeight;
+        if (showSectionHeader(section)) currentY += 20;
+      });
+
+      maxX = leftPaneWidth + numMonths * monthWidth;
+      maxY = Math.max(160, currentY + 30);
     }
 
     return { width: maxX, height: maxY };
@@ -1905,7 +2489,18 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
   // Canvas background drag panning triggers
   const handleCanvasMouseDown = (e) => {
-    if (e.target.closest('.se-node-card') || e.target.closest('button') || e.target.closest('.MuiSelect-select')) {
+    if (
+      e.target.closest('.se-node-card') ||
+      e.target.closest('button') ||
+      e.target.closest('.MuiSelect-select') ||
+      e.target.closest('.gantt-top-selected-ribbon') ||
+      e.target.closest('.gantt-dependency-group') ||
+      e.target.closest('.gantt-bar-group') ||
+      e.target.closest('.gantt-side-row') ||
+      e.target.closest('.gantt-interactive-element') ||
+      e.target.closest('.gantt-waypoint-handle') ||
+      e.target.closest('input')
+    ) {
       return;
     }
     e.preventDefault();
@@ -2069,7 +2664,9 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
   };
 
   const handleCreateGanttTask = (name, start, end, deps) => {
-    let taskStr = `\n\nTASK ${name}\nSTART ${start}\nEND ${end}`;
+    const { tasks } = parseGantt(code);
+    const color = GANTT_PALETTE[tasks.length % GANTT_PALETTE.length].color;
+    let taskStr = `\n\nTASK ${name}\nSTART ${start}\nEND ${end}\nCOLOR ${color}`;
     deps.forEach(dep => {
       taskStr += `\nDEPENDS ON ${dep}`;
     });
@@ -2247,99 +2844,78 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     }
     else if (tabKey === 'sequence') {
       const { participants, messages } = parseSequence(diagramCode);
-      if (participants.length > 0) {
-        minX = 50;
-        maxX = (participants.length - 1) * 260 + 250;
-        minY = 30;
-        maxY = messages.length * 52 + 180;
-        hasCoords = true;
-      }
+      const diagWidth = Math.max(800, participants.length * 260 + 200);
+      const diagHeight = Math.max(500, messages.length * 52 + 180);
+      return {
+        x: 0,
+        y: 0,
+        width: diagWidth,
+        height: diagHeight
+      };
     }
     else if (tabKey === 'gantt') {
-      const { sections, tasks } = parseGantt(diagramCode);
-      if (tasks.length > 0) {
-        const monthWidth = ganttViewScale === 'days' ? 930 : ganttViewScale === 'months' ? 160 : 480;
-        const dayWidth = monthWidth / 31;
-        const rowHeight = 48;
-        let xs = [20];
-        let ys = [30];
+      const { title: chartTitle, sections, tasks } = parseGantt(diagramCode);
+      const monthWidth = ganttViewScale === 'days' ? 930 : ganttViewScale === 'months' ? 160 : 480;
+      const leftPaneWidth = getGanttLeftPaneWidth(chartTitle, tasks);
+      const rowHeight = 52;
 
-        sections.forEach((section, secIdx) => {
-          const sectionTasks = tasks.filter(t => t.section === section);
-          const sectionYStart = secIdx * 450 + 60;
+      let earliestDate = new Date('2026-07-01');
+      let latestDate = new Date('2026-08-31');
+      let foundDate = false;
 
-          let earliestDate = new Date('2026-07-01');
-          let latestDate = new Date('2026-08-31');
-          let foundDate = false;
-
-          tasks.forEach(task => {
-            if (task.startDateStr) {
-              const d = new Date(task.startDateStr);
-              if (!isNaN(d.getTime())) {
-                const endDate = new Date(d.getTime() + task.duration * 24 * 60 * 60 * 1000);
-                if (!foundDate) {
-                  earliestDate = d;
-                  latestDate = endDate;
-                  foundDate = true;
-                } else {
-                  if (d < earliestDate) earliestDate = d;
-                  if (endDate > latestDate) latestDate = endDate;
-                }
-              }
+      tasks.forEach(task => {
+        if (task.startDateStr) {
+          const d = parseGanttDate(task.startDateStr);
+          if (d && !isNaN(d.getTime())) {
+            const endDate = new Date(d.getTime() + (task.duration || 1) * 24 * 60 * 60 * 1000);
+            if (!foundDate) {
+              earliestDate = d;
+              latestDate = endDate;
+              foundDate = true;
+            } else {
+              if (d < earliestDate) earliestDate = d;
+              if (endDate > latestDate) latestDate = endDate;
             }
-          });
+          }
+        }
+      });
 
-          const mStart = earliestDate.getMonth();
-          const yStart = earliestDate.getFullYear();
-          const mEnd = latestDate.getMonth();
-          const yEnd = latestDate.getFullYear();
-          let numMonths = (yEnd - yStart) * 12 + (mEnd - mStart) + 1;
-          if (numMonths < 2 && !foundDate) numMonths = 2;
-          if (numMonths < 1) numMonths = 1;
+      const mStart = earliestDate.getMonth();
+      const yStart = earliestDate.getFullYear();
+      const mEnd = latestDate.getMonth();
+      const yEnd = latestDate.getFullYear();
+      let numMonths = foundDate ? ((yEnd - yStart) * 12 + (mEnd - mStart) + 1) : 1;
+      if (numMonths < 1) numMonths = 1;
 
-          const svgWidth = 240 + numMonths * monthWidth + 20;
-          xs.push(svgWidth); // Include full timeline width to end at the right of the last month
+      const svgWidth = leftPaneWidth + numMonths * monthWidth;
 
+      const showSectionHeader = (sec) => {
+        if (sections.length > 1) {
+          return sec && sec.trim().toLowerCase() !== (chartTitle || '').trim().toLowerCase();
+        }
+        return false;
+      };
 
-          sectionTasks.forEach((task, taskIdx) => {
-            const y = sectionYStart + taskIdx * rowHeight;
-            const width = Math.max(12, task.duration * dayWidth);
+      let currentY = 70;
+      sections.forEach((section) => {
+        const sectionTasks = tasks.filter(t => t.section === section);
+        if (showSectionHeader(section)) currentY += 24;
+        currentY += sectionTasks.length * rowHeight;
+        if (showSectionHeader(section)) currentY += 20;
+      });
 
-            let x = 240;
-            if (task.startDateStr) {
-              const tDate = new Date(task.startDateStr);
-              if (!isNaN(tDate.getTime())) {
-                const m = tDate.getMonth();
-                const year = tDate.getFullYear();
-                const d = tDate.getDate();
-                const monthDiff = (year - yStart) * 12 + (m - mStart);
-                if (monthDiff >= 0 && monthDiff < numMonths) {
-                  x = 240 + monthDiff * monthWidth + (d - 1) * dayWidth;
-                } else if (monthDiff < 0) {
-                  x = 240;
-                } else {
-                  x = svgWidth - 20;
-                }
-              }
-            }
+      const totalHeight = Math.max(160, currentY + 30);
 
-            xs.push(x + width + 80);
-            ys.push(y + rowHeight + 20);
-          });
-        });
-
-        minX = 10;
-        maxX = Math.max(...xs);
-        minY = 10;
-        maxY = Math.max(...ys);
-        hasCoords = true;
-      }
+      return {
+        x: 0,
+        y: 0,
+        width: svgWidth,
+        height: totalHeight
+      };
     }
 
     if (hasCoords) {
       const padding = 30;
-      const padRight = tabKey === 'gantt' ? 0 : padding; // Exactly 0 extra right padding for Gantt
-      const padBottom = tabKey === 'gantt' ? 80 : padding;
       return {
         x: Math.max(0, minX - padding),
         y: Math.max(0, minY - padding),
@@ -2364,11 +2940,12 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
   };
 
   const generatePureDiagramSvg = (tabKey, diagramCode, bounds, themeColors, activePositions = {}) => {
-    const padding = 40;
-    const x = Math.max(0, bounds.x - padding);
-    const y = Math.max(0, bounds.y - padding);
-    const width = bounds.width + padding * 2;
-    const height = bounds.height + padding * 2;
+    const isFullSvgDoc = tabKey === 'gantt' || tabKey === 'sequence';
+    const padding = isFullSvgDoc ? 0 : 40;
+    const x = isFullSvgDoc ? 0 : Math.max(0, bounds.x - padding);
+    const y = isFullSvgDoc ? 0 : Math.max(0, bounds.y - padding);
+    const width = isFullSvgDoc ? bounds.width : bounds.width + padding * 2;
+    const height = isFullSvgDoc ? bounds.height : bounds.height + padding * 2;
 
     const { primaryMain, primaryDark, textPrimary, textSecondary, bgPaper, bgDefault, divider } = themeColors;
 
@@ -2723,34 +3300,344 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         `;
       }).join('') + `</g>`;
 
-      innerSvgContent = entitiesSvg + attributesSvg + relsSvg;
-    } else {
-      // Sequence & Gantt fallback
-      const inner = document.getElementById(activePositions._isPreview ? 'se-preview-canvas-inner' : 'se-main-canvas-inner');
-      if (inner) {
-        const clone = inner.cloneNode(true);
-        let cloneHtml = clone.innerHTML
-          .replaceAll('var(--primary-main)', primaryMain)
-          .replaceAll('var(--primary-dark)', primaryDark)
-          .replaceAll('var(--text-primary)', textPrimary)
-          .replaceAll('var(--text-secondary)', textSecondary)
-          .replaceAll('var(--background-paper)', bgPaper)
-          .replaceAll('var(--background-default)', bgDefault)
-          .replaceAll('var(--divider)', divider);
-        return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="${x} ${y} ${width} ${height}" style="background-color: ${bgDefault}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <defs>
-    <style type="text/css">
-      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&amp;display=swap');
-    </style>
-  </defs>
-  <foreignObject x="0" y="0" width="4000" height="4000">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="width: 4000px; height: 4000px; position: relative; background-color: ${bgDefault}; color: ${textPrimary}; font-family: 'Outfit', sans-serif;">
-      ${cloneHtml}
-    </div>
-  </foreignObject>
-</svg>`;
+      let erLinesSvg = `<g id="export-er-lines">`;
+      entities.forEach(entity => {
+        const entW = getEntityWidth(entity.name);
+        const p = activePositions[entity.name] || autoPos[entity.name] || { x: 120, y: 100 };
+        const cx = p.x + entW / 2;
+        const cy = p.y + 25;
+        (entity.fields || []).forEach(f => {
+          const attrKey = `${entity.name}::attr::${f.name}`;
+          const attrPos = activePositions[attrKey] || autoPos[attrKey];
+          if (attrPos) {
+            erLinesSvg += `<line x1="${cx}" y1="${cy}" x2="${attrPos.x}" y2="${attrPos.y}" stroke="${divider}" stroke-width="1.5" />`;
+          }
+        });
+      });
+
+      relationships.forEach(rel => {
+        const start = activePositions[rel.source] || autoPos[rel.source] || { x: 80, y: 80 };
+        const end = activePositions[rel.target] || autoPos[rel.target] || { x: 320, y: 80 };
+        const w1 = getEntityWidth(rel.source);
+        const w2 = getEntityWidth(rel.target);
+        const relKey = `${rel.source}::rel::${rel.target}`;
+        const relPos = activePositions[relKey] || autoPos[relKey];
+        if (relPos) {
+          const mx = relPos.x;
+          const my = relPos.y;
+          const markerStart = rel.sourceCard === 'MANY' ? 'url(#crow-foot-many)' : 'url(#crow-foot-one)';
+          const markerEnd = rel.targetCard === 'MANY' ? 'url(#crow-foot-many)' : 'url(#crow-foot-one)';
+          erLinesSvg += `
+            <line x1="${start.x + w1 / 2}" y1="${start.y + 25}" x2="${mx}" y2="${my}" stroke="${primaryMain}" stroke-width="1.8" marker-start="${markerStart}" />
+            <line x1="${mx}" y1="${my}" x2="${end.x + w2 / 2}" y2="${end.y + 25}" stroke="${primaryMain}" stroke-width="1.8" marker-end="${markerEnd}" />
+          `;
+        }
+      });
+      erLinesSvg += `</g>`;
+
+      innerSvgContent = erLinesSvg + entitiesSvg + attributesSvg + relsSvg;
+    } else if (tabKey === 'sequence') {
+      const { title: seqTitle, participants, messages } = parseSequence(diagramCode);
+      const lifelines = {};
+      participants.forEach((part, idx) => {
+        lifelines[part.id] = idx * 260 + 160;
+      });
+
+      const diagWidth = bounds.width || Math.max(800, participants.length * 260 + 200);
+      const diagHeight = bounds.height || Math.max(500, messages.length * 52 + 180);
+
+      const lifelinesSvg = participants.map((part, idx) => {
+        const lx = lifelines[part.id];
+        return `
+          <g>
+            <line x1="${lx}" y1="80" x2="${lx}" y2="${diagHeight - 60}" stroke="${divider}" stroke-width="2" stroke-dasharray="6,6" />
+            <rect x="${lx - 90}" y="50" width="180" height="46" rx="8" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="2" />
+            <text x="${lx}" y="77" fill="${textPrimary}" font-size="15" font-weight="bold" font-family="'Outfit', sans-serif" text-anchor="middle">${escapeXml(part.label)}</text>
+            <rect x="${lx - 90}" y="${diagHeight - 50}" width="180" height="46" rx="8" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="2" />
+            <text x="${lx}" y="${diagHeight - 23}" fill="${textPrimary}" font-size="15" font-weight="bold" font-family="'Outfit', sans-serif" text-anchor="middle">${escapeXml(part.label)}</text>
+          </g>
+        `;
+      }).join('\n');
+
+      const messagesSvg = messages.map((msg, idx) => {
+        const my = idx * 52 + 120;
+        if (msg.type === 'control') {
+          const startX = 50;
+          const endX = participants.length * 260 + 50;
+          return `
+            <g>
+              <line x1="${startX}" y1="${my}" x2="${endX}" y2="${my}" stroke="${primaryMain}" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6" />
+              <rect x="${startX + 20}" y="${my - 12}" width="270" height="24" rx="6" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="1" />
+              <text x="${startX + 32}" y="${my + 5}" fill="${primaryMain}" font-size="13" font-weight="bold" font-family="'Outfit', sans-serif">${escapeXml(msg.label)}</text>
+            </g>
+          `;
+        }
+
+        const x1 = lifelines[msg.source];
+        const x2 = lifelines[msg.target];
+        if (!x1 || !x2) return '';
+        const isResponseOrDisplay = msg.type === 'return' || msg.type === 'display';
+
+        const arrowPoints = x2 > x1 ? `${x2},${my} ${x2 - 8},${my - 4} ${x2 - 8},${my + 4}` : `${x2},${my} ${x2 + 8},${my - 4} ${x2 + 8},${my + 4}`;
+        const arrowColor = isResponseOrDisplay ? primaryMain : textPrimary;
+
+        return `
+          <g>
+            <line x1="${x1}" y1="${my}" x2="${x2}" y2="${my}" stroke="${arrowColor}" stroke-width="1.5" stroke-dasharray="${isResponseOrDisplay ? '4,4' : 'none'}" />
+            <polygon points="${arrowPoints}" fill="${arrowColor}" />
+            <text x="${(x1 + x2) / 2}" y="${my - 8}" fill="${arrowColor}" font-size="14" font-weight="600" font-family="'Outfit', sans-serif" text-anchor="middle">${escapeXml(msg.label)}</text>
+          </g>
+        `;
+      }).join('\n');
+
+      innerSvgContent = `
+        <text x="30" y="30" fill="${primaryMain}" font-size="16" font-weight="bold" font-family="'Outfit', sans-serif">🎬 ${escapeXml(seqTitle || 'Sequence Diagram')}</text>
+        ${lifelinesSvg}
+        ${messagesSvg}
+      `;
+    } else if (tabKey === 'gantt') {
+      const { title: chartTitle, sections, tasks } = parseGantt(diagramCode);
+      const monthWidth = ganttViewScale === 'days' ? 930 : ganttViewScale === 'months' ? 160 : 480;
+      const dayWidth = monthWidth / 31;
+      const rowHeight = 52;
+      const leftPaneWidth = getGanttLeftPaneWidth(chartTitle, tasks);
+
+      let earliestDate = new Date('2026-07-01');
+      let latestDate = new Date('2026-08-31');
+      let foundDate = false;
+
+      tasks.forEach(task => {
+        if (task.startDateStr) {
+          const d = parseGanttDate(task.startDateStr);
+          if (d && !isNaN(d.getTime())) {
+            const endDate = new Date(d.getTime() + (task.duration || 1) * 24 * 60 * 60 * 1000);
+            if (!foundDate) {
+              earliestDate = d;
+              latestDate = endDate;
+              foundDate = true;
+            } else {
+              if (d < earliestDate) earliestDate = d;
+              if (endDate > latestDate) latestDate = endDate;
+            }
+          }
+        }
+      });
+
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const mStart = earliestDate.getMonth();
+      const yStart = earliestDate.getFullYear();
+      const mEnd = latestDate.getMonth();
+      const yEnd = latestDate.getFullYear();
+      let numMonths = foundDate ? ((yEnd - yStart) * 12 + (mEnd - mStart) + 1) : 1;
+      if (numMonths < 1) numMonths = 1;
+
+      const svgWidth = leftPaneWidth + numMonths * monthWidth;
+
+      const showSectionHeader = (sec) => {
+        if (sections.length > 1) {
+          return sec && sec.trim().toLowerCase() !== (chartTitle || '').trim().toLowerCase();
+        }
+        return false;
+      };
+
+      let globalTaskIndex = 0;
+      let currentY = 70;
+      const taskLayoutMap = {};
+
+      sections.forEach((section, secIdx) => {
+        const sectionTasks = tasks.filter(t => t.section === section);
+        if (showSectionHeader(section)) {
+          currentY += 24;
+        }
+
+        sectionTasks.forEach((task, taskIdx) => {
+          const taskY = currentY;
+          let taskWidth = Math.max(16, (task.duration || 1) * dayWidth);
+          let taskX = leftPaneWidth;
+
+          if (task.startDateStr) {
+            const tDate = parseGanttDate(task.startDateStr);
+            if (tDate && !isNaN(tDate.getTime())) {
+              const m = tDate.getMonth();
+              const yr = tDate.getFullYear();
+              const d = tDate.getDate();
+              const monthDiff = (yr - yStart) * 12 + (m - mStart);
+              if (monthDiff >= 0 && monthDiff < numMonths) {
+                taskX = leftPaneWidth + monthDiff * monthWidth + (d - 1) * dayWidth;
+              } else if (monthDiff < 0) {
+                taskX = leftPaneWidth;
+              } else {
+                taskX = svgWidth - 40;
+              }
+            }
+          }
+
+          taskLayoutMap[task.name] = {
+            x: taskX,
+            y: taskY,
+            width: taskWidth,
+            globalIndex: globalTaskIndex,
+            sectionIndex: secIdx,
+            taskIndex: taskIdx
+          };
+
+          globalTaskIndex++;
+          currentY += rowHeight;
+        });
+        if (showSectionHeader(section)) {
+          currentY += 20;
+        }
+      });
+
+      const totalHeight = Math.max(160, currentY + 30);
+
+      const monthLabelsSvg = Array.from({ length: numMonths }).map((_, idx) => {
+        const m = (mStart + idx) % 12;
+        const yr = yStart + Math.floor((mStart + idx) / 12);
+        const mx = leftPaneWidth + idx * monthWidth + monthWidth / 2;
+        const my = ganttViewScale === 'months' ? 31 : 20;
+        return `<text x="${mx}" y="${my}" fill="${textPrimary}" font-size="${ganttViewScale === 'months' ? 13 : 12}" font-weight="bold" font-family="'Outfit', sans-serif" text-anchor="middle">${monthNames[m]} ${yr}</text>`;
+      }).join('\n');
+
+      let subHeadersSvg = '';
+      if (ganttViewScale === 'weeks') {
+        subHeadersSvg = Array.from({ length: numMonths }).map((_, mIdx) => {
+          const m = (mStart + mIdx) % 12;
+          return Array.from({ length: 4 }).map((_, wIdx) => {
+            const wx = leftPaneWidth + mIdx * monthWidth + wIdx * (monthWidth / 4) + (monthWidth / 8);
+            const wLabel = getWeekLabel(m, wIdx);
+            return `<text x="${wx}" y="40" text-anchor="middle" font-size="11" font-weight="bold" font-family="'Outfit', sans-serif"><tspan fill="${textPrimary}">W${mIdx * 4 + wIdx + 1}</tspan><tspan fill="${primaryMain}" dx="4">(${wLabel})</tspan></text>`;
+          }).join('\n');
+        }).join('\n');
+      } else if (ganttViewScale === 'days') {
+        subHeadersSvg = Array.from({ length: numMonths }).map((_, mIdx) => {
+          return Array.from({ length: 31 }).map((_, dIdx) => {
+            const dx = leftPaneWidth + mIdx * monthWidth + dIdx * dayWidth + dayWidth / 2;
+            return `<text x="${dx}" y="40" text-anchor="middle" fill="${textPrimary}" font-size="9" font-weight="600" font-family="'Outfit', sans-serif">${dIdx + 1}</text>`;
+          }).join('\n');
+        }).join('\n');
       }
+
+      const vDividersSvg = Array.from({ length: numMonths + 1 }).map((_, idx) => {
+        const vx = leftPaneWidth + idx * monthWidth;
+        return `<line x1="${vx}" y1="52" x2="${vx}" y2="${totalHeight - 30}" stroke="${divider}" stroke-opacity="0.6" stroke-width="1.5" />`;
+      }).join('\n');
+
+      let gridLinesSvg = '';
+      if (ganttViewScale === 'weeks') {
+        gridLinesSvg = Array.from({ length: numMonths }).map((_, mIdx) => {
+          return [1, 2, 3].map(wIdx => {
+            const gx = leftPaneWidth + mIdx * monthWidth + wIdx * (monthWidth / 4);
+            return `<line x1="${gx}" y1="52" x2="${gx}" y2="${totalHeight - 30}" stroke="${divider}" stroke-opacity="0.3" stroke-dasharray="2,4" />`;
+          }).join('\n');
+        }).join('\n');
+      } else if (ganttViewScale === 'days') {
+        gridLinesSvg = Array.from({ length: numMonths }).map((_, mIdx) => {
+          return Array.from({ length: 30 }).map((_, dIdx) => {
+            const gx = leftPaneWidth + mIdx * monthWidth + (dIdx + 1) * dayWidth;
+            return `<line x1="${gx}" y1="52" x2="${gx}" y2="${totalHeight - 30}" stroke="${divider}" stroke-opacity="0.15" stroke-dasharray="2,4" />`;
+          }).join('\n');
+        }).join('\n');
+      }
+
+      const dependenciesSvg = tasks.map((task) => {
+        if (!task.dependencies || task.dependencies.length === 0) return '';
+        const layout = taskLayoutMap[task.name];
+        if (!layout) return '';
+
+        return task.dependencies.map((depName) => {
+          const depTask = tasks.find(pt => pt.name === depName);
+          const depLayout = taskLayoutMap[depName];
+          if (!depTask || !depLayout) return '';
+
+          const pathInfo = computeGanttDependencyPath(
+            depTask,
+            depLayout,
+            task,
+            layout,
+            tasks,
+            taskLayoutMap,
+            leftPaneWidth,
+            ganttWaypoints
+          );
+
+          return `
+            <g class="gantt-dep">
+              <path d="${pathInfo.d}" fill="none" stroke="${primaryMain}" stroke-width="2.2" stroke-linecap="round" />
+              <polygon points="${pathInfo.arrowTipX},${pathInfo.yEnd} ${pathInfo.arrowBaseX},${pathInfo.yEnd - 4.5} ${pathInfo.arrowBaseX},${pathInfo.yEnd + 4.5}" fill="${primaryMain}" />
+            </g>
+          `;
+        }).join('');
+      }).join('');
+
+      const sectionsAndTasksSvg = sections.map((section) => {
+        const sectionTasks = tasks.filter(t => t.section === section);
+        const firstTaskLayout = sectionTasks.length > 0 ? taskLayoutMap[sectionTasks[0].name] : null;
+        const sectionHeaderY = firstTaskLayout ? firstTaskLayout.y - 20 : 70;
+        const isSecVisible = showSectionHeader(section);
+
+        const secHeaderSvg = isSecVisible ? `
+          <text x="24" y="${sectionHeaderY}" fill="${primaryMain}" font-size="12" font-weight="800" font-family="'Outfit', sans-serif" letter-spacing="0.08em" text-transform="uppercase">📂 ${escapeXml(section)}</text>
+        ` : '';
+
+        const tasksSvg = sectionTasks.map((task, taskIdx) => {
+          const layout = taskLayoutMap[task.name];
+          if (!layout) return '';
+
+          const y = layout.y;
+          const width = layout.width;
+          const x = layout.x;
+
+          const paletteEntry = GANTT_PALETTE[layout.globalIndex % GANTT_PALETTE.length];
+          let barColor = task.color || paletteEntry.color;
+          let strokeColor = task.color ? (GANTT_PALETTE.find(p => p.color === task.color)?.border || task.color) : paletteEntry.border;
+
+          if (task.isMilestone || task.duration === 0) {
+            barColor = task.color || '#EF4444';
+            strokeColor = '#DC2626';
+          }
+
+          const rowGuide = `<line x1="15" y1="${y + 36}" x2="${svgWidth - 15}" y2="${y + 36}" stroke="${textSecondary}" stroke-opacity="0.25" stroke-dasharray="3,3" stroke-width="1" />`;
+          const leftRow = `
+            <circle cx="38" cy="${y + 11}" r="4" fill="${barColor}" />
+            <text x="48" y="${y + 15}" fill="${textPrimary}" font-size="12" font-weight="600" font-family="'Outfit', sans-serif">${escapeXml(task.name)}</text>
+          `;
+
+          let barSvg = '';
+          if (task.isMilestone || task.duration === 0) {
+            barSvg = `
+              <polygon points="${x},${y + 12} ${x + 11},${y} ${x + 22},${y + 12} ${x + 11},${y + 24}" fill="${barColor}" stroke="${strokeColor}" stroke-width="1.5" />
+              <text x="${x + 30}" y="${y + 16}" fill="${textSecondary}" font-size="11" font-weight="700" font-family="'Outfit', sans-serif">🚩 Milestone (${task.startDateStr || '2026-08-01'})</text>
+            `;
+          } else {
+            const innerText = width > 60 ? `
+              <text x="${x + 14}" y="${y + 16}" fill="#ffffff" font-size="11" font-weight="700" font-family="'Outfit', sans-serif">${escapeXml(task.name.length > Math.floor(width / 9) ? task.name.substring(0, Math.floor(width / 9) - 2) + '..' : task.name)}</text>
+            ` : '';
+            barSvg = `
+              <rect x="${x}" y="${y}" width="${width}" height="24" rx="8" fill="${barColor}" stroke="${strokeColor}" stroke-width="1" />
+              ${innerText}
+              <text x="${x + width + 14}" y="${y + 16}" fill="${textSecondary}" font-size="10" font-weight="700" font-family="'Outfit', sans-serif">${task.duration}d</text>
+            `;
+          }
+
+          return `<g>${rowGuide}${leftRow}${barSvg}</g>`;
+        }).join('\n');
+
+        return `<g>${secHeaderSvg}${tasksSvg}</g>`;
+      }).join('\n');
+
+      innerSvgContent = `
+        <rect x="0" y="0" width="${svgWidth}" height="52" fill="${bgPaper}" fill-opacity="0.9" />
+        ${monthLabelsSvg}
+        ${subHeadersSvg}
+        <text x="24" y="32" fill="${textPrimary}" font-size="12" font-weight="800" font-family="'Outfit', sans-serif" letter-spacing="0.06em" text-transform="uppercase">${escapeXml(chartTitle || 'GANTT SCHEDULE')}</text>
+        <line x1="15" y1="52" x2="${svgWidth - 15}" y2="52" stroke="${divider}" stroke-opacity="0.9" stroke-width="1.5" />
+        <line x1="${leftPaneWidth}" y1="0" x2="${leftPaneWidth}" y2="${totalHeight}" stroke="${divider}" stroke-opacity="0.7" stroke-width="1.5" />
+        ${vDividersSvg}
+        ${gridLinesSvg}
+        ${dependenciesSvg}
+        ${sectionsAndTasksSvg}
+      `;
     }
 
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -2869,8 +3756,11 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     try {
       const bounds = getDiagramBounds(activeTabKey, code);
       const themeColors = getExportThemeColors();
+      const isFullDoc = activeTabKey === 'gantt' || activeTabKey === 'sequence';
+      const exportW = isFullDoc ? bounds.width : bounds.width + 80;
+      const exportH = isFullDoc ? bounds.height : bounds.height + 80;
       const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, { ...nodePositions, _isPreview: true });
-      const pngBlob = await renderSvgToPngBlob(svgDoc, bounds.width + 80, bounds.height + 80, themeColors);
+      const pngBlob = await renderSvgToPngBlob(svgDoc, exportW, exportH, themeColors);
       if (pngBlob) {
         const link = document.createElement('a');
         link.download = `${activeTabKey}_diagram.png`;
@@ -2887,8 +3777,11 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     try {
       const bounds = getDiagramBounds(activeTabKey, code);
       const themeColors = getExportThemeColors();
+      const isFullDoc = activeTabKey === 'gantt' || activeTabKey === 'sequence';
+      const exportW = isFullDoc ? bounds.width : bounds.width + 80;
+      const exportH = isFullDoc ? bounds.height : bounds.height + 80;
       const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, nodePositions);
-      const pngBlob = await renderSvgToPngBlob(svgDoc, bounds.width + 80, bounds.height + 80, themeColors);
+      const pngBlob = await renderSvgToPngBlob(svgDoc, exportW, exportH, themeColors);
       if (pngBlob) {
         const link = document.createElement('a');
         link.download = `${activeTabKey}_diagram.png`;
@@ -2901,43 +3794,6 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     }
   };
 
-  const handleDownloadSvg = async () => {
-    try {
-      const bounds = getDiagramBounds(activeTabKey, code);
-      const themeColors = getExportThemeColors();
-      const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, nodePositions);
-      const blob = new Blob([svgDoc], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${activeTabKey}_diagram.svg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Failed to export SVG:', err);
-    }
-  };
-
-  const handleDownloadPreviewSvg = async () => {
-    try {
-      const bounds = getDiagramBounds(activeTabKey, code);
-      const themeColors = getExportThemeColors();
-      const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, { ...nodePositions, _isPreview: true });
-      const blob = new Blob([svgDoc], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${activeTabKey}_diagram.svg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Failed to export preview SVG:', err);
-    }
-  };
 
   // Custom Local Parsers
   function parseER(text) {
@@ -4591,149 +5447,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     return { title, participants, messages };
   }
 
-  function parseGantt(text) {
-    const sections = [];
-    const tasks = [];
-    let currentSection = 'SophiaPath';
-    const lines = text.split('\n');
 
-    const isCustomFormat = text.includes('TASK') || text.includes('PROJECT') || text.includes('START');
-
-    if (isCustomFormat) {
-      let currentTask = null;
-
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('%%') || trimmed.startsWith('#')) return;
-
-        const projMatch = trimmed.match(/^PROJECT\s+(.+)$/i);
-        if (projMatch) {
-          currentSection = projMatch[1].trim();
-          if (!sections.includes(currentSection)) {
-            sections.push(currentSection);
-          }
-          return;
-        }
-
-        const taskMatch = trimmed.match(/^TASK\s+(.+)$/i);
-        if (taskMatch) {
-          if (currentTask) {
-            tasks.push(currentTask);
-          }
-          currentTask = {
-            name: taskMatch[1].trim(),
-            section: currentSection,
-            status: '',
-            startDateStr: '',
-            endDateStr: '',
-            duration: 5,
-            dependencies: []
-          };
-          return;
-        }
-
-        const milestoneMatch = trimmed.match(/^MILESTONE\s+(.+)$/i);
-        if (milestoneMatch) {
-          if (currentTask) {
-            tasks.push(currentTask);
-          }
-          currentTask = {
-            name: milestoneMatch[1].trim(),
-            section: currentSection,
-            status: 'done',
-            startDateStr: '',
-            endDateStr: '',
-            duration: 0,
-            dependencies: []
-          };
-          return;
-        }
-
-        const startMatch = trimmed.match(/^START\s+(.+)$/i);
-        if (startMatch && currentTask) {
-          currentTask.startDateStr = startMatch[1].trim();
-          return;
-        }
-
-        const endMatch = trimmed.match(/^END\s+(.+)$/i);
-        if (endMatch && currentTask) {
-          currentTask.endDateStr = endMatch[1].trim();
-          return;
-        }
-
-        const dateMatch = trimmed.match(/^DATE\s+(.+)$/i);
-        if (dateMatch && currentTask) {
-          currentTask.startDateStr = dateMatch[1].trim();
-          currentTask.endDateStr = dateMatch[1].trim();
-          currentTask.duration = 0;
-          return;
-        }
-
-        const depMatch = trimmed.match(/^DEPENDS ON\s+(.+)$/i);
-        if (depMatch && currentTask) {
-          currentTask.dependencies.push(depMatch[1].trim());
-          currentTask.status = 'active';
-          return;
-        }
-      });
-
-      if (currentTask) {
-        tasks.push(currentTask);
-      }
-
-      tasks.forEach(t => {
-        if (t.startDateStr && t.endDateStr && t.duration !== 0) {
-          const sDate = new Date(t.startDateStr);
-          const eDate = new Date(t.endDateStr);
-          if (!isNaN(sDate.getTime()) && !isNaN(eDate.getTime())) {
-            t.duration = Math.max(1, Math.round((eDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)));
-          }
-        }
-      });
-
-    } else {
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('%%') || trimmed.startsWith('gantt') || trimmed.startsWith('title') || trimmed.startsWith('dateFormat') || trimmed.startsWith('axisFormat')) return;
-
-        const secMatch = trimmed.match(/^section\s+(.+)$/);
-        if (secMatch) {
-          currentSection = secMatch[1];
-          sections.push(currentSection);
-          return;
-        }
-
-        const taskMatch = trimmed.match(/^([^:]+):\s*(.+)$/);
-        if (taskMatch) {
-          const name = taskMatch[1].trim();
-          const parts = taskMatch[2].split(',').map(p => p.trim());
-          let status = '';
-          let start = '';
-          let duration = 5;
-
-          parts.forEach(part => {
-            if (part === 'active' || part === 'done' || part === 'crit') {
-              status = part;
-            } else if (part.endsWith('d')) {
-              duration = parseInt(part) || 5;
-            } else {
-              start = part;
-            }
-          });
-
-          tasks.push({
-            name,
-            section: currentSection,
-            status,
-            duration
-          });
-        }
-      });
-    }
-
-    if (sections.length === 0) sections.push(currentSection);
-    return { sections, tasks };
-  }
 
   // Finds the nearest empty point on the continuous perimeter of a rectangle [x, y, w, h] towards target (tx, ty)
   // so arrow tips do NOT snap to 4 fixed points, but instead find the nearest available empty spot
@@ -6097,14 +6811,13 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     );
   };
 
-  // Render Gantt Chart
-  const renderGanttChart = () => {
-    const { sections, tasks } = parseGantt(code);
-    const rowHeight = 48;
+  // Render Gantt Chart (Canva-style interactive drag, drop, and customizer)
+  const renderGanttChart = (isPreview = false) => {
+    const { title: chartTitle, sections, tasks } = parseGantt(editorCode);
+    const rowHeight = 52;
 
     const monthWidth = ganttViewScale === 'days' ? 930 : ganttViewScale === 'months' ? 160 : 480;
     const dayWidth = monthWidth / 31;
-    const monthDividerX = 720;
 
     const getWeekLabel = (monthZeroIndexed, weekIdx) => {
       const dayOfStart = weekIdx * 7 + 1;
@@ -6112,15 +6825,15 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     };
 
     // Calculate earliest start date and latest end date dynamically
-    let earliestDate = new Date('2026-07-01'); // fallback
-    let latestDate = new Date('2026-08-31'); // fallback
+    let earliestDate = new Date('2026-07-01');
+    let latestDate = new Date('2026-08-31');
     let foundDate = false;
 
     tasks.forEach(task => {
       if (task.startDateStr) {
-        const d = new Date(task.startDateStr);
-        if (!isNaN(d.getTime())) {
-          const endDate = new Date(d.getTime() + task.duration * 24 * 60 * 60 * 1000);
+        const d = parseGanttDate(task.startDateStr);
+        if (d && !isNaN(d.getTime())) {
+          const endDate = new Date(d.getTime() + (task.duration || 1) * 24 * 60 * 60 * 1000);
           if (!foundDate) {
             earliestDate = d;
             latestDate = endDate;
@@ -6139,294 +6852,1097 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
     const mEnd = latestDate.getMonth();
     const yEnd = latestDate.getFullYear();
 
-    let numMonths = (yEnd - yStart) * 12 + (mEnd - mStart) + 1;
-    if (numMonths < 2 && !foundDate) numMonths = 2; // Default to 2 if empty
+    let numMonths = foundDate ? ((yEnd - yStart) * 12 + (mEnd - mStart) + 1) : 1;
     if (numMonths < 1) numMonths = 1;
 
-    const svgWidth = 240 + numMonths * monthWidth + 20; // 240 left pane + monthWidth per month + 20 padding
+    const leftPaneWidth = getGanttLeftPaneWidth(chartTitle, tasks);
+    const svgWidth = leftPaneWidth + numMonths * monthWidth;
 
-    // Precalculate positions
+    // Calculate dynamic coordinates
+    const showSectionHeader = (sec) => {
+      if (sections.length > 1) {
+        return sec && sec.trim().toLowerCase() !== (chartTitle || '').trim().toLowerCase();
+      }
+      return false;
+    };
+
+    let globalTaskIndex = 0;
+    let currentY = 70;
+    const taskLayoutMap = {};
+
     sections.forEach((section, secIdx) => {
       const sectionTasks = tasks.filter(t => t.section === section);
-      const sectionYStart = secIdx * 450 + 60; // Shifted up after removing header banner
+      if (showSectionHeader(section)) {
+        currentY += 24; // section header spacing
+      }
 
       sectionTasks.forEach((task, taskIdx) => {
-        task.y = sectionYStart + taskIdx * rowHeight;
-        task.width = Math.max(12, task.duration * dayWidth);
+        const taskY = currentY;
+        let taskWidth = Math.max(16, (task.duration || 1) * dayWidth);
+        let taskX = leftPaneWidth;
 
-        let x = 240;
         if (task.startDateStr) {
-          const tDate = new Date(task.startDateStr);
-          if (!isNaN(tDate.getTime())) {
+          const tDate = parseGanttDate(task.startDateStr);
+          if (tDate && !isNaN(tDate.getTime())) {
             const m = tDate.getMonth();
             const y = tDate.getFullYear();
             const d = tDate.getDate();
             const monthDiff = (y - yStart) * 12 + (m - mStart);
             if (monthDiff >= 0 && monthDiff < numMonths) {
-              x = 240 + monthDiff * monthWidth + (d - 1) * dayWidth;
+              taskX = leftPaneWidth + monthDiff * monthWidth + (d - 1) * dayWidth;
             } else if (monthDiff < 0) {
-              x = 240; // clamp to start
+              taskX = leftPaneWidth;
             } else {
-              x = svgWidth - 20; // clamp to end
+              taskX = svgWidth - 40;
             }
           }
         }
-        task.x = x;
+
+        taskLayoutMap[task.name] = {
+          x: taskX,
+          y: taskY,
+          width: taskWidth,
+          globalIndex: globalTaskIndex,
+          sectionIndex: secIdx,
+          taskIndex: taskIdx
+        };
+
+        globalTaskIndex++;
+        currentY += rowHeight;
       });
+      if (showSectionHeader(section)) {
+        currentY += 20;
+      }
     });
 
+    const totalHeight = Math.max(160, currentY + 30);
+
+    // Get active task being dragged or selected
+    const selectedTask = tasks.find(t => t.name === selectedGanttTask);
+    const selectedLayout = selectedTask ? taskLayoutMap[selectedTask.name] : null;
+
+    // Calculate dynamic guideline coordinates for dragging/resizing or selected task
+    let activeGuideline = null;
+    if (!isPreview) {
+      const activeTaskName = (ganttDragState && ['move', 'resize-left', 'resize-right'].includes(ganttDragState.type))
+        ? ganttDragState.taskName
+        : selectedGanttTask;
+
+      if (activeTaskName) {
+        const activeTask = tasks.find(t => t.name === activeTaskName);
+        const layout = activeTask ? taskLayoutMap[activeTask.name] : null;
+        if (activeTask && layout) {
+          let gx = layout.x;
+          let gwidth = layout.width;
+          let gStartDate = activeTask.startDateStr;
+          let gEndDate = activeTask.endDateStr;
+
+          if (ganttDragState && ganttDragState.taskName === activeTask.name) {
+            const deltaX = (ganttDragState.currentClientX || ganttDragState.startClientX) - ganttDragState.startClientX;
+            const daysShift = Math.round(deltaX / (dayWidth * zoomScale));
+
+            if (ganttDragState.type === 'move') {
+              gx = gx + daysShift * dayWidth;
+              gStartDate = addDaysToGanttDate(activeTask.startDateStr, daysShift);
+              gEndDate = addDaysToGanttDate(activeTask.endDateStr, daysShift);
+            } else if (ganttDragState.type === 'resize-right') {
+              let newEndDate = addDaysToGanttDate(activeTask.endDateStr, daysShift);
+              if (newEndDate <= activeTask.startDateStr) {
+                newEndDate = addDaysToGanttDate(activeTask.startDateStr, 1);
+              }
+              gEndDate = newEndDate;
+              const dur = getDaysBetweenGanttDates(activeTask.startDateStr, gEndDate);
+              gwidth = Math.max(dayWidth, dur * dayWidth);
+            } else if (ganttDragState.type === 'resize-left') {
+              let newStartDate = addDaysToGanttDate(activeTask.startDateStr, daysShift);
+              if (newStartDate >= activeTask.endDateStr) {
+                newStartDate = addDaysToGanttDate(activeTask.endDateStr, -1);
+              }
+              gStartDate = newStartDate;
+              const dur = getDaysBetweenGanttDates(gStartDate, activeTask.endDateStr);
+              const sDate = parseGanttDate(gStartDate);
+              if (sDate) {
+                const m = sDate.getMonth();
+                const y = sDate.getFullYear();
+                const d = sDate.getDate();
+                const monthDiff = (y - yStart) * 12 + (m - mStart);
+                gx = leftPaneWidth + monthDiff * monthWidth + (d - 1) * dayWidth;
+              }
+              gwidth = Math.max(dayWidth, dur * dayWidth);
+            }
+          }
+
+          activeGuideline = {
+            startX: gx,
+            endX: gx + (activeTask.isMilestone || activeTask.duration === 0 ? 22 : gwidth),
+            startDate: gStartDate,
+            endDate: gEndDate,
+            isMilestone: activeTask.isMilestone || activeTask.duration === 0,
+            taskY: layout.y
+          };
+        }
+      }
+    }
+
     return (
-      <svg width={svgWidth} height="800" style={{ background: 'transparent' }}>
-        {/* Month Labels at the top */}
-        {Array.from({ length: numMonths }).map((_, idx) => {
-          const m = (mStart + idx) % 12;
-          const y = yStart + Math.floor((mStart + idx) / 12);
-          const x = 240 + idx * monthWidth + monthWidth / 2;
-          return (
-            <text key={`month_label_${idx}`} x={x} y="15" fill="var(--text-primary)" fontSize="13" fontWeight="bold" textAnchor="middle">
-              {monthNames[m]} {y}
-            </text>
-          );
-        })}
+      <div style={{ position: 'relative', width: `${svgWidth}px`, height: `${totalHeight}px`, userSelect: 'none' }}>
+        <svg
+          width={svgWidth}
+          height={totalHeight}
+          style={{ background: 'transparent', display: 'block' }}
+          onClick={(e) => {
+            if (e.target.tagName === 'svg' || e.target.classList.contains('gantt-bg-click')) {
+              setSelectedGanttTask(null);
+              setGanttInlineEditingTask(null);
+            }
+          }}
+        >
+          <rect className="gantt-bg-click" x="0" y="0" width={svgWidth} height={totalHeight} fill="transparent" />
 
-        {/* Dynamic Headers based on View Mode */}
-        {ganttViewScale === 'weeks' && Array.from({ length: numMonths }).map((_, mIdx) => {
-          const m = (mStart + mIdx) % 12;
-          return Array.from({ length: 4 }).map((_, wIdx) => {
-            const x = 240 + mIdx * monthWidth + wIdx * (monthWidth / 4) + (monthWidth / 8);
+          {/* 1. Header Background */}
+          <rect x="0" y="0" width={svgWidth} height="52" fill="var(--background-paper)" fillOpacity="0.8" />
+
+          {/* 2. Month Labels */}
+          {Array.from({ length: numMonths }).map((_, idx) => {
+            const m = (mStart + idx) % 12;
+            const y = yStart + Math.floor((mStart + idx) / 12);
+            const x = leftPaneWidth + idx * monthWidth + monthWidth / 2;
             return (
-              <text key={`m_${mIdx}_w_${wIdx}`} x={x} y="35" textAnchor="middle" fontSize="11" fontWeight="bold">
-                <tspan fill="var(--text-primary)">W{mIdx * 4 + wIdx + 1}</tspan>
-                <tspan fill="var(--primary-main)" dx="4">({getWeekLabel(m, wIdx)})</tspan>
+              <text
+                key={`month_label_${idx}`}
+                x={x}
+                y={ganttViewScale === 'months' ? 31 : 20}
+                fill="var(--text-primary)"
+                fontSize={ganttViewScale === 'months' ? '13' : '12'}
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                {monthNames[m]} {y}
               </text>
             );
-          });
-        })}
+          })}
 
-        {ganttViewScale === 'days' && Array.from({ length: numMonths }).map((_, mIdx) => {
-          return Array.from({ length: 31 }).map((_, dIdx) => {
-            const x = 240 + mIdx * monthWidth + dIdx * dayWidth + dayWidth / 2;
-            return (
-              <text key={`m_${mIdx}_d_${dIdx}`} x={x} y="35" textAnchor="middle" fill="var(--text-primary)" fontSize="9" fontWeight="500">
-                {dIdx + 1}
+          {/* 3. Dynamic Headers based on View Mode */}
+          {ganttViewScale === 'weeks' && Array.from({ length: numMonths }).map((_, mIdx) => {
+            const m = (mStart + mIdx) % 12;
+            return Array.from({ length: 4 }).map((_, wIdx) => {
+              const x = leftPaneWidth + mIdx * monthWidth + wIdx * (monthWidth / 4) + (monthWidth / 8);
+              return (
+                <text key={`m_${mIdx}_w_${wIdx}`} x={x} y="40" textAnchor="middle" fontSize="11" fontWeight="bold">
+                  <tspan fill="var(--text-primary)">W{mIdx * 4 + wIdx + 1}</tspan>
+                  <tspan fill="var(--primary-main)" dx="4">({getWeekLabel(m, wIdx)})</tspan>
+                </text>
+              );
+            });
+          })}
+
+          {ganttViewScale === 'days' && Array.from({ length: numMonths }).map((_, mIdx) => {
+            return Array.from({ length: 31 }).map((_, dIdx) => {
+              const x = leftPaneWidth + mIdx * monthWidth + dIdx * dayWidth + dayWidth / 2;
+              return (
+                <text key={`m_${mIdx}_d_${dIdx}`} x={x} y="40" textAnchor="middle" fill="var(--text-primary)" fontSize="9" fontWeight="600">
+                  {dIdx + 1}
+                </text>
+              );
+            });
+          })}
+
+          {/* Left Pane Header - Diagram Name */}
+          <text
+            x="24"
+            y="32"
+            fill="var(--text-primary)"
+            fontSize="12"
+            fontWeight="800"
+            letterSpacing="0.06em"
+            textTransform="uppercase"
+          >
+            {chartTitle || 'GANTT SCHEDULE'}
+          </text>
+          {!isPreview && (
+            <g
+              cursor="pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCode(prev => insertGanttTaskInSectionInCode(prev, sections[0] || 'SophiaPath'));
+              }}
+            >
+              <rect
+                x={leftPaneWidth - 68}
+                y="19"
+                width="50"
+                height="18"
+                rx="4"
+                fill="var(--primary-main)"
+                fillOpacity="0.12"
+                stroke="var(--primary-main)"
+                strokeWidth="1"
+              />
+              <text
+                x={leftPaneWidth - 43}
+                y="31"
+                textAnchor="middle"
+                fill="var(--primary-main)"
+                fontSize="10"
+                fontWeight="700"
+              >
+                + Task
               </text>
-            );
-          });
-        })}
+              <title>Add New Task</title>
+            </g>
+          )}
 
-        {/* Horizontal Divider separating calendar headers from diagram area */}
-        <line x1="15" y1="45" x2={svgWidth - 15} y2="45" stroke="var(--divider)" strokeOpacity="0.8" strokeWidth="1.5" />
+          {/* Horizontal Divider */}
+          <line x1="15" y1="52" x2={svgWidth - 15} y2="52" stroke="var(--divider)" strokeOpacity="0.9" strokeWidth="1.5" />
+          <line x1={leftPaneWidth} y1="0" x2={leftPaneWidth} y2={totalHeight} stroke="var(--divider)" strokeOpacity="0.7" strokeWidth="1.5" />
 
-        {/* Vertical divider lines for start and end of months */}
-        {Array.from({ length: numMonths + 1 }).map((_, idx) => {
-          const x = 240 + idx * monthWidth;
-          return (
-            <line key={`v_divider_${idx}`} x1={x} y1="45" x2={x} y2="760" stroke="var(--divider)" strokeOpacity="0.6" strokeWidth="1.5" />
-          );
-        })}
-
-        {/* Vertical dotted division guidelines */}
-        {ganttViewScale === 'weeks' && Array.from({ length: numMonths }).map((_, mIdx) => {
-          return [1, 2, 3].map(wIdx => {
-            const x = 240 + mIdx * monthWidth + wIdx * (monthWidth / 4);
+          {/* Vertical divider lines for start and end of months */}
+          {Array.from({ length: numMonths + 1 }).map((_, idx) => {
+            const x = leftPaneWidth + idx * monthWidth;
             return (
-              <line key={`w_line_${mIdx}_${wIdx}`} x1={x} y1="45" x2={x} y2="760" stroke="var(--divider)" strokeOpacity="0.35" strokeDasharray="2,4" />
+              <line key={`v_divider_${idx}`} x1={x} y1="52" x2={x} y2={totalHeight - 30} stroke="var(--divider)" strokeOpacity="0.6" strokeWidth="1.5" />
             );
-          });
-        })}
+          })}
 
-        {ganttViewScale === 'days' && Array.from({ length: numMonths }).map((_, mIdx) => {
-          return Array.from({ length: 30 }).map((_, dIdx) => {
-            const x = 240 + mIdx * monthWidth + (dIdx + 1) * dayWidth;
+          {/* Vertical dotted division guidelines */}
+          {ganttViewScale === 'weeks' && Array.from({ length: numMonths }).map((_, mIdx) => {
+            return [1, 2, 3].map(wIdx => {
+              const x = leftPaneWidth + mIdx * monthWidth + wIdx * (monthWidth / 4);
+              return (
+                <line key={`w_line_${mIdx}_${wIdx}`} x1={x} y1="52" x2={x} y2={totalHeight - 30} stroke="var(--divider)" strokeOpacity="0.3" strokeDasharray="2,4" />
+              );
+            });
+          })}
+
+          {ganttViewScale === 'days' && Array.from({ length: numMonths }).map((_, mIdx) => {
+            return Array.from({ length: 30 }).map((_, dIdx) => {
+              const x = leftPaneWidth + mIdx * monthWidth + (dIdx + 1) * dayWidth;
+              return (
+                <line key={`d_line_${mIdx}_${dIdx}`} x1={x} y1="52" x2={x} y2={totalHeight - 30} stroke="var(--divider)" strokeOpacity="0.15" strokeDasharray="2,4" />
+              );
+            });
+          })}
+
+          {/* 4. Orthogonal Stepped Dependency Connectors */}
+          {tasks.map((task, idx) => {
+            if (!task.dependencies || task.dependencies.length === 0) return null;
+            const layout = taskLayoutMap[task.name];
+            if (!layout) return null;
+
+            return task.dependencies.map((depName, depIdx) => {
+              const depTask = tasks.find(pt => pt.name === depName);
+              const depLayout = taskLayoutMap[depName];
+              if (!depTask || !depLayout) return null;
+
+              const wpKey = `${depName}->${task.name}`;
+
+              const pathInfo = computeGanttDependencyPath(
+                depTask,
+                depLayout,
+                task,
+                layout,
+                tasks,
+                taskLayoutMap,
+                leftPaneWidth,
+                ganttWaypoints
+              );
+
+              return (
+                <g key={`${idx}_${depIdx}`} className="gantt-dependency-group">
+                  <path
+                    d={pathInfo.d}
+                    fill="none"
+                    stroke="var(--primary-main)"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <polygon
+                    points={`${pathInfo.arrowTipX},${pathInfo.yEnd} ${pathInfo.arrowBaseX},${pathInfo.yEnd - 4.5} ${pathInfo.arrowBaseX},${pathInfo.yEnd + 4.5}`}
+                    fill="var(--primary-main)"
+                  />
+                  {!isPreview && pathInfo.handles.map(handle => {
+                    const handleKey = `${wpKey}::${handle.id}`;
+                    return (
+                      <circle
+                        key={handle.id}
+                        className={`gantt-waypoint-handle ${draggingWaypoint === handleKey ? 'active' : ''}`}
+                        cx={handle.cx}
+                        cy={handle.cy}
+                        r={5}
+                        fill={draggingWaypoint === handleKey ? '#fff' : 'var(--primary-main)'}
+                        stroke="#1e1e1e"
+                        strokeWidth="1.5"
+                        cursor="grab"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setDraggingWaypoint(handleKey);
+                        }}
+                      />
+                    );
+                  })}
+                </g>
+              );
+            });
+          })}
+
+          {/* Active Connecting Line while dragging from connector */}
+          {ganttDragState && ganttDragState.type === 'connect' && (
+            <g>
+              <path
+                d={`M ${ganttDragState.startCanvasX} ${ganttDragState.startCanvasY} C ${ganttDragState.startCanvasX + 40} ${ganttDragState.startCanvasY}, ${ganttDragState.currentCanvasX - 40} ${ganttDragState.currentCanvasY}, ${ganttDragState.currentCanvasX} ${ganttDragState.currentCanvasY}`}
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="2.5"
+                strokeDasharray="5,5"
+              />
+              <circle cx={ganttDragState.currentCanvasX} cy={ganttDragState.currentCanvasY} r="6" fill="#10b981" />
+            </g>
+          )}
+
+          {/* 5. Render Sections and Tasks */}
+          {sections.map((section, secIdx) => {
+            const sectionTasks = tasks.filter(t => t.section === section);
+            const firstTaskLayout = sectionTasks.length > 0 ? taskLayoutMap[sectionTasks[0].name] : null;
+            const sectionHeaderY = firstTaskLayout ? firstTaskLayout.y - 20 : 70;
+
+            const isSecVisible = showSectionHeader(section);
+
             return (
-              <line key={`d_line_${mIdx}_${dIdx}`} x1={x} y1="45" x2={x} y2="760" stroke="var(--divider)" strokeOpacity="0.15" strokeDasharray="2,4" />
-            );
-          });
-        })}
+              <g key={secIdx}>
+                {/* Section Header */}
+                {isSecVisible && (
+                  <g>
+                    <text x="24" y={sectionHeaderY} fill="var(--primary-main)" fontSize="12" fontWeight="800" letterSpacing="0.08em" textTransform="uppercase">
+                      📂 {section}
+                    </text>
+                    {!isPreview && (
+                      <g
+                        cursor="pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCode(prev => insertGanttTaskInSectionInCode(prev, section));
+                        }}
+                      >
+                        <rect
+                          x={leftPaneWidth - 68}
+                          y={sectionHeaderY - 13}
+                          width="50"
+                          height="18"
+                          rx="4"
+                          fill="var(--primary-main)"
+                          fillOpacity="0.12"
+                          stroke="var(--primary-main)"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={leftPaneWidth - 43}
+                          y={sectionHeaderY - 1}
+                          textAnchor="middle"
+                          fill="var(--primary-main)"
+                          fontSize="10"
+                          fontWeight="700"
+                        >
+                          + Task
+                        </text>
+                        <title>Add Task to {section}</title>
+                      </g>
+                    )}
+                  </g>
+                )}
 
-        {/* Horizontal guide dotted lines under each task row separator */}
-        {tasks.map((task, idx) => (
-          <line
-            key={`guide_${idx}`}
-            x1="15"
-            y1={task.y + 36}
-            x2={svgWidth - 15}
-            y2={task.y + 36}
-            stroke="var(--text-secondary)"
-            strokeOpacity="0.55"
-            strokeDasharray="3,3"
-            strokeWidth="1.2"
-          />
-        ))}
-        {/* Bottom Horizontal Divider to close the grid frame horizontally */}
-        <line x1="15" y1="760" x2={svgWidth - 15} y2="760" stroke="var(--divider)" strokeOpacity="0.6" strokeWidth="1.5" />        {/* 4. Orthogonal Stepped Dependency Connectors (routed to never cross task bars) */}
-        {tasks.map((task, idx) => {
-          if (!task.dependencies || task.dependencies.length === 0) return null;
-          return task.dependencies.map((depName, depIdx) => {
-            const depTask = tasks.find(pt => pt.name === depName);
-            if (!depTask || depTask.x === undefined || depTask.y === undefined) return null;
+                {sectionTasks.map((task, taskIdx) => {
+                  const layout = taskLayoutMap[task.name];
+                  if (!layout) return null;
 
-            const xStart = depTask.x + depTask.width;
-            const yStart = depTask.y + 10;
-            const xEnd = task.x;
-            const yEnd = task.y + 10;
+                  const y = layout.y;
+                  let width = layout.width;
+                  let x = layout.x;
 
-            const yGap = depTask.y + 26; // bottom gap of the 20px bar in 48px rowHeight
-            const arrowTipX = xEnd;
-            const arrowBaseX = xEnd - 8;
+                  const isBeingMoved = ganttDragState && ganttDragState.taskName === task.name && ganttDragState.type === 'move';
+                  const isBeingResizedRight = ganttDragState && ganttDragState.taskName === task.name && ganttDragState.type === 'resize-right';
+                  const isBeingResizedLeft = ganttDragState && ganttDragState.taskName === task.name && ganttDragState.type === 'resize-left';
 
-            const wpKey = `${depName}->${task.name}`;
-            const wp = ganttWaypoints[wpKey];
+                  let displayStartDate = task.startDateStr;
+                  let displayEndDate = task.endDateStr;
+                  let displayDuration = task.duration;
 
-            const generateRoundedPath = (x1, y1, x2, y2, gapY) => {
-              const r = 6;
-              const rightPad = 12;
-              const leftPad = 12;
+                  if (isBeingMoved) {
+                    const deltaX = (ganttDragState.currentClientX || ganttDragState.startClientX) - ganttDragState.startClientX;
+                    const daysShift = Math.round(deltaX / (dayWidth * zoomScale));
+                    x = x + daysShift * dayWidth;
+                    displayStartDate = addDaysToGanttDate(task.startDateStr, daysShift);
+                    displayEndDate = addDaysToGanttDate(task.endDateStr, daysShift);
+                  } else if (isBeingResizedRight) {
+                    const deltaX = (ganttDragState.currentClientX || ganttDragState.startClientX) - ganttDragState.startClientX;
+                    const daysShift = Math.round(deltaX / (dayWidth * zoomScale));
+                    let newEndDate = addDaysToGanttDate(task.endDateStr, daysShift);
+                    if (newEndDate <= task.startDateStr) {
+                      newEndDate = addDaysToGanttDate(task.startDateStr, 1);
+                    }
+                    displayEndDate = newEndDate;
+                    displayDuration = getDaysBetweenGanttDates(task.startDateStr, displayEndDate);
+                    width = Math.max(dayWidth, displayDuration * dayWidth);
+                  } else if (isBeingResizedLeft) {
+                    const deltaX = (ganttDragState.currentClientX || ganttDragState.startClientX) - ganttDragState.startClientX;
+                    const daysShift = Math.round(deltaX / (dayWidth * zoomScale));
+                    let newStartDate = addDaysToGanttDate(task.startDateStr, daysShift);
+                    if (newStartDate >= task.endDateStr) {
+                      newStartDate = addDaysToGanttDate(task.endDateStr, -1);
+                    }
+                    displayStartDate = newStartDate;
+                    displayDuration = getDaysBetweenGanttDates(displayStartDate, task.endDateStr);
+                    const sDate = parseGanttDate(displayStartDate);
+                    if (sDate) {
+                      const m = sDate.getMonth();
+                      const y = sDate.getFullYear();
+                      const d = sDate.getDate();
+                      const monthDiff = (y - yStart) * 12 + (m - mStart);
+                      x = leftPaneWidth + monthDiff * monthWidth + (d - 1) * dayWidth;
+                    }
+                    width = Math.max(dayWidth, displayDuration * dayWidth);
+                  }
 
-              if (y2 <= y1 + r) {
-                return { d: `M ${x1} ${y1} H ${x1 + rightPad} V ${gapY} H ${x2 - leftPad} V ${y2} H ${x2}`, handles: [] };
-              }
+                  const isSelected = selectedGanttTask === task.name;
+                  const isHovered = ganttHoveredTask === task.name;
+                  const isConnectTarget = ganttDragState && ganttDragState.type === 'connect' && ganttDragState.taskName !== task.name && isHovered;
 
-              if (x1 + rightPad + r * 2 <= x2 - leftPad) {
-                // Forward route
-                let xDrop = x1 + rightPad;
-                if (wp && wp.xDrop !== undefined) xDrop = Math.max(x1 + r, Math.min(x2 - r, wp.xDrop));
-                
-                return {
-                  d: `M ${x1} ${y1} L ${xDrop - r} ${y1} A ${r} ${r} 0 0 1 ${xDrop} ${y1 + r} L ${xDrop} ${y2 - r} A ${r} ${r} 0 0 0 ${xDrop + r} ${y2} L ${x2} ${y2}`,
-                  handles: [
-                    { id: 'xDrop', cx: xDrop, cy: (y1 + y2) / 2 }
-                  ]
-                };
-              } else {
-                // Backward route
-                let xDrop1 = x1 + rightPad;
-                if (wp && wp.xDrop1 !== undefined) xDrop1 = Math.max(x1 + r, wp.xDrop1);
+                  const paletteEntry = GANTT_PALETTE[(layout ? layout.globalIndex : taskIdx) % GANTT_PALETTE.length];
+                  let barColor = task.color || paletteEntry.color;
+                  let strokeColor = task.color ? (GANTT_PALETTE.find(p => p.color === task.color)?.border || task.color) : paletteEntry.border;
 
-                let customGapY = gapY;
-                if (wp && wp.gapY !== undefined) customGapY = wp.gapY;
+                  if (task.isMilestone || task.duration === 0) {
+                    barColor = task.color || '#EF4444';
+                    strokeColor = '#DC2626';
+                  }
 
-                let xDrop2 = x2 - leftPad;
-                if (wp && wp.xDrop2 !== undefined) xDrop2 = Math.min(x2 - r, wp.xDrop2);
-
-                return {
-                  d: `M ${x1} ${y1} L ${xDrop1 - r} ${y1} A ${r} ${r} 0 0 1 ${xDrop1} ${y1 + r} L ${xDrop1} ${customGapY - r} A ${r} ${r} 0 0 1 ${xDrop1 - r} ${customGapY} L ${xDrop2 + r} ${customGapY} A ${r} ${r} 0 0 0 ${xDrop2} ${customGapY + r} L ${xDrop2} ${y2 - r} A ${r} ${r} 0 0 0 ${xDrop2 + r} ${y2} L ${x2} ${y2}`,
-                  handles: [
-                    { id: 'xDrop1', cx: xDrop1, cy: (y1 + customGapY) / 2 },
-                    { id: 'gapY', cx: (xDrop1 + xDrop2) / 2, cy: customGapY },
-                    { id: 'xDrop2', cx: xDrop2, cy: (customGapY + y2) / 2 }
-                  ]
-                };
-              }
-            };
-
-            const pathInfo = generateRoundedPath(xStart, yStart, arrowBaseX, yEnd, yGap);
-
-            return (
-              <g key={`${idx}_${depIdx}`} className="gantt-dependency-group">
-                {/* Canva-style Rounded Orthogonal Line */}
-                <path
-                  d={pathInfo.d}
-                  fill="none"
-                  stroke="var(--primary-main)"
-                  strokeWidth="2.2"
-                />
-                {/* Manual Arrowhead pointing right */}
-                <polygon
-                  points={`${arrowTipX},${yEnd} ${arrowBaseX},${yEnd - 4.5} ${arrowBaseX},${yEnd + 4.5}`}
-                  fill="var(--primary-main)"
-                />
-                {/* Draggable Control Handles */}
-                {pathInfo.handles.map(handle => {
-                  const handleKey = `${wpKey}::${handle.id}`;
                   return (
-                    <circle
-                      key={handle.id}
-                      className={`gantt-waypoint-handle ${draggingWaypoint === handleKey ? 'active' : ''}`}
-                      cx={handle.cx}
-                      cy={handle.cy}
-                      r={5}
-                      fill={draggingWaypoint === handleKey ? '#fff' : 'var(--primary-main)'}
-                      stroke="#1e1e1e"
-                      strokeWidth="1.5"
-                      cursor="grab"
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        setDraggingWaypoint(handleKey);
+                    <g
+                      key={task.name}
+                      onMouseEnter={() => {
+                        setGanttHoveredTask(task.name);
+                        if (ganttDragState && ganttDragState.type === 'connect' && ganttDragState.taskName !== task.name) {
+                          setGanttDragState(prev => prev ? ({ ...prev, targetTaskName: task.name }) : null);
+                        }
                       }}
-                    />
+                      onMouseLeave={() => {
+                        if (ganttHoveredTask === task.name) setGanttHoveredTask(null);
+                        if (ganttDragState && ganttDragState.type === 'connect' && ganttDragState.targetTaskName === task.name) {
+                          setGanttDragState(prev => prev ? ({ ...prev, targetTaskName: null }) : null);
+                        }
+                      }}
+                    >
+                      {/* Row Guide Line */}
+                      <line
+                        x1="15"
+                        y1={y + 36}
+                        x2={svgWidth - 15}
+                        y2={y + 36}
+                        stroke="var(--text-secondary)"
+                        strokeOpacity="0.25"
+                        strokeDasharray="3,3"
+                        strokeWidth="1"
+                      />
+
+                      {/* Left Task Row Info */}
+                      <g
+                        className="gantt-side-row gantt-interactive-element"
+                        style={{ cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedGanttTask(task.name);
+                        }}
+                        onMouseDown={(e) => {
+                          if (e.target.closest('button') || e.target.closest('[cursor="pointer"]')) return;
+                          e.stopPropagation();
+                          setSelectedGanttTask(task.name);
+                        }}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          setGanttInlineEditingTask(task.name);
+                          setGanttInlineEditingText(task.name);
+                        }}
+                      >
+                        {/* Hover / Selected highlight background */}
+                        {(isSelected || isHovered) && (
+                          <rect
+                            x="16"
+                            y={y - 2}
+                            width={leftPaneWidth - 28}
+                            height="28"
+                            rx="6"
+                            fill={isSelected ? 'var(--primary-main)' : 'var(--text-secondary)'}
+                            fillOpacity={isSelected ? 0.15 : 0.08}
+                          />
+                        )}
+
+                        {/* Drag Reorder Handle */}
+                        {!isPreview && (
+                          <text
+                            x="20"
+                            y={y + 16}
+                            fill="var(--text-secondary)"
+                            fontSize="13"
+                            cursor="grab"
+                            opacity={isHovered || isSelected ? 1 : 0.6}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setGanttDragState({
+                                type: 'reorder',
+                                taskName: task.name,
+                                sourceIndex: layout.globalIndex,
+                                targetIndex: layout.globalIndex
+                              });
+                            }}
+                          >
+                            ⋮⋮
+                          </text>
+                        )}
+
+                        {/* Color Dot */}
+                        <circle cx="38" cy={y + 11} r="4" fill={barColor} />
+
+                        {/* Task Name */}
+                        <text
+                          x="48"
+                          y={y + 15}
+                          fill="var(--text-primary)"
+                          fontSize="12"
+                          fontWeight={isSelected ? '700' : '600'}
+                        >
+                          {task.name}
+                        </text>
+
+                        {/* Side Controls: Rename (Pen) and Delete (Trashcan) */}
+                        {!isPreview && (
+                          <g opacity={isHovered || isSelected ? 1 : 0} style={{ transition: 'opacity 0.15s ease' }}>
+                            {/* Edit / Rename Button */}
+                            <g
+                              cursor="pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setGanttInlineEditingTask(task.name);
+                                setGanttInlineEditingText(task.name);
+                              }}
+                            >
+                              <rect
+                                x={leftPaneWidth - 58}
+                                y={y + 1}
+                                width="20"
+                                height="20"
+                                rx="4"
+                                fill="var(--background-paper)"
+                                stroke="var(--divider)"
+                                strokeWidth="1"
+                              />
+                              <g transform={`translate(${leftPaneWidth - 58 + 4}, ${y + 1 + 4}) scale(0.5)`}>
+                                <path
+                                  d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                                  fill="none"
+                                  stroke="var(--text-secondary)"
+                                  strokeWidth="2.2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </g>
+                              <title>Rename Task</title>
+                            </g>
+
+                            {/* Delete Button */}
+                            <g
+                              cursor="pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCode(prev => deleteGanttTaskInCode(prev, task.name));
+                                if (selectedGanttTask === task.name) {
+                                  setSelectedGanttTask(null);
+                                }
+                              }}
+                            >
+                              <rect
+                                x={leftPaneWidth - 34}
+                                y={y + 1}
+                                width="20"
+                                height="20"
+                                rx="4"
+                                fill="rgba(239, 68, 68, 0.15)"
+                                stroke="#ef4444"
+                                strokeWidth="0.8"
+                              />
+                              <g transform={`translate(${leftPaneWidth - 34 + 4}, ${y + 1 + 4}) scale(0.5)`}>
+                                <path
+                                  d="M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6"
+                                  fill="none"
+                                  stroke="#ef4444"
+                                  strokeWidth="2.2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </g>
+                              <title>Delete Task</title>
+                            </g>
+                          </g>
+                        )}
+                      </g>
+
+                      {/* Gantt Bar / Milestone */}
+                      {task.isMilestone || task.duration === 0 ? (
+                        // Milestone Diamond
+                        <g
+                          className="gantt-bar-group gantt-interactive-element"
+                          style={{ cursor: isBeingMoved ? 'grabbing' : 'grab' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedGanttTask(task.name);
+                          }}
+                          onMouseDown={(e) => {
+                            if (isPreview) return;
+                            e.stopPropagation();
+                            setSelectedGanttTask(task.name);
+                            setGanttDragState({
+                              type: 'move',
+                              taskName: task.name,
+                              startClientX: e.clientX,
+                              startClientY: e.clientY,
+                              dayWidth,
+                              origStartDate: task.startDateStr,
+                              origEndDate: task.endDateStr,
+                              origDuration: 0
+                            });
+                          }}
+                        >
+                          <polygon
+                            points={`${x},${y + 12} ${x + 11},${y} ${x + 22},${y + 12} ${x + 11},${y + 24}`}
+                            fill={barColor}
+                            stroke={isSelected ? '#ffffff' : strokeColor}
+                            strokeWidth={isSelected ? 2.5 : 1.5}
+                            style={{ filter: isSelected ? 'drop-shadow(0 0 8px rgba(239, 83, 80, 0.6))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}
+                          />
+                          <text x={x + 30} y={y + 16} fill="var(--text-secondary)" fontSize="11" fontWeight="700">
+                            🚩 Milestone ({displayStartDate})
+                          </text>
+                        </g>
+                      ) : (
+                        // Regular Task Bar Group
+                        <g
+                          className="gantt-bar-group gantt-interactive-element"
+                          style={{ cursor: isBeingMoved ? 'grabbing' : 'grab' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedGanttTask(task.name);
+                          }}
+                          onMouseDown={(e) => {
+                            if (isPreview) return;
+                            if (e.target.closest('.gantt-resize-handle') || e.target.closest('.gantt-connect-port')) return;
+                            e.stopPropagation();
+                            setSelectedGanttTask(task.name);
+                            setGanttDragState({
+                              type: 'move',
+                              taskName: task.name,
+                              startClientX: e.clientX,
+                              startClientY: e.clientY,
+                              dayWidth,
+                              origStartDate: task.startDateStr,
+                              origEndDate: task.endDateStr,
+                              origDuration: task.duration
+                            });
+                          }}
+                        >
+                          {/* Canva Selection Accent Border */}
+                          {isSelected && !isPreview && (
+                            <rect
+                              x={x - 4}
+                              y={y - 3}
+                              width={width + 8}
+                              height="30"
+                              rx="10"
+                              fill="none"
+                              stroke="var(--primary-main)"
+                              strokeWidth="2"
+                              strokeDasharray="4 2"
+                              style={{ pointerEvents: 'none' }}
+                            />
+                          )}
+
+                          {/* Connect Target Highlight */}
+                          {isConnectTarget && (
+                            <rect
+                              x={x - 5}
+                              y={y - 4}
+                              width={width + 10}
+                              height="32"
+                              rx="11"
+                              fill="rgba(16, 185, 129, 0.2)"
+                              stroke="#10b981"
+                              strokeWidth="2.5"
+                              style={{ pointerEvents: 'none' }}
+                            />
+                          )}
+
+                          {/* Main Task Bar Rect */}
+                          <rect
+                            x={x}
+                            y={y}
+                            width={width}
+                            height="24"
+                            rx="8"
+                            fill={barColor}
+                            stroke={isSelected ? '#ffffff' : strokeColor}
+                            strokeWidth={isSelected ? '2' : '1'}
+                            style={{
+                              filter: isSelected ? 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))' : 'drop-shadow(0 2px 5px rgba(0,0,0,0.18))',
+                              transition: isBeingMoved || isBeingResizedRight || isBeingResizedLeft ? 'none' : 'fill 0.2s ease, stroke 0.2s ease',
+                              cursor: isBeingMoved ? 'grabbing' : 'grab'
+                            }}
+                          />
+
+                          {/* Inside Bar Text */}
+                          {width > 60 && (
+                            <text
+                              x={x + 14}
+                              y={y + 16}
+                              fill="#ffffff"
+                              fontSize="11"
+                              fontWeight="700"
+                              style={{ pointerEvents: 'none', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
+                            >
+                              {task.name.length > Math.floor(width / 9) ? task.name.substring(0, Math.floor(width / 9) - 2) + '..' : task.name}
+                            </text>
+                          )}
+
+                          {/* Duration Badge on the Right */}
+                          <text x={x + width + 14} y={y + 16} fill="var(--text-secondary)" fontSize="10" fontWeight="700" style={{ pointerEvents: 'none' }}>
+                            {displayDuration}d
+                          </text>
+
+                          {/* Left Resize Handle Zone (Expand / Contract Start Date) */}
+                          {!isPreview && (
+                            <g
+                              className="gantt-resize-handle"
+                              cursor="ew-resize"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedGanttTask(task.name);
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                setSelectedGanttTask(task.name);
+                                setGanttDragState({
+                                  type: 'resize-left',
+                                  taskName: task.name,
+                                  startClientX: e.clientX,
+                                  startClientY: e.clientY,
+                                  dayWidth,
+                                  origStartDate: task.startDateStr,
+                                  origEndDate: task.endDateStr,
+                                  origDuration: task.duration
+                                });
+                              }}
+                            >
+                              {/* Invisible Generous Touch Target */}
+                              <rect
+                                x={x - 6}
+                                y={y - 2}
+                                width="18"
+                                height="28"
+                                fill="transparent"
+                              />
+                              {/* Visible Grip Bar */}
+                              {(isSelected || isHovered || isBeingResizedLeft) && (
+                                <g>
+                                  <rect
+                                    x={x - 3}
+                                    y={y + 3}
+                                    width="6"
+                                    height="18"
+                                    rx="3"
+                                    fill="#ffffff"
+                                    stroke="var(--primary-main)"
+                                    strokeWidth="1.5"
+                                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+                                  />
+                                </g>
+                              )}
+                            </g>
+                          )}
+
+                          {/* Right Resize Handle Zone (Expand / Contract End Date) */}
+                          {!isPreview && (
+                            <g
+                              className="gantt-resize-handle"
+                              cursor="ew-resize"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedGanttTask(task.name);
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                setSelectedGanttTask(task.name);
+                                setGanttDragState({
+                                  type: 'resize-right',
+                                  taskName: task.name,
+                                  startClientX: e.clientX,
+                                  startClientY: e.clientY,
+                                  dayWidth,
+                                  origStartDate: task.startDateStr,
+                                  origEndDate: task.endDateStr,
+                                  origDuration: task.duration
+                                });
+                              }}
+                            >
+                              {/* Invisible Generous Touch Target */}
+                              <rect
+                                x={x + width - 12}
+                                y={y - 2}
+                                width="18"
+                                height="28"
+                                fill="transparent"
+                              />
+                              {/* Visible Grip Bar */}
+                              {(isSelected || isHovered || isBeingResizedRight) && (
+                                <g>
+                                  <rect
+                                    x={x + width - 3}
+                                    y={y + 3}
+                                    width="6"
+                                    height="18"
+                                    rx="3"
+                                    fill="#ffffff"
+                                    stroke="var(--primary-main)"
+                                    strokeWidth="1.5"
+                                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+                                  />
+                                </g>
+                              )}
+                            </g>
+                          )}
+
+                          {/* Dependency Connector Port (Right Edge) */}
+                          {!isPreview && (isSelected || isHovered) && (
+                            <circle
+                              className="gantt-connect-port"
+                              cx={x + width + 8}
+                              cy={y + 12}
+                              r="5.5"
+                              fill="var(--primary-main)"
+                              stroke="#ffffff"
+                              strokeWidth="1.5"
+                              cursor="crosshair"
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                setSelectedGanttTask(task.name);
+                                const rect = canvasContainerRef.current?.getBoundingClientRect();
+                                const cX = rect ? (canvasContainerRef.current.scrollLeft + (e.clientX - rect.left)) / zoomScale : e.clientX;
+                                const cY = rect ? (canvasContainerRef.current.scrollTop + (e.clientY - rect.top)) / zoomScale : e.clientY;
+                                setGanttDragState({
+                                  type: 'connect',
+                                  taskName: task.name,
+                                  startCanvasX: x + width + 8,
+                                  startCanvasY: y + 12,
+                                  currentCanvasX: cX,
+                                  currentCanvasY: cY
+                                });
+                              }}
+                            />
+                          )}
+                        </g>
+                      )}
+                    </g>
                   );
                 })}
               </g>
             );
-          });
-        })}
+          })}
+          {/* 6. Dynamic Date Guidelines while Dragging, Resizing, or Selecting */}
+          {activeGuideline && !isPreview && (
+            <g className="gantt-active-guidelines" pointerEvents="none">
+              {/* Highlight Column Band */}
+              {!activeGuideline.isMilestone && (
+                <rect
+                  x={activeGuideline.startX}
+                  y="52"
+                  width={Math.max(1, activeGuideline.endX - activeGuideline.startX)}
+                  height={totalHeight - 52}
+                  fill="var(--primary-main)"
+                  fillOpacity="0.07"
+                />
+              )}
 
-        {/* 5. Render Sections and Tasks */}
-        {sections.map((section, secIdx) => {
-          const sectionTasks = tasks.filter(t => t.section === section);
+              {/* Start Date Guideline Line */}
+              <line
+                x1={activeGuideline.startX}
+                y1="0"
+                x2={activeGuideline.startX}
+                y2={totalHeight}
+                stroke="var(--primary-main)"
+                strokeWidth="1.8"
+                strokeDasharray="4,3"
+                strokeOpacity="0.95"
+              />
 
-          return (
-            <g key={secIdx}>
-              {sectionTasks.map((task, taskIdx) => {
-                const y = task.y;
-                const width = task.width;
-                const x = task.x;
+              {/* End Date Guideline Line (if regular task) */}
+              {!activeGuideline.isMilestone && (
+                <line
+                  x1={activeGuideline.endX}
+                  y1="0"
+                  x2={activeGuideline.endX}
+                  y2={totalHeight}
+                  stroke="var(--primary-main)"
+                  strokeWidth="1.8"
+                  strokeDasharray="4,3"
+                  strokeOpacity="0.95"
+                />
+              )}
 
-                // Alternate between solid blue and orange bars matching the reference image
-                let barColor = taskIdx % 2 === 0 ? '#0D6EFD' : '#FFA726';
-                let strokeColor = taskIdx % 2 === 0 ? '#0B5ED7' : '#FB8C00';
-
-                if (task.duration === 0) {
-                  // Milestone
-                  barColor = 'rgba(239,83,80,0.2)';
-                  strokeColor = '#EF5350';
-                } else if (task.status === 'done') {
-                  barColor = 'rgba(255,255,255,0.04)';
-                  strokeColor = 'rgba(255,255,255,0.3)';
-                }
-
-                return (
-                  <g key={taskIdx}>
-                    {/* Task Name Label (Left sidebar area) */}
-                    <text x="25" y={y + 14} fill="var(--text-primary)" fontSize="11" fontWeight="600">
-                      {task.name}
-                    </text>
-
-                    {/* Gantt Bar */}
-                    {task.duration === 0 ? (
-                      // Milestone Diamond shape
-                      <polygon
-                        points={`${x},${y + 10} ${x + 10},${y} ${x + 20},${y + 10} ${x + 10},${y + 20}`}
-                        fill={barColor}
-                        stroke={strokeColor}
-                        strokeWidth="1.5"
-                      />
-                    ) : (
-                      // Task rectangular bar
-                      <rect
-                        x={x}
-                        y={y}
-                        width={width}
-                        height="20"
-                        rx="6"
-                        fill={barColor}
-                        stroke={strokeColor}
-                        strokeWidth="1.5"
-                      />
-                    )}
-
-                    {/* Duration Text */}
-                    <text x={x + (task.duration === 0 ? 32 : width + 22)} y={y + 13} fill="var(--text-secondary)" fontSize="10" fontWeight="bold">
-                      {task.duration === 0 ? 'Milestone' : `${task.duration}d`}
+              {/* Top Floating Date Badges */}
+              {activeGuideline.isMilestone ? (
+                <g transform={`translate(${activeGuideline.startX + 11}, 24)`}>
+                  <rect
+                    x="-52"
+                    y="-11"
+                    width="104"
+                    height="22"
+                    rx="6"
+                    fill="#dc2626"
+                    stroke="#ffffff"
+                    strokeWidth="1.5"
+                    style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.35))' }}
+                  />
+                  <text
+                    x="0"
+                    y="4"
+                    textAnchor="middle"
+                    fill="#ffffff"
+                    fontSize="10"
+                    fontWeight="800"
+                    fontFamily="'Outfit', sans-serif"
+                  >
+                    🚩 {activeGuideline.startDate}
+                  </text>
+                </g>
+              ) : (
+                <>
+                  {/* Start Date Badge */}
+                  <g transform={`translate(${activeGuideline.startX}, 24)`}>
+                    <rect
+                      x="-44"
+                      y="-11"
+                      width="88"
+                      height="22"
+                      rx="6"
+                      fill="var(--primary-main)"
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
+                      style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.35))' }}
+                    />
+                    <text
+                      x="0"
+                      y="4"
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="10"
+                      fontWeight="800"
+                      fontFamily="'Outfit', sans-serif"
+                    >
+                      {activeGuideline.startDate}
                     </text>
                   </g>
-                );
-              })}
+
+                  {/* End Date Badge */}
+                  <g transform={`translate(${activeGuideline.endX}, 24)`}>
+                    <rect
+                      x="-44"
+                      y="-11"
+                      width="88"
+                      height="22"
+                      rx="6"
+                      fill="var(--primary-main)"
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
+                      style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.35))' }}
+                    />
+                    <text
+                      x="0"
+                      y="4"
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="10"
+                      fontWeight="800"
+                      fontFamily="'Outfit', sans-serif"
+                    >
+                      {activeGuideline.endDate}
+                    </text>
+                  </g>
+                </>
+              )}
             </g>
-          );
-        })}
-      </svg>
+          )}
+        </svg>
+
+        {/* 6. Inline Renaming Modal/Input when Double-Clicked */}
+        {ganttInlineEditingTask && (
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 9999,
+              background: 'var(--background-paper)',
+              padding: '20px 24px',
+              borderRadius: '16px',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+              border: '1px solid var(--divider)',
+              minWidth: '320px'
+            }}
+          >
+            <Typography variant="subtitle2" style={{ fontWeight: 800, marginBottom: '8px', color: 'var(--text-primary)' }}>
+              Rename Task
+            </Typography>
+            <TextField
+              autoFocus
+              fullWidth
+              size="small"
+              value={ganttInlineEditingText}
+              onChange={(e) => setGanttInlineEditingText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (ganttInlineEditingText.trim()) {
+                    setCode(prev => updateGanttTaskInCode(prev, ganttInlineEditingTask, { name: ganttInlineEditingText.trim() }));
+                    if (selectedGanttTask === ganttInlineEditingTask) {
+                      setSelectedGanttTask(ganttInlineEditingText.trim());
+                    }
+                  }
+                  setGanttInlineEditingTask(null);
+                } else if (e.key === 'Escape') {
+                  setGanttInlineEditingTask(null);
+                }
+              }}
+              style={{ marginBottom: '16px' }}
+            />
+            <Box style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <Button size="small" onClick={() => setGanttInlineEditingTask(null)} style={{ textTransform: 'none' }}>
+                Cancel
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => {
+                  if (ganttInlineEditingText.trim()) {
+                    setCode(prev => updateGanttTaskInCode(prev, ganttInlineEditingTask, { name: ganttInlineEditingText.trim() }));
+                    if (selectedGanttTask === ganttInlineEditingTask) {
+                      setSelectedGanttTask(ganttInlineEditingText.trim());
+                    }
+                  }
+                  setGanttInlineEditingTask(null);
+                }}
+                style={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                Save
+              </Button>
+            </Box>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -6463,7 +7979,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           >
             <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <Typography variant="subtitle2" style={{ fontWeight: 800, color: 'var(--text-secondary)', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                SOURCE CODE ({activeTabTitle})
+                SOURCE CODE
               </Typography>
               <Tooltip title="Generate diagram DSL code with ChatGPT AI">
                 <Button
@@ -6756,24 +8272,170 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                     </Button>
                   </>
                 )}
-                {activeTabKey === 'gantt' && (
-                  <>
-                    <Select
-                      size="small"
-                      value={ganttViewScale}
-                      onChange={(e) => setGanttViewScale(e.target.value)}
-                      style={{ height: '28px', color: 'var(--text-primary)', fontSize: '0.75rem', marginRight: '8px', background: 'var(--background-paper)', border: '1px solid var(--divider)', borderRadius: '6px' }}
-                      MenuProps={{ PaperProps: { style: { backgroundColor: 'var(--background-paper)', color: 'var(--text-primary)' } } }}
-                    >
-                      <MenuItem value="days">Days</MenuItem>
-                      <MenuItem value="weeks">Weeks</MenuItem>
-                      <MenuItem value="months">Months</MenuItem>
-                    </Select>
-                    <Button variant="contained" size="small" color="primary" startIcon={<AddIcon style={{ fontSize: '0.9rem' }} />} onClick={() => setIsAddTaskOpen(true)} style={{ marginRight: '8px', marginLeft: '4px', borderRadius: '6px', textTransform: 'none', height: '28px', fontSize: '0.72rem', background: 'var(--primary-main)', fontWeight: 800 }}>
-                      Add Task
-                    </Button>
-                  </>
-                )}
+                {activeTabKey === 'gantt' && (() => {
+                  const ganttTasks = parseGantt(editorCode).tasks;
+                  const activeSelectedGanttTask = selectedGanttTask ? ganttTasks.find(t => t.name === selectedGanttTask) : null;
+                  const activeTaskIndex = activeSelectedGanttTask ? ganttTasks.findIndex(t => t.name === activeSelectedGanttTask.name) : 0;
+                  const activeEffectiveColor = activeSelectedGanttTask ? (activeSelectedGanttTask.color || GANTT_PALETTE[Math.max(0, activeTaskIndex) % GANTT_PALETTE.length].color) : '#0D6EFD';
+
+                  return (
+                    <>
+                      {/* Word-style Contextual Toolbar for Selected Task */}
+                      {activeSelectedGanttTask && (
+                        <Box
+                          className="gantt-top-selected-ribbon"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: isDarkMode ? 'rgba(30, 41, 59, 0.9)' : 'rgba(241, 245, 249, 0.95)',
+                            border: '1.5px solid var(--primary-main)',
+                            borderRadius: '8px',
+                            padding: '2px 8px',
+                            marginRight: '8px',
+                            animation: 'fadeIn 0.15s ease-out'
+                          }}
+                        >
+                          {/* Color Swatches */}
+                          <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                            {GANTT_PALETTE.map((p) => (
+                              <button
+                                key={p.label}
+                                title={`Set Color: ${p.label}`}
+                                onClick={() => setCode(prev => updateGanttTaskInCode(prev, activeSelectedGanttTask.name, { color: p.color }))}
+                                style={{
+                                  width: '14px',
+                                  height: '14px',
+                                  borderRadius: '50%',
+                                  background: p.color,
+                                  border: (activeEffectiveColor === p.color) ? '2px solid var(--text-primary)' : `1px solid ${p.border}`,
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                  outline: 'none',
+                                  transform: (activeEffectiveColor === p.color) ? 'scale(1.25)' : 'scale(1)',
+                                  transition: 'transform 0.1s ease'
+                                }}
+                              />
+                            ))}
+                          </div>
+
+                          <div style={{ width: '1px', height: '16px', background: 'var(--divider)' }} />
+
+                          {/* Milestone Toggle */}
+                          <button
+                            title={activeSelectedGanttTask.isMilestone ? "Convert to Regular Task" : "Convert to Milestone"}
+                            onClick={() => {
+                              if (activeSelectedGanttTask.isMilestone) {
+                                setCode(prev => updateGanttTaskInCode(prev, activeSelectedGanttTask.name, { isMilestone: false, duration: 5, endDateStr: addDaysToGanttDate(activeSelectedGanttTask.startDateStr, 5) }));
+                              } else {
+                                setCode(prev => updateGanttTaskInCode(prev, activeSelectedGanttTask.name, { isMilestone: true, duration: 0 }));
+                              }
+                            }}
+                            style={{
+                              background: activeSelectedGanttTask.isMilestone ? '#ef4444' : 'var(--background-paper)',
+                              border: '1px solid var(--divider)',
+                              color: activeSelectedGanttTask.isMilestone ? '#fff' : 'var(--text-primary)',
+                              borderRadius: '4px',
+                              padding: '1px 6px',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            🚩
+                          </button>
+
+                          {/* Dependencies Badges */}
+                          {activeSelectedGanttTask.dependencies && activeSelectedGanttTask.dependencies.length > 0 && (
+                            <div style={{ display: 'flex', gap: '3px' }}>
+                              {activeSelectedGanttTask.dependencies.map(dep => (
+                                <span
+                                  key={dep}
+                                  title={`Linked to: ${dep}. Click to remove dependency.`}
+                                  onClick={() => setCode(prev => removeGanttDependencyInCode(prev, activeSelectedGanttTask.name, dep))}
+                                  style={{
+                                    background: 'rgba(59, 130, 246, 0.15)',
+                                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                                    color: 'var(--primary-main)',
+                                    borderRadius: '10px',
+                                    padding: '1px 5px',
+                                    fontSize: '0.66rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '2px'
+                                  }}
+                                >
+                                  🔗 {dep} ×
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+
+
+                          {/* Delete Task */}
+                          <button
+                            title="Delete Selected Task"
+                            onClick={() => {
+                              setCode(prev => deleteGanttTaskInCode(prev, activeSelectedGanttTask.name));
+                              setSelectedGanttTask(null);
+                            }}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              color: '#ef4444',
+                              borderRadius: '4px',
+                              padding: '2px 5px',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 13 }} />
+                          </button>
+
+                          {/* Deselect / Close button */}
+                          <button
+                            title="Close (Deselect)"
+                            onClick={() => setSelectedGanttTask(null)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--text-secondary)',
+                              borderRadius: '4px',
+                              padding: '0 4px',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </Box>
+                      )}
+
+                      <Select
+                        size="small"
+                        value={ganttViewScale}
+                        onChange={(e) => setGanttViewScale(e.target.value)}
+                        style={{ height: '28px', color: 'var(--text-primary)', fontSize: '0.75rem', marginRight: '8px', background: 'var(--background-paper)', border: '1px solid var(--divider)', borderRadius: '6px' }}
+                        MenuProps={{ PaperProps: { style: { backgroundColor: 'var(--background-paper)', color: 'var(--text-primary)' } } }}
+                      >
+                        <MenuItem value="days">Days</MenuItem>
+                        <MenuItem value="weeks">Weeks</MenuItem>
+                        <MenuItem value="months">Months</MenuItem>
+                      </Select>
+                      <Button variant="contained" size="small" color="primary" startIcon={<AddIcon style={{ fontSize: '0.9rem' }} />} onClick={() => setIsAddTaskOpen(true)} style={{ marginRight: '8px', marginLeft: '4px', borderRadius: '6px', textTransform: 'none', height: '28px', fontSize: '0.72rem', background: 'var(--primary-main)', fontWeight: 800 }}>
+                        Add Task
+                      </Button>
+                    </>
+                  );
+                })()}
                 <Tooltip title="Fullscreen Visual Preview">
                   <IconButton size="small" onClick={() => setIsPreviewOpen(true)} style={{ color: 'var(--primary-main)' }}>
                     <PreviewIcon fontSize="small" />
@@ -6790,7 +8452,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Reset View">
-                  <IconButton size="small" onClick={() => { setZoomScale(0.8); if (canvasContainerRef.current) { canvasContainerRef.current.scrollLeft = 0; canvasContainerRef.current.scrollTop = 0; } }} style={{ color: 'var(--text-primary)' }}>
+                  <IconButton size="small" onClick={() => { setZoomScale(activeTabKey === 'activity' ? 0.65 : 1.0); if (canvasContainerRef.current) { canvasContainerRef.current.scrollLeft = 0; canvasContainerRef.current.scrollTop = 0; } }} style={{ color: 'var(--text-primary)' }}>
                     <ResetIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -6823,8 +8485,8 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               <Box
                 id="se-main-capture-content"
                 style={{
-                  width: `${(canvasDim.width + 200) * zoomScale}px`,
-                  height: `${(canvasDim.height + 300) * zoomScale}px`,
+                  width: activeTabKey === 'gantt' ? `${canvasDim.width * zoomScale}px` : `${(canvasDim.width + 100) * zoomScale}px`,
+                  height: activeTabKey === 'gantt' ? `${canvasDim.height * zoomScale}px` : `${(canvasDim.height + 100) * zoomScale}px`,
                   position: 'relative',
                   overflow: 'hidden',
                   pointerEvents: 'none'
@@ -7627,24 +9289,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
             >
               {isCopied ? 'Copied!' : 'Copy Code'}
             </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<DownloadIcon />}
-              onClick={handleDownloadSvg}
-              disabled={!!error}
-              style={{
-                borderColor: 'var(--divider)',
-                color: 'var(--text-primary)',
-                borderRadius: '8px',
-                textTransform: 'none',
-                height: '34px',
-                fontSize: '0.8rem',
-                marginRight: '6px'
-              }}
-            >
-              Download SVG
-            </Button>
+
             <Button
               variant="contained"
               size="small"
@@ -7741,9 +9386,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                 <MenuItem value="midnight">Midnight Shimmer</MenuItem>
               </Select>
 
-              <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleDownloadPreviewSvg} style={{ borderRadius: '12px', fontWeight: 800, height: '40px', textTransform: 'none' }}>
-                Download SVG
-              </Button>
+
               <Button variant="contained" color="primary" startIcon={<DownloadIcon />} onClick={handleDownloadPreviewPng} style={{ borderRadius: '12px', fontWeight: 800, height: '40px', textTransform: 'none' }}>
                 Download PNG
               </Button>
@@ -7830,7 +9473,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
                     {/* Sequence and Gantt have internal SVG wrapper structures */}
                     {activeTabKey === 'sequence' && renderSequenceDiagram()}
-                    {activeTabKey === 'gantt' && renderGanttChart()}
+                    {activeTabKey === 'gantt' && renderGanttChart(true)}
 
                     {/* DRAGGABLE NODE CARDS OVERLAY (HTML siblings for ER, Use Case, and Activity) */}
                     {activeTabKey === 'er' && parseER(code).entities.map((entity, idx) => {

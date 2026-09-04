@@ -20,7 +20,7 @@ export const ProtectedRoute = ({ allowedRoles }) => {
 
   // If logged in but does not have the correct role, redirect to courses page
   if (allowedRoles && !hasRole(allowedRoles)) {
-    return <Navigate to="/courses" replace />;
+    return <Navigate to="/labs" replace />;
   }
 
   // User is allowed -> render the requested page

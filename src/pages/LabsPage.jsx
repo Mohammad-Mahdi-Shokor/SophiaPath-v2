@@ -463,24 +463,19 @@ const LabsPage = () => {
   const [isSweOpen, setIsSweOpen] = useState(false);
   const [sweInitialTab, setSweInitialTab] = useState('er');
 
-  // Read URL query parameter for active lab to ensure persistence on refresh
+  // Read URL query parameter for active lab to ensure persistence on refresh, defaulting to Computer Science
   const [selectedLabGroup, setSelectedLabGroup] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const labParam = params.get('lab');
     if (labParam === 'Philosophy' || labParam === 'Cybersecurity') {
       return null;
     }
-    return labParam || null;
+    return labParam || 'Computer Science';
   });
 
-  const categories = ['All', 'Computer Science', 'Security'];
+  const categories = ['All', 'Software Engineering'];
 
   const handleSelectLabGroup = (name) => {
-    if (name === 'Cybersecurity') {
-      navigate('/cyber-lab');
-      return;
-    }
-
     setSelectedLabGroup(name);
     const params = new URLSearchParams(window.location.search);
     if (name) {
@@ -492,15 +487,17 @@ const LabsPage = () => {
     window.history.pushState(null, '', newUrl);
   };
 
-  // Get active selected lab object (only CS supports drill-down now)
+  // Get active selected lab object (defaults to Computer Science)
   const activeLabGroupObj = useMemo(() => {
-    if (!selectedLabGroup) return null;
-    return labsData.find(c => c.title.toLowerCase() === selectedLabGroup.toLowerCase()) || null;
+    return labsData.find(c => c.title.toLowerCase() === (selectedLabGroup || 'computer science').toLowerCase()) || labsData[0];
   }, [selectedLabGroup]);
+
+  // Filter to Software Engineering labs only, excluding sequence diagram for now
+  const isSweLab = (lab) => (lab.course === 'Software Engineering' || lab.id.startsWith('swe-')) && lab.id !== 'swe-sequence';
 
   // Compute all matching labs (for search query or category filter)
   const filteredLabsAcrossAll = useMemo(() => {
-    return SEARCHABLE_LABS.filter(lab => {
+    return SEARCHABLE_LABS.filter(isSweLab).filter(lab => {
       const matchesSearch =
         lab.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         lab.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -575,27 +572,29 @@ const LabsPage = () => {
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* Back Button is now inside the animated card container to transition smoothly */}
-            <Box style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
-              <IconButton
-                onClick={() => handleSelectLabGroup(null)}
-                style={{
-                  color: 'var(--text-primary)',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  marginRight: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.1)'
-                }}
-              >
-                <ArrowBackIcon />
-              </IconButton>
-              <Typography variant="body1" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                Back to Labs
-              </Typography>
-            </Box>
+            {/* Back Button (temporarily hidden per user request; preserved for later) */}
+            {false && (
+              <Box style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+                <IconButton
+                  onClick={() => handleSelectLabGroup(null)}
+                  style={{
+                    color: 'var(--text-primary)',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    marginRight: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  <ArrowBackIcon />
+                </IconButton>
+                <Typography variant="body1" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  Back to Labs
+                </Typography>
+              </Box>
+            )}
 
             <section className="learning-section">
               <div className="learning-course-grid">
-                {activeLabGroupObj.labs.map((lab) => (
+                {activeLabGroupObj.labs.filter(isSweLab).map((lab) => (
                   <Paper
                     key={lab.id}
                     className="learning-course-card glass-panel lab-card"
