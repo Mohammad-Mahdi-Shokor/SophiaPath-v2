@@ -1,0 +1,68 @@
+Date : 2026-06-23 01:18:40
+Directory : c:\mostafa\homework\Capstone Project\sophiapath-web
+Total : 31 files,  6383 codes, 118 comments, 807 blanks, all 7308 lines
+
+Languages
++----------------+------------+------------+------------+------------+------------+
+| language       | files      | code       | comment    | blank      | total      |
++----------------+------------+------------+------------+------------+------------+
+| JavaScript JSX |         16 |      3,504 |        110 |        392 |      4,006 |
+| PostCSS        |         12 |      2,779 |          2 |        401 |      3,182 |
+| JavaScript     |          3 |        100 |          6 |         14 |        120 |
++----------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                               | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                  |         31 |      6,383 |        118 |        807 |      7,308 |
+| . (Files)                                                                                          |          2 |         30 |          6 |         14 |         50 |
+| src                                                                                                |         29 |      6,353 |        112 |        793 |      7,258 |
+| src (Files)                                                                                        |          1 |        179 |          0 |          7 |        186 |
+| src\components                                                                                     |          2 |        800 |         34 |        126 |        960 |
+| src\features                                                                                       |          5 |        224 |          1 |         11 |        236 |
+| src\features\achievements                                                                          |          1 |         -1 |          0 |          0 |         -1 |
+| src\features\chat                                                                                  |          2 |         -1 |          0 |          0 |         -1 |
+| src\features\profile                                                                               |          1 |        219 |          1 |         11 |        231 |
+| src\features\settings                                                                              |          1 |          7 |          0 |          0 |          7 |
+| src\pages                                                                                          |         20 |      5,080 |         77 |        649 |      5,806 |
+| src\theme                                                                                          |          1 |         70 |          0 |          0 |         70 |
++----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| filename                                                                                           | language       | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\CppPlaygroundDialog.jsx         | JavaScript JSX |         66 |          7 |         17 |         90 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\JavaOopUmlPlayground.jsx        | JavaScript JSX |        734 |         27 |        109 |        870 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\achievements\AchievementsPage.css | PostCSS        |         -1 |          0 |          0 |         -1 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\chat\Chat.css                     | PostCSS        |         -2 |          0 |          0 |         -2 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\chat\ChatPage.jsx                 | JavaScript JSX |          1 |          0 |          0 |          1 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\profile\ProfilePage.jsx           | JavaScript JSX |        219 |          1 |         11 |        231 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\settings\SettingsPage.jsx         | JavaScript JSX |          7 |          0 |          0 |          7 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\index.css                                  | PostCSS        |        179 |          0 |          7 |        186 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\Auth.css                             | PostCSS        |         -1 |          0 |          0 |         -1 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\CaesarCipherExplorer.css             | PostCSS        |        305 |          0 |         46 |        351 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\CaesarCipherExplorer.jsx             | JavaScript JSX |        197 |          0 |         27 |        224 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\CyberLabPage.css                     | PostCSS        |        204 |          0 |         25 |        229 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\CyberLabPage.jsx                     | JavaScript JSX |        722 |         12 |         30 |        764 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\DenialOfServiceLab.css               | PostCSS        |        224 |          0 |         40 |        264 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\DenialOfServiceLab.jsx               | JavaScript JSX |        238 |         11 |         39 |        288 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\EnigmaMachine.css                    | PostCSS        |        664 |          1 |         95 |        760 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\EnigmaMachine.jsx                    | JavaScript JSX |        352 |         18 |         61 |        431 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningContentPage.jsx              | JavaScript JSX |        158 |          1 |          7 |        166 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningPage.css                     | PostCSS        |          2 |          0 |          0 |          2 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningPage.jsx                     | JavaScript JSX |         -3 |          0 |          0 |         -3 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\LearningPathPage.jsx                 | JavaScript JSX |         57 |          1 |          2 |         60 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\NavigationPage.css                   | PostCSS        |         25 |          0 |          3 |         28 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\NavigationPage.jsx                   | JavaScript JSX |        176 |          4 |         11 |        191 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\PhilosophyLabPage.jsx                | JavaScript JSX |          1 |          0 |          0 |          1 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\RSAVisualizer.css                    | PostCSS        |        611 |          0 |        101 |        712 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\RSAVisualizer.jsx                    | JavaScript JSX |        299 |         28 |         52 |        379 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\VigenereCipherExplorer.css           | PostCSS        |        569 |          1 |         84 |        654 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages\VigenereCipherExplorer.jsx           | JavaScript JSX |        280 |          0 |         26 |        306 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\theme\theme.js                             | JavaScript     |         70 |          0 |          0 |         70 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\test_screenshot.cjs                            | JavaScript     |         15 |          3 |          7 |         25 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\test_screenshot.js                             | JavaScript     |         15 |          3 |          7 |         25 |
+| Total                                                                                              |                |      6,383 |        118 |        807 |      7,308 |
++----------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+

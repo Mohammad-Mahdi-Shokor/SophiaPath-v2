@@ -1,0 +1,100 @@
+Date : 2026-06-21 01:59:56
+Directory : c:\mostafa\homework\Capstone Project\sophiapath-web\src\pages
+Total : 46 files,  -34926 codes, -326 comments, -1248 blanks, all -36500 lines
+
+Languages
++----------------+------------+------------+------------+------------+------------+
+| language       | files      | code       | comment    | blank      | total      |
++----------------+------------+------------+------------+------------+------------+
+| XML            |          2 |         -2 |          0 |          0 |         -2 |
+| Markdown       |          1 |        -10 |          0 |         -9 |        -19 |
+| HTML           |          1 |        -13 |          0 |         -1 |        -14 |
+| PostCSS        |          7 |     -1,700 |        -41 |       -263 |     -2,004 |
+| Diff           |          1 |     -3,618 |         -6 |       -105 |     -3,729 |
+| JSON           |          2 |     -4,135 |          0 |         -2 |     -4,137 |
+| JavaScript JSX |         18 |     -8,147 |       -261 |       -814 |     -9,222 |
+| JavaScript     |         14 |    -17,301 |        -18 |        -54 |    -17,373 |
++----------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                               | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                  |         46 |    -34,926 |       -326 |     -1,248 |    -36,500 |
+| ..                                                                                                 |         46 |    -34,926 |       -326 |     -1,248 |    -36,500 |
+| .. (Files)                                                                                         |          4 |       -634 |         -9 |        -73 |       -716 |
+| ..\..                                                                                              |         12 |     -8,044 |         -7 |       -151 |     -8,202 |
+| ..\.. (Files)                                                                                      |          7 |     -7,835 |         -7 |       -121 |     -7,963 |
+| ..\..\public                                                                                       |          1 |         -1 |          0 |          0 |         -1 |
+| ..\..\scratch                                                                                      |          4 |       -208 |          0 |        -30 |       -238 |
+| ..\assets                                                                                          |          1 |         -1 |          0 |          0 |         -1 |
+| ..\components                                                                                      |          8 |     -6,080 |       -210 |       -592 |     -6,882 |
+| ..\components (Files)                                                                              |          3 |     -5,691 |       -207 |       -554 |     -6,452 |
+| ..\components\common                                                                               |          1 |        -72 |          0 |         -3 |        -75 |
+| ..\components\course                                                                               |          3 |       -288 |         -3 |        -32 |       -323 |
+| ..\components\ui                                                                                   |          1 |        -29 |          0 |         -3 |        -32 |
+| ..\context                                                                                         |          2 |       -371 |        -14 |        -61 |       -446 |
+| ..\data                                                                                            |          7 |    -16,798 |        -17 |         -8 |    -16,823 |
+| ..\data (Files)                                                                                    |          2 |        -91 |        -17 |         -4 |       -112 |
+| ..\data\courses                                                                                    |          5 |    -16,707 |          0 |         -4 |    -16,711 |
+| ..\features                                                                                        |         11 |     -2,762 |        -69 |       -351 |     -3,182 |
+| ..\features\achievements                                                                           |          2 |       -567 |        -23 |        -74 |       -664 |
+| ..\features\chat                                                                                   |          3 |       -644 |        -16 |        -84 |       -744 |
+| ..\features\editor                                                                                 |          2 |       -485 |        -15 |        -54 |       -554 |
+| ..\features\profile                                                                                |          2 |       -791 |        -15 |       -105 |       -911 |
+| ..\features\settings                                                                               |          2 |       -275 |          0 |        -34 |       -309 |
+| ..\theme                                                                                           |          1 |       -236 |          0 |        -12 |       -248 |
++----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| filename                                                                                           | language       | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
+| c:\mostafa\homework\Capstone Project\sophiapath-web\README.md                                      | Markdown       |        -10 |          0 |         -9 |        -19 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\eslint.config.js                               | JavaScript     |        -28 |          0 |         -2 |        -30 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\index.html                                     | HTML           |        -13 |          0 |         -1 |        -14 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\local_changes.diff                             | Diff           |     -3,618 |         -6 |       -105 |     -3,729 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\package-lock.json                              | JSON           |     -4,093 |          0 |         -1 |     -4,094 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\package.json                                   | JSON           |        -42 |          0 |         -1 |        -43 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\public\vite.svg                                | XML            |         -1 |          0 |          0 |         -1 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\scratch\gen_all_courses.js                     | JavaScript     |        -74 |          0 |         -8 |        -82 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\scratch\gen_mobile_dev.js                      | JavaScript     |        -53 |          0 |         -6 |        -59 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\scratch\inspect_exercises.cjs                  | JavaScript     |        -40 |          0 |         -8 |        -48 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\scratch\inspect_exercises.js                   | JavaScript     |        -41 |          0 |         -8 |        -49 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\App.css                                    | PostCSS        |       -193 |         -4 |        -36 |       -233 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\App.jsx                                    | JavaScript JSX |        -25 |         -2 |         -5 |        -32 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\assets\react.svg                           | XML            |         -1 |          0 |          0 |         -1 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\CppPlaygroundDialog.jsx         | JavaScript JSX |     -1,870 |        -86 |       -207 |     -2,163 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\JavaOopUmlPlayground.jsx        | JavaScript JSX |     -3,812 |       -121 |       -343 |     -4,276 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\ScrollToTop.jsx                 | JavaScript JSX |         -9 |          0 |         -4 |        -13 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\common\BottomNavigation.jsx     | JavaScript JSX |        -72 |          0 |         -3 |        -75 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\course\CourseCard.jsx           | JavaScript JSX |        -41 |          0 |         -6 |        -47 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\course\Lesson.jsx               | JavaScript JSX |        -74 |          0 |         -9 |        -83 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\course\UmlDiagram.jsx           | JavaScript JSX |       -173 |         -3 |        -17 |       -193 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\components\ui\AchievementCard.jsx          | JavaScript JSX |        -29 |          0 |         -3 |        -32 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\context\AuthContext.jsx                    | JavaScript JSX |       -334 |        -14 |        -51 |       -399 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\context\ThemeContext.jsx                   | JavaScript JSX |        -37 |          0 |        -10 |        -47 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\achievements.js                       | JavaScript     |        -86 |        -17 |         -2 |       -105 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses.js                            | JavaScript     |         -5 |          0 |         -2 |         -7 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\cybersecurity.js              | JavaScript     |     -4,138 |          0 |          0 |     -4,138 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\index.js                      | JavaScript     |        -17 |          0 |         -4 |        -21 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\mobileDev.js                  | JavaScript     |     -4,138 |          0 |          0 |     -4,138 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\philosophy.js                 | JavaScript     |     -4,276 |          0 |          0 |     -4,276 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\data\courses\physics.js                    | JavaScript     |     -4,138 |          0 |          0 |     -4,138 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\achievements\AchievementsPage.css | PostCSS        |       -352 |        -15 |        -55 |       -422 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\achievements\AchievementsPage.jsx | JavaScript JSX |       -215 |         -8 |        -19 |       -242 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\chat\Chat.css                     | PostCSS        |       -182 |         -4 |        -33 |       -219 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\chat\ChatListPage.jsx             | JavaScript JSX |       -170 |         -4 |        -16 |       -190 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\chat\ChatPage.jsx                 | JavaScript JSX |       -292 |         -8 |        -35 |       -335 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\editor\CodeEditor.css             | PostCSS        |       -177 |         -6 |        -31 |       -214 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\editor\CodeEditorPage.jsx         | JavaScript JSX |       -308 |         -9 |        -23 |       -340 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\profile\ProfilePage.css           | PostCSS        |       -322 |         -9 |        -57 |       -388 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\profile\ProfilePage.jsx           | JavaScript JSX |       -469 |         -6 |        -48 |       -523 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\settings\SettingsPage.css         | PostCSS        |        -72 |          0 |        -20 |        -92 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\features\settings\SettingsPage.jsx         | JavaScript JSX |       -203 |          0 |        -14 |       -217 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\index.css                                  | PostCSS        |       -402 |         -3 |        -31 |       -436 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\main.jsx                                   | JavaScript JSX |        -14 |          0 |         -1 |        -15 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\src\theme\theme.js                             | JavaScript     |       -236 |          0 |        -12 |       -248 |
+| c:\mostafa\homework\Capstone Project\sophiapath-web\vite.config.js                                 | JavaScript     |        -31 |         -1 |         -2 |        -34 |
+| Total                                                                                              |                |    -34,926 |       -326 |     -1,248 |    -36,500 |
++----------------------------------------------------------------------------------------------------+----------------+------------+------------+------------+------------+
