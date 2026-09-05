@@ -1,4 +1,4 @@
-import{r as c,j as e,B as t,e as i,D as v,P as b,h as r,g as s,Q as R,K as N,M as T,a0 as S}from"./vendor-ui-Dt5JKRcG.js";import{F as B}from"./vendor-monaco-F3d97URZ.js";import{aO as D,aP as F,aQ as y,aR as L,aS as O,aT as H,v as E,R as P,aU as w}from"./vendor-icons-Bmj0ZVJr.js";function V(){const[a,z]=c.useState(null),[k,p]=c.useState(!1),[f,d]=c.useState(""),u=`// Exploit Script for Google XSS Level 1
+import{r as c,j as e,B as t,e as i,D as v,P as b,h as r,g as s,Q as R,K as N,M as T,a0 as S}from"./vendor-ui-Btu00mx4.js";import{F as B}from"./vendor-monaco-B1WzgPR4.js";import{aO as D,aP as F,aQ as y,aR as L,aS as O,aT as H,v as E,R as P,aU as w}from"./vendor-icons-C-iKbZ2e.js";function V(){const[a,z]=c.useState(null),[k,p]=c.useState(!1),[f,d]=c.useState(""),u=`// Exploit Script for Google XSS Level 1
 function exploit(url) {
     const payload = "<script>alert(1)<\/script>";
     return url + "?query=" + encodeURIComponent(payload);
