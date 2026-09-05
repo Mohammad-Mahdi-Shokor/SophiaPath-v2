@@ -1238,7 +1238,7 @@ const NavigationPage = () => {
           onClick={sidebarCollapsed ? () => setSidebarCollapsed(false) : () => navigate('/labs')}
           title={sidebarCollapsed ? "Expand Navigation" : "SophiaPath Home"}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             <motion.div
               layout
               animate={{
@@ -1269,6 +1269,7 @@ const NavigationPage = () => {
             <span
               className="app-beta-badge"
               style={{
+                marginTop: '3px',
                 background: 'rgba(245, 158, 11, 0.12)',
                 border: '1px solid rgba(245, 158, 11, 0.35)',
                 color: '#f59e0b',
