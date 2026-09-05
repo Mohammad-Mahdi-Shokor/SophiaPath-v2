@@ -1238,7 +1238,7 @@ const NavigationPage = () => {
           onClick={sidebarCollapsed ? () => setSidebarCollapsed(false) : () => navigate('/labs')}
           title={sidebarCollapsed ? "Expand Navigation" : "SophiaPath Home"}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
             <motion.div
               layout
               animate={{
@@ -1269,16 +1269,18 @@ const NavigationPage = () => {
             <span
               className="app-beta-badge"
               style={{
-                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(234, 88, 12, 0.18))',
-                border: '1px solid rgba(245, 158, 11, 0.55)',
+                background: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
                 color: '#f59e0b',
-                fontSize: '0.55rem',
-                fontWeight: 900,
+                fontSize: '0.56rem',
+                fontWeight: 800,
                 padding: '1px 5px',
                 borderRadius: '4px',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                boxShadow: '0 0 8px rgba(245, 158, 11, 0.2)',
+                boxShadow: 'none',
+                textShadow: 'none',
+                filter: 'none',
                 lineHeight: 1.1,
                 userSelect: 'none'
               }}
@@ -1811,22 +1813,23 @@ const NavigationPage = () => {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(234, 88, 12, 0.14))',
-                  border: '1px solid rgba(245, 158, 11, 0.45)',
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
                   color: '#f59e0b',
                   fontSize: '0.66rem',
                   fontWeight: 800,
-                  padding: '4px 10px',
-                  borderRadius: '8px',
-                  letterSpacing: '0.08em',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.06em',
                   textTransform: 'uppercase',
-                  boxShadow: '0 0 10px rgba(245, 158, 11, 0.15)',
+                  boxShadow: 'none',
+                  textShadow: 'none',
+                  filter: 'none',
                   userSelect: 'none',
-                  cursor: 'default',
-                  height: '32px'
+                  cursor: 'default'
                 }}
               >
-                ⚡ BETA
+                BETA
               </span>
 
               <Button

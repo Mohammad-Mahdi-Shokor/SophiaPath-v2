@@ -72,16 +72,8 @@ const labsData = [
         course: 'OOP'
       },
       {
-        id: 'swe-er',
-        title: 'ER Diagram Modeler',
-        description: 'Design entity-relationship schemas, primary/foreign keys, and cardinalities with automated layout algorithms.',
-        path: 'dialog:swe:er',
-        iconName: 'database',
-        course: 'Software Engineering'
-      },
-      {
         id: 'swe-usecase',
-        title: 'Use Case Diagram Lab',
+        title: 'Use Case Diagram',
         description: 'Model system boundaries, actors, use cases, include/extend relationships, and user interactions.',
         path: 'dialog:swe:usecase',
         iconName: 'user',
@@ -90,7 +82,7 @@ const labsData = [
       },
       {
         id: 'swe-activity',
-        title: 'Activity Diagram & Flow Lab',
+        title: 'Activity Diagram',
         description: 'Construct control flow graphs, swimlanes, decision diamonds, fork/join branches, and step through workflow simulations.',
         path: 'dialog:swe:activity',
         iconName: 'branch',
@@ -112,6 +104,14 @@ const labsData = [
         path: 'dialog:swe:gantt',
         iconName: 'calendar',
         image: ganttChartImg,
+        course: 'Software Engineering'
+      },
+      {
+        id: 'swe-er',
+        title: 'ER Diagram',
+        description: 'Design entity-relationship schemas, primary/foreign keys, and cardinalities with automated layout algorithms.',
+        path: 'dialog:swe:er',
+        iconName: 'database',
         course: 'Software Engineering'
       }
     ]
@@ -149,18 +149,8 @@ const SEARCHABLE_LABS = [
     category: 'Computer Science'
   },
   {
-    id: 'swe-er',
-    title: 'ER Diagram Modeler',
-    description: 'Design entity-relationship schemas, primary/foreign keys, and cardinalities with automated layout algorithms.',
-    path: 'dialog:swe:er',
-    iconName: 'database',
-    course: 'Software Engineering',
-    labCategoryTitle: 'Computer Science',
-    category: 'Computer Science'
-  },
-  {
     id: 'swe-usecase',
-    title: 'Use Case Diagram Lab',
+    title: 'Use Case Diagram',
     description: 'Model system boundaries, actors, use cases, include/extend relationships, and user interactions.',
     path: 'dialog:swe:usecase',
     iconName: 'user',
@@ -171,7 +161,7 @@ const SEARCHABLE_LABS = [
   },
   {
     id: 'swe-activity',
-    title: 'Activity Diagram & Flow Lab',
+    title: 'Activity Diagram',
     description: 'Construct control flow graphs, swimlanes, decision diamonds, fork/join branches, and step through workflow simulations.',
     path: 'dialog:swe:activity',
     iconName: 'branch',
@@ -197,6 +187,16 @@ const SEARCHABLE_LABS = [
     path: 'dialog:swe:gantt',
     iconName: 'calendar',
     image: ganttChartImg,
+    course: 'Software Engineering',
+    labCategoryTitle: 'Computer Science',
+    category: 'Computer Science'
+  },
+  {
+    id: 'swe-er',
+    title: 'ER Diagram',
+    description: 'Design entity-relationship schemas, primary/foreign keys, and cardinalities with automated layout algorithms.',
+    path: 'dialog:swe:er',
+    iconName: 'database',
     course: 'Software Engineering',
     labCategoryTitle: 'Computer Science',
     category: 'Computer Science'
@@ -531,13 +531,20 @@ const LabsPage = () => {
   // Compute all matching labs for active view (filters by search query)
   const displayedLabs = useMemo(() => {
     const baseLabs = (activeLabGroupObj?.labs || []).filter(isVisibleLab);
-    return baseLabs.filter(lab => {
+    const filtered = baseLabs.filter(lab => {
       const matchesSearch =
         !searchQuery.trim() ||
         lab.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (lab.description && lab.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
       return matchesSearch;
+    });
+
+    // Ensure disabled ("Coming Soon") labs are always placed at the very end
+    return [...filtered].sort((a, b) => {
+      const aDisabled = isLabDisabled(a) ? 1 : 0;
+      const bDisabled = isLabDisabled(b) ? 1 : 0;
+      return aDisabled - bDisabled;
     });
   }, [activeLabGroupObj, searchQuery]);
 
