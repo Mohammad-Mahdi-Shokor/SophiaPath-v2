@@ -47,17 +47,10 @@ import {
 
 
 import { AnimatePresence, motion } from 'framer-motion';
-import LearningPage from '../pages/LearningPage';
-import AdminDashboardPage from '../pages/AdminDashboardPage';
 import ProfilePage from '../features/profile/ProfilePage';
 import AchievementsPage from '../features/achievements/AchievementsPage';
 import SettingsPage from '../features/settings/SettingsPage';
-import CourseDetailPage from './CourseDetailPage';
-import LearningPathPage from './LearningPathPage';
-import QuizPage from './QuizPage';
-import LearningContentPage from './LearningContentPage';
 import ChallengePage from './labs/ChallengePage';
-import CourseSectionsPage from './CourseSectionsPage';
 import CyberLabPage from './CyberLabPage';
 import LabsPage from './LabsPage';
 import SecurityChallenges from './labs/SecurityChallenges';
@@ -99,7 +92,7 @@ import { useAuth } from '../context/AuthContext';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import ConstellationBackground from '../components/ConstellationBackground';
-import { coursesData } from '../data/courses';
+const coursesData = [];
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
 
@@ -1990,27 +1983,24 @@ const NavigationPage = () => {
         <section className="nav-content">
           <AnimatePresence mode="wait">
             <Routes location={location} key={getRouteKey(location.pathname)}>
-              <Route element={<ProtectedRoute allowedRoles={[1, 3]} />}>
-                <Route path="/" element={<AnimatedPage><AdminDashboardPage /></AnimatedPage>} />
-              </Route>
-              <Route path="/courses" element={<AnimatedPage><LearningPage /></AnimatedPage>} />
-              <Route path="/sections" element={<AnimatedPage><CourseSectionsPage /></AnimatedPage>} />
+              <Route path="/" element={<Navigate to="/labs" replace />} />
               <Route path="/labs" element={<AnimatedPage><LabsPage /></AnimatedPage>} />
+              <Route path="/cyber-lab" element={<AnimatedPage><CyberLabPage /></AnimatedPage>} />
               <Route path="/challenge" element={<AnimatedPage><ChallengePage /></AnimatedPage>} />
+              <Route path="/security-challenges" element={<AnimatedPage><SecurityChallenges /></AnimatedPage>} />
               <Route path="/profile" element={<AnimatedPage><ProfilePage /></AnimatedPage>} />
               <Route path="/achievements" element={<AnimatedPage><AchievementsPage /></AnimatedPage>} />
-
               <Route path="/settings" element={<AnimatedPage><SettingsPage /></AnimatedPage>} />
 
-              <Route path="/course/:courseId" element={<AnimatedPage><CourseDetailPage /></AnimatedPage>} />
-              <Route path="/learning-path/:courseId" element={<AnimatedPage><LearningPathPage /></AnimatedPage>} />
+              {/* Redirect legacy course paths to /labs */}
+              <Route path="/courses" element={<Navigate to="/labs" replace />} />
+              <Route path="/sections" element={<Navigate to="/labs" replace />} />
+              <Route path="/course/*" element={<Navigate to="/labs" replace />} />
+              <Route path="/learning-path/*" element={<Navigate to="/labs" replace />} />
+              <Route path="/quiz/*" element={<Navigate to="/labs" replace />} />
+              <Route path="/learning/*" element={<Navigate to="/labs" replace />} />
 
-              <Route path="/quiz/:courseDomain/:lessonId" element={<AnimatedPage><QuizPage /></AnimatedPage>} />
-              <Route path="/learning/:courseId/:sectionId/:lessonId" element={<AnimatedPage><LearningContentPage /></AnimatedPage>} />
-              <Route path="/cyber-lab" element={<AnimatedPage><CyberLabPage /></AnimatedPage>} />
-              <Route path="/security-challenges" element={<AnimatedPage><SecurityChallenges /></AnimatedPage>} />
-
-              <Route path="*" element={<Navigate to="/labs" />} />
+              <Route path="*" element={<Navigate to="/labs" replace />} />
             </Routes>
           </AnimatePresence>
         </section>
