@@ -317,20 +317,6 @@ END`,
 
 GANTT Software Development Project
 
-PROJECT Requirements & Design
-TASK Requirements Analysis
-START 2026-09-01
-END 2026-09-28
-
-TASK System Architecture Design
-START 2026-09-29
-END 2026-10-26
-DEPENDS ON Requirements Analysis
-
-MILESTONE Design Signoff
-DATE 2026-10-26
-
-PROJECT Core Development
 TASK Database Modeling & Setup
 START 2026-10-27
 END 2026-11-23
@@ -346,19 +332,7 @@ START 2026-12-22
 END 2027-01-25
 DEPENDS ON Backend API Development
 
-PROJECT QA & Launch
-TASK Integration & Security Testing
-START 2027-01-26
-END 2027-02-15
-DEPENDS ON Frontend UI Implementation
-
-TASK Production Deployment
-START 2027-02-16
-END 2027-02-22
-DEPENDS ON Integration & Security Testing
-
-MILESTONE System Go-Live
-DATE 2027-02-22`
+`
 };
 
 const AddEntityDialog = ({ open, onClose, onSubmit, existingEntityNames }) => {
@@ -2575,13 +2549,13 @@ export const computeGanttDependencyPath = (
 };
 
 export const parseGantt = (text) => {
-  let title = 'SophiaPath Roadmap';
+  let title = 'Project Roadmap';
   const titleMatch = text ? text.match(/^(?:GANTT|title)\s+(.+)$/im) : null;
   if (titleMatch) title = titleMatch[1].trim();
 
   const sections = [];
   const tasks = [];
-  let currentSection = 'SophiaPath';
+  let currentSection = 'General';
   const lines = (text || '').split('\n');
 
   const isCustomFormat = (text || '').includes('TASK') || (text || '').includes('PROJECT') || (text || '').includes('START') || (text || '').includes('MILESTONE');
@@ -2736,7 +2710,7 @@ export const parseGantt = (text) => {
 };
 
 export const serializeGantt = (title, sections, tasks) => {
-  let out = `GANTT ${title || 'SophiaPath Development'}\n\n`;
+  let out = `GANTT ${title || 'Project Development'}\n\n`;
 
   sections.forEach(sec => {
     out += `PROJECT ${sec}\n\n`;
@@ -2838,7 +2812,7 @@ export const insertGanttTaskAfterInCode = (prevCode, afterTaskName) => {
 
   let newStart = '2026-08-01';
   let newEnd = '2026-08-07';
-  let section = 'SophiaPath';
+  let section = 'General';
   if (afterTask) {
     section = afterTask.section;
     newStart = afterTask.endDateStr || afterTask.startDateStr || '2026-08-01';
@@ -5074,36 +5048,44 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
         const wpKey = `${link.source}_${link.target}`;
         const wp = usecaseWaypoints ? usecaseWaypoints[wpKey] : null;
-        const cx = wp ? wp.x : (x1 + x2) / 2;
+        const isBothUC = !isSourceActor && !isTargetActor;
+        const defaultCx = (isBothUC && Math.abs(x1 - x2) < 40)
+          ? (x1 + x2) / 2 + 35
+          : (x1 + x2) / 2;
+        const cx = wp ? wp.x : defaultCx;
         const cy = wp ? wp.y : (y1 + y2) / 2;
 
-        const pathD = wp ? `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}` : `M ${x1} ${y1} L ${x2} ${y2}`;
+        const pathD = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
 
-        let strokeColor = primaryMain;
+        let strokeColor = activeTheme === 'dark' ? primaryMain : '#475569';
         let strokeDasharray = 'none';
         let markerEnd = 'none';
 
         if (isExtendInclude) {
-          strokeColor = '#00FFCC';
+          strokeColor = activeTheme === 'dark' ? '#00FFCC' : '#0284c7';
           strokeDasharray = '5,5';
           markerEnd = 'url(#usecase-arrow)';
         } else if (isInherits) {
+          strokeColor = activeTheme === 'dark' ? '#c084fc' : '#7e22ce';
           markerEnd = 'url(#usecase-generalization-arrow)';
         }
 
         let labelSvg = '';
         if (isExtendInclude) {
+          const badgeText = link.label === 'EXTEND' ? '&lt;&lt;extend&gt;&gt;' : '&lt;&lt;include&gt;&gt;';
+          const badgeColor = activeTheme === 'dark' ? '#00FFCC' : '#0284c7';
+          const badgeBorder = activeTheme === 'dark' ? (divider || 'rgba(0, 255, 204, 0.35)') : 'rgba(2, 132, 199, 0.35)';
           labelSvg = `
             <g>
-              <rect x="${cx - 38}" y="${cy - 9}" width="76" height="18" rx="4" fill="${bgDefault}" stroke="${divider || 'rgba(255,255,255,0.15)'}" stroke-width="1" />
-              <text x="${cx}" y="${cy}" fill="#00FFCC" font-size="9" font-weight="bold" font-family="'Outfit', sans-serif" text-anchor="middle" dominant-baseline="central">${link.label === 'EXTEND' ? '&lt;&lt;extend&gt;&gt;' : '&lt;&lt;include&gt;&gt;'}</text>
+              <rect x="${cx - 38}" y="${cy - 9}" width="76" height="18" rx="4" fill="${bgPaper}" stroke="${badgeBorder}" stroke-width="1" />
+              <text x="${cx}" y="${cy}" fill="${badgeColor}" font-size="9" font-weight="bold" font-family="'Outfit', sans-serif" text-anchor="middle" dominant-baseline="central">${badgeText}</text>
             </g>
           `;
         }
 
         return `
           <g>
-            <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-dasharray="${strokeDasharray}" marker-end="${markerEnd}" />
+            <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="1.75" stroke-dasharray="${strokeDasharray}" marker-end="${markerEnd}" />
             ${labelSvg}
           </g>
         `;
@@ -5114,7 +5096,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         const p = activePositions[uc.id] || autoPos[uc.id] || { x: 420, y: idx * 110 + 100 };
         const cx = p.x + 100;
         const cy = p.y + 25;
-        const textSvg = renderCenteredTextLines(uc.label || uc.name, cx, cy, 180, { fontSize: 12, lineHeight: 15, fontWeight: 700 });
+        const textSvg = renderCenteredTextLines(uc.label || uc.name, cx, cy, 180, { fontSize: 13, lineHeight: 16, fontWeight: 700, fill: textPrimary });
         return `
           <g id="uc-${uc.id}">
             <rect x="${p.x}" y="${p.y}" width="200" height="50" rx="25" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="2" />
@@ -5128,7 +5110,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         const p = activePositions[act.id] || autoPos[act.id] || { x: 100, y: idx * 180 + 150 };
         const cx = p.x + 38;
         const headCy = p.y + 15;
-        const textSvg = renderCenteredTextLines(act.label || act.name, cx, p.y + 98, 74, { fontSize: 11, lineHeight: 13, fontWeight: 700 });
+        const textSvg = renderCenteredTextLines(act.label || act.name, cx, p.y + 98, 74, { fontSize: 11, lineHeight: 13, fontWeight: 700, fill: textPrimary });
         return `
           <g id="act-${act.id}">
             <circle cx="${cx}" cy="${headCy}" r="12" fill="${bgPaper}" stroke="${primaryMain}" stroke-width="3" />
@@ -5543,10 +5525,10 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       <line x1="14" y1="2" x2="14" y2="18" stroke="${primaryMain}" stroke-width="2" />
     </marker>
     <marker id="usecase-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 10 5 L 0 9" fill="none" stroke="#00FFCC" stroke-width="1.5" />
+      <path d="M 0 1 L 10 5 L 0 9" fill="none" stroke="${activeTheme === 'dark' ? '#00FFCC' : '#0284c7'}" stroke-width="1.5" />
     </marker>
     <marker id="usecase-generalization-arrow" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M 0 2 L 12 6 L 0 10 Z" fill="${bgDefault}" stroke="${primaryMain}" stroke-width="1.5" />
+      <path d="M 0 2 L 12 6 L 0 10 Z" fill="${bgPaper}" stroke="${activeTheme === 'dark' ? '#c084fc' : '#7e22ce'}" stroke-width="1.5" />
     </marker>
     <marker id="activity-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M 0 1.5 L 9 5 L 0 8.5 Z" fill="${primaryMain}" stroke="${primaryMain}" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
@@ -5556,7 +5538,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 </svg>`;
   };
 
-  const renderSvgToPngBlob = (svgString, width, height, themeColors) => {
+  const renderSvgToPngBlob = (svgString, width, height, themeColors, tabKey = 'activity') => {
     return new Promise((resolve, reject) => {
       const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -5572,12 +5554,15 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           URL.revokeObjectURL(url);
 
+          // Render corner watermark on exported image (compact & subtle on Gantt charts)
+          const isGantt = tabKey === 'gantt';
           const W = canvas.width;
           const H = canvas.height;
-          const pad = 20 * 2;
-          const logoSize = 32 * 2;
-          const fontSize = 22 * 2;
-          const gap = 10 * 2;
+          const pad = isGantt ? 8 * 2 : 16 * 2;
+          const logoSize = isGantt ? 13 * 2 : 24 * 2;
+          const fontSize = isGantt ? 9.5 * 2 : 16 * 2;
+          const gap = isGantt ? 4 * 2 : 7 * 2;
+          const watermarkAlpha = isGantt ? 0.38 : 0.5;
           const sophiaText = 'Sophia';
           const pathText = 'Path';
 
@@ -5614,11 +5599,11 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
             offCtx.globalCompositeOperation = 'destination-in';
             offCtx.drawImage(logoImage, 0, 0, logoW, logoH);
 
-            ctx.globalAlpha = 0.5;
+            ctx.globalAlpha = watermarkAlpha;
             ctx.drawImage(offscreen, startX, logoY, logoW, logoH);
           }
 
-          ctx.globalAlpha = 0.5;
+          ctx.globalAlpha = watermarkAlpha;
           ctx.font = `900 ${fontSize}px "Outfit", sans-serif`;
           ctx.fillStyle = themeColors.primaryMain;
           ctx.fillText(sophiaText, startX + logoW + gap, textBaselineY);
@@ -5649,7 +5634,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       const exportW = isFullDoc ? bounds.width : bounds.width + 80;
       const exportH = isFullDoc ? bounds.height : bounds.height + 80;
       const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, { ...nodePositions, _isPreview: true });
-      const pngBlob = await renderSvgToPngBlob(svgDoc, exportW, exportH, themeColors);
+      const pngBlob = await renderSvgToPngBlob(svgDoc, exportW, exportH, themeColors, activeTabKey);
       if (pngBlob) {
         const link = document.createElement('a');
         link.download = `${activeTabKey}_diagram.png`;
@@ -5670,7 +5655,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       const exportW = isFullDoc ? bounds.width : bounds.width + 80;
       const exportH = isFullDoc ? bounds.height : bounds.height + 80;
       const svgDoc = generatePureDiagramSvg(activeTabKey, code, bounds, themeColors, nodePositions);
-      const pngBlob = await renderSvgToPngBlob(svgDoc, exportW, exportH, themeColors);
+      const pngBlob = await renderSvgToPngBlob(svgDoc, exportW, exportH, themeColors, activeTabKey);
       if (pngBlob) {
         const link = document.createElement('a');
         link.download = `${activeTabKey}_diagram.png`;
@@ -9224,7 +9209,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
               cursor="pointer"
               onClick={(e) => {
                 e.stopPropagation();
-                setCode(prev => insertGanttTaskInSectionInCode(prev, sections[0] || 'SophiaPath'));
+                setCode(prev => insertGanttTaskInSectionInCode(prev, sections[0] || 'General'));
               }}
             >
               <rect
@@ -12264,53 +12249,6 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
                   </div>
                 </Box>
               </Box>
-            </Box>
-            {/* Viewport Watermark (Always visible on the screen preview dialog) */}
-            <Box
-              style={{
-                position: 'absolute',
-                bottom: '24px',
-                right: '24px',
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: '0.75rem',
-                opacity: 0.5,
-                pointerEvents: 'none',
-                userSelect: 'none',
-                zIndex: 10
-              }}
-            >
-              <div
-                className="nav-brand-logo-container"
-                style={{
-                  width: '2rem',
-                  height: '2rem',
-                  WebkitMaskImage: `url(${logoImg})`,
-                  maskImage: `url(${logoImg})`,
-                  WebkitMaskRepeat: 'no-repeat',
-                  maskRepeat: 'no-repeat',
-                  WebkitMaskPosition: 'center',
-                  maskPosition: 'center',
-                  WebkitMaskSize: 'contain',
-                  maskSize: 'contain'
-                }}
-              >
-                <div className="nav-logo-left-half" />
-                <div className="nav-logo-right-half" />
-              </div>
-              <Typography
-                className="nav-brand-title"
-                style={{
-                  fontSize: '1.1rem',
-                  fontWeight: 900,
-                  fontFamily: '"Outfit", sans-serif',
-                  letterSpacing: '0.05em'
-                }}
-              >
-                <span style={{ color: 'var(--primary-main)' }}>Sophia</span>
-                <span style={{ color: 'var(--primary-dark)' }}>Path</span>
-              </Typography>
             </Box>
           </DialogContent>
         </Dialog>
