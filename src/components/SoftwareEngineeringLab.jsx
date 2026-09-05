@@ -3094,6 +3094,13 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         }
       } else if (activeTabKey === 'usecase') {
         const { actors, usecases, links } = parseUseCase(code);
+        const validIds = new Set([...actors.map(a => a.id), ...usecases.map(u => u.id)]);
+        Object.keys(next).forEach(k => {
+          if (!validIds.has(k)) {
+            delete next[k];
+            updated = true;
+          }
+        });
         // Check if any nodes need positions assigned
         const needsLayout =
           actors.some(a => !next[a.id]) ||
@@ -4526,27 +4533,28 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       if (usecases.length > 0) {
         const paddingLeft = 60;
         const paddingRight = 60;
-        const paddingTop = 75;
+        const paddingTop = 70;
         const paddingBottom = 60;
 
         let boxX = minUcX - paddingLeft;
-        let boxY = minUcY - paddingTop;
+        let boxY = Math.max(30, minUcY - paddingTop);
         let boxWidth = (maxUcX + paddingRight) - boxX;
         let boxHeight = (maxUcY + paddingBottom) - boxY;
 
         if (boxWidth < 360) {
           const diff = 360 - boxWidth;
           boxWidth = 360;
-          boxX -= diff / 2;
+          boxX = Math.max(20, boxX - diff / 2);
         }
         if (boxHeight < 540) {
-          const diff = 540 - boxHeight;
           boxHeight = 540;
-          boxY -= diff / 2;
         }
 
         xs.push(boxX, boxX + boxWidth);
         ys.push(boxY, boxY + boxHeight);
+      } else {
+        xs.push(260, 260 + 360);
+        ys.push(30, 30 + 540);
       }
 
       Object.values(usecaseWaypoints || {}).forEach(wp => {
@@ -4996,29 +5004,27 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
         const paddingLeft = 60;
         const paddingRight = 60;
-        const paddingTop = 75;
+        const paddingTop = 70;
         const paddingBottom = 60;
 
         boxX = minUcX - paddingLeft;
-        boxY = minUcY - paddingTop;
+        boxY = Math.max(30, minUcY - paddingTop);
         boxWidth = (maxUcX + paddingRight) - boxX;
         boxHeight = (maxUcY + paddingBottom) - boxY;
 
         if (boxWidth < 360) {
           const diff = 360 - boxWidth;
           boxWidth = 360;
-          boxX -= diff / 2;
+          boxX = Math.max(20, boxX - diff / 2);
         }
         if (boxHeight < 540) {
-          const diff = 540 - boxHeight;
           boxHeight = 540;
-          boxY -= diff / 2;
         }
       }
 
       const systemBoundarySvg = `
         <rect x="${boxX}" y="${boxY}" width="${boxWidth}" height="${boxHeight}" rx="16" fill="${bgPaper}" fill-opacity="${activeTheme === 'dark' ? '0.04' : '0.02'}" stroke="${primaryMain}" stroke-width="1.5" />
-        <text x="${boxX + boxWidth / 2}" y="${boxY + 25}" text-anchor="middle" dominant-baseline="central" fill="${textSecondary}" font-size="13" font-weight="bold" font-family="'Outfit', sans-serif" letter-spacing="0.05em">${escapeXml(systemName ? systemName.toUpperCase() : 'SYSTEM BOUNDARY')}</text>
+        <text x="${boxX + boxWidth / 2}" y="${boxY + 22}" text-anchor="middle" dominant-baseline="central" fill="${textSecondary}" font-size="13" font-weight="bold" font-family="'Outfit', sans-serif" letter-spacing="0.05em">${escapeXml(systemName ? systemName.toUpperCase() : 'SYSTEM BOUNDARY')}</text>
       `;
 
       // 2. Render all links using precise connection anchor routing matching the live canvas
@@ -6243,13 +6249,13 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
     const UC_W = 200;
     const UC_H = 50;
-    const UC_GAP_PRIMARY  = 22;   // halved vertical gap between primary UCs
+    const UC_GAP_PRIMARY  = (usecases.length <= 6) ? 36 : 22;
     const UC_GAP_SECONDARY = 19;  // halved vertical gap between secondary UCs
     const AC_W = 76;
     const AC_H = 118;            // bounding box for actor stickman + text label with comfortable clearance
     const ACTOR_PADDING = 85;     // comfortable vertical padding between actors so no line crosses any actor/text
     const LEFT_X          = 100;  // left edge of root actor column
-    const MARGIN_TOP      = 80;
+    const MARGIN_TOP      = (usecases.length <= 6) ? 130 : 100;
     const ACTOR_COL_WIDTH = 150;  // lowered horizontal separation between parent and child actor columns
 
     const positions  = {};
@@ -8282,11 +8288,11 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
 
       const paddingLeft = 60;
       const paddingRight = 60;
-      const paddingTop = 75;
+      const paddingTop = 70;
       const paddingBottom = 60;
 
       boxX = minUcX - paddingLeft;
-      boxY = minUcY - paddingTop;
+      boxY = Math.max(30, minUcY - paddingTop);
       boxWidth = (maxUcX + paddingRight) - boxX;
       boxHeight = (maxUcY + paddingBottom) - boxY;
 
@@ -8294,12 +8300,10 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
       if (boxWidth < 360) {
         const diff = 360 - boxWidth;
         boxWidth = 360;
-        boxX -= diff / 2;
+        boxX = Math.max(20, boxX - diff / 2);
       }
       if (boxHeight < 540) {
-        const diff = 540 - boxHeight;
         boxHeight = 540;
-        boxY -= diff / 2;
       }
     }
 
@@ -8318,7 +8322,7 @@ export const SoftwareEngineeringLab = ({ open, onClose, initialTab = 'er', hideD
         />
         <text 
           x={boxX + boxWidth / 2} 
-          y={boxY + 25} 
+          y={boxY + 22} 
           fill="var(--text-secondary)" 
           fontSize="13" 
           fontWeight="bold" 

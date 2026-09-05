@@ -42,6 +42,11 @@ import { CppPlaygroundDialog } from '../components/CppPlaygroundDialog';
 import { JavaOopUmlPlayground } from '../components/JavaOopUmlPlayground';
 import { SoftwareEngineeringLab } from '../components/SoftwareEngineeringLab';
 
+// Diagram screenshots from assets/labs
+import useCaseDiagramImg from '../assets/labs/activityDiagram.png';
+import activityDiagramImg from '../assets/labs/activityFlowModel.png';
+import ganttChartImg from '../assets/labs/ghantChart.png';
+
 const labsData = [
   {
     title: "Computer Science",
@@ -80,6 +85,7 @@ const labsData = [
         description: 'Model system boundaries, actors, use cases, include/extend relationships, and user interactions.',
         path: 'dialog:swe:usecase',
         iconName: 'user',
+        image: useCaseDiagramImg,
         course: 'Software Engineering'
       },
       {
@@ -88,6 +94,7 @@ const labsData = [
         description: 'Construct control flow graphs, swimlanes, decision diamonds, fork/join branches, and step through workflow simulations.',
         path: 'dialog:swe:activity',
         iconName: 'branch',
+        image: activityDiagramImg,
         course: 'Software Engineering'
       },
       {
@@ -100,10 +107,11 @@ const labsData = [
       },
       {
         id: 'swe-gantt',
-        title: 'Gantt Chart & Scrum Scheduler',
+        title: 'Gantt Chart',
         description: 'Schedule project milestones, sprint tasks, critical paths, and duration timelines with interactive visual controls.',
         path: 'dialog:swe:gantt',
         iconName: 'calendar',
+        image: ganttChartImg,
         course: 'Software Engineering'
       }
     ]
@@ -156,6 +164,7 @@ const SEARCHABLE_LABS = [
     description: 'Model system boundaries, actors, use cases, include/extend relationships, and user interactions.',
     path: 'dialog:swe:usecase',
     iconName: 'user',
+    image: useCaseDiagramImg,
     course: 'Software Engineering',
     labCategoryTitle: 'Computer Science',
     category: 'Computer Science'
@@ -166,6 +175,7 @@ const SEARCHABLE_LABS = [
     description: 'Construct control flow graphs, swimlanes, decision diamonds, fork/join branches, and step through workflow simulations.',
     path: 'dialog:swe:activity',
     iconName: 'branch',
+    image: activityDiagramImg,
     course: 'Software Engineering',
     labCategoryTitle: 'Computer Science',
     category: 'Computer Science'
@@ -182,10 +192,11 @@ const SEARCHABLE_LABS = [
   },
   {
     id: 'swe-gantt',
-    title: 'Gantt Chart & Scrum Scheduler',
+    title: 'Gantt Chart',
     description: 'Schedule project milestones, sprint tasks, critical paths, and duration timelines with interactive visual controls.',
     path: 'dialog:swe:gantt',
     iconName: 'calendar',
+    image: ganttChartImg,
     course: 'Software Engineering',
     labCategoryTitle: 'Computer Science',
     category: 'Computer Science'
@@ -400,7 +411,7 @@ const SEARCHABLE_LABS = [
   },
 ];
 
-const getLabIcon = (iconName, size = 48) => {
+const getLabIcon = (iconName, size = 24) => {
   switch (iconName) {
     case 'code':
       return <Code size={size} />;
@@ -439,6 +450,25 @@ const getLabIcon = (iconName, size = 48) => {
     default:
       return <Code size={size} />;
   }
+};
+
+const getLabImage = (lab) => {
+  if (!lab) return null;
+  // Explicit instruction: leave erdiagram as it is
+  if (lab.id === 'swe-er' || (lab.title && lab.title.toLowerCase().includes('er diagram'))) {
+    return null;
+  }
+  if (lab.image) return lab.image;
+  if (lab.id === 'swe-usecase' || (lab.title && lab.title.toLowerCase().includes('use case'))) {
+    return useCaseDiagramImg;
+  }
+  if (lab.id === 'swe-activity' || (lab.title && lab.title.toLowerCase().includes('activity'))) {
+    return activityDiagramImg;
+  }
+  if (lab.id === 'swe-gantt' || (lab.title && (lab.title.toLowerCase().includes('gantt') || lab.title.toLowerCase().includes('ghant')))) {
+    return ganttChartImg;
+  }
+  return null;
 };
 
 const getLabGroupIcon = (iconKey) => {
@@ -531,7 +561,7 @@ const LabsPage = () => {
   const isSearchingOrFiltering = searchQuery.trim() !== '' || activeCategory !== 'All';
 
   return (
-    <Box className="learning-page">
+    <Box className="learning-page labs-page">
       <section className="learning-intro glass-panel-strong">
         <div className="learning-intro-copy">
           <div className="learning-intro-search">
@@ -572,11 +602,22 @@ const LabsPage = () => {
                         onClick={() => !disabled && handleLabClick(lab.path)}
                         style={disabled ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
                       >
-                        {!disabled && <ArrowOutwardIcon className="learning-course-arrow" />}
                         <div className="learning-course-card-top">
-                          <div className="learning-course-icon" style={disabled ? { filter: 'grayscale(60%)' } : {}}>
-                            {getLabIcon(lab.iconName, 48)}
-                          </div>
+                          {(() => {
+                            const labImg = getLabImage(lab);
+                            if (labImg) {
+                              return (
+                                <div className="lab-card-image-wrapper" style={disabled ? { filter: 'grayscale(60%)' } : {}}>
+                                  <img src={labImg} alt={lab.title} className="lab-card-image" />
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="learning-course-icon" style={disabled ? { filter: 'grayscale(60%)' } : {}}>
+                                {getLabIcon(lab.iconName)}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         <Typography variant="h5" className="learning-course-title" style={disabled ? { opacity: 0.8 } : {}}>
@@ -623,7 +664,6 @@ const LabsPage = () => {
                     onClick={() => handleSelectLabGroup(col.title)}
                     style={{ cursor: 'pointer' }}
                   >
-                    <ArrowOutwardIcon className="learning-course-arrow" />
                     <div className="learning-course-card-top">
                       <div className="learning-course-icon" style={{ background: 'rgba(28, 176, 246, 0.1)', color: 'var(--primary-main)' }}>
                         {getLabGroupIcon(col.iconKey)}
@@ -632,9 +672,6 @@ const LabsPage = () => {
 
                     <Typography variant="h5" className="learning-course-title">
                       {col.title}
-                    </Typography>
-                    <Typography variant="body2" className="learning-course-description">
-                      {col.description}
                     </Typography>
                     <div className="cyber-badge" style={{
                       background: 'color-mix(in srgb, var(--primary-main) 12%, transparent)',

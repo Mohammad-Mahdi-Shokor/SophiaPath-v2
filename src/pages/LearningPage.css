@@ -453,22 +453,21 @@
 
 .lab-card {
   position: relative !important;
-  padding: 2.5rem 1.6rem 2rem !important;
+  padding: 1.5rem 1.4rem !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: flex-start !important;
   text-align: center !important;
-  min-height: 270px !important;
-  border-radius: 28px !important;
-  cursor: pointer !important;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease, box-shadow 0.28s ease !important;
+  min-height: 350px !important;
+  border-radius: 32px !important;
+  box-shadow: none !important;
 }
 
 .lab-card:hover {
   transform: translateY(-4px) !important;
   border-color: rgba(var(--primary-main-rgb), 0.35) !important;
-  box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.55), 0 0 24px -6px rgba(var(--primary-main-rgb), 0.2) !important;
+  box-shadow: none !important;
 }
 
 .lab-card.is-disabled {
@@ -487,70 +486,84 @@
 }
 
 .lab-card .learning-course-arrow {
-  position: absolute !important;
-  top: 18px !important;
-  right: 18px !important;
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: var(--text-secondary) !important;
-  padding: 6px !important;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.lab-card:hover .learning-course-arrow {
-  background: rgba(var(--primary-main-rgb), 0.2) !important;
-  border-color: rgba(var(--primary-main-rgb), 0.45) !important;
-  color: var(--primary-main) !important;
-  transform: translate(2px, -2px) scale(1.08) !important;
+  display: none !important;
 }
 
 .lab-card .learning-course-icon {
-  width: 7.2rem !important;
-  height: 7.2rem !important;
-  border-radius: 30px !important;
-  background: linear-gradient(135deg, rgba(var(--primary-main-rgb), 0.16), rgba(var(--primary-main-rgb), 0.04)) !important;
-  border: 1.5px solid rgba(var(--primary-main-rgb), 0.22) !important;
-  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+  width: 5.5rem !important;
+  height: 5.5rem !important;
+  border-radius: 26px !important;
+  background: rgba(var(--primary-main-rgb), 0.16) !important;
+  border: none !important;
+  box-shadow: none !important;
   color: var(--primary-main) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all 0.3s ease !important;
+  transform: none !important;
 }
 
 .lab-card:hover .learning-course-icon {
-  transform: scale(1.06);
-  background: linear-gradient(135deg, rgba(var(--primary-main-rgb), 0.24), rgba(var(--primary-main-rgb), 0.08)) !important;
-  border-color: rgba(var(--primary-main-rgb), 0.45) !important;
-  box-shadow: 0 12px 32px -8px rgba(var(--primary-main-rgb), 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.25) !important;
+  transform: none !important;
+  background: rgba(var(--primary-main-rgb), 0.22) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .lab-card .learning-course-icon svg {
-  width: 4.2rem !important;
-  height: 4.2rem !important;
+  width: 2.6rem !important;
+  height: 2.6rem !important;
   display: block !important;
 }
 
 .lab-card .learning-course-card-top {
-  margin-bottom: 2.2rem !important;
+  margin-bottom: 1.2rem !important;
+  gap: 0.6rem !important;
   display: flex !important;
   justify-content: center !important;
+  align-items: center !important;
   width: 100% !important;
+  min-height: 205px !important;
+}
+
+.lab-card .lab-card-image-wrapper {
+  width: 100% !important;
+  max-width: 300px !important;
+  height: 205px !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  border: 1px solid var(--divider) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 8px 12px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.lab-card:hover .lab-card-image-wrapper {
+  border-color: rgba(var(--primary-main-rgb), 0.35) !important;
+}
+
+.lab-card .lab-card-image {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block !important;
 }
 
 .lab-card .learning-course-title {
-  margin: 0.4rem 0 1.6rem 0 !important;
+  margin: 0 0 1rem 0 !important;
   font-weight: 800 !important;
-  font-size: 1.22rem !important;
-  line-height: 1.35 !important;
+  font-size: 1.25rem !important;
+  line-height: 1.3 !important;
   color: var(--text-primary) !important;
-  letter-spacing: -0.01em !important;
+  transform: none !important;
 }
 
 .lab-card .learning-course-description {
@@ -561,11 +574,38 @@
   margin-top: auto !important;
   margin-bottom: 0 !important;
   align-self: center !important;
-  padding: 0.45rem 1rem !important;
-  font-size: 0.74rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.03em !important;
-  border-radius: 14px !important;
+  padding: 0.45rem 0.9rem !important;
+  font-size: 0.72rem !important;
+  border-radius: 12px !important;
+}
+
+/* Labs Page Minimalist Rules: Remove all glow and shadows */
+.labs-page,
+.labs-page *,
+.labs-page *::before,
+.labs-page *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.labs-page *:not(.is-disabled) {
+  filter: none !important;
+}
+
+.labs-page .learning-intro::before {
+  display: none !important;
+}
+
+.labs-page .lab-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: var(--divider) !important;
+  box-shadow: none !important;
+}
+
+.labs-page .learning-search-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.labs-page .learning-search-field .Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--divider) !important;
+  box-shadow: none !important;
 }
 
 @keyframes fadeInSlideUp {
